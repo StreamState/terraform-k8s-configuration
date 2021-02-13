@@ -16,7 +16,7 @@ Find the local ip address
 * minikube ssh
 * ping host.minikube.internal
 
-put this IP adress in spark-streamin.yaml for the broker:
+put this IP adress in [the spark config](./spark-streaming.yaml) for the broker:
 
 arguments:
     - [the ip address]:19092
@@ -31,7 +31,7 @@ arguments:
 
 From https://docs.confluent.io/platform/current/quickstart/cos-docker-quickstart.html and https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
 
-Edit docker-compose.yml: 
+Edit [docker-compose](./docker-compose.yml): 
 
 KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092,RMOFF_DOCKER_HACK://[the ip address]:19092
 
