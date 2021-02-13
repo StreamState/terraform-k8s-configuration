@@ -1,63 +1,71 @@
 # getting started
 
-* minikube start --cpus 4 --kubernetes-version=v1.20.2
+* minikube start --cpus 4 --memory 6000 --kubernetes-version=v1.20.2
 * minikube addons enable registry
+* minikube addons enable dashboard
+* #minikube addons enable istio
 * eval $(minikube docker-env)
 
 # install spark operator
 
 * helm repo add spark-operator https://googlecloudplatform.github.io/spark-on-k8s-operator
 * helm install my-release spark-operator/spark-operator --namespace spark-operator --create-namespace
-* kubectl apply -f manifest/spark-rbac.yaml
+* kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/spark-on-k8s-operator/master/manifest/spark-rbac.yaml
+
+Find the local ip address
+* minikube ssh
+* ping host.minikube.internal
+put this IP adress in spark-streamin.yaml for the broker:
+
+arguments:
+    - [the ip address]:19092
+    - test-1
+    - test.test
+
+# Install confluent (kafka)
 
 
-# diagnostics
+* sudo curl -L "https://github.com/docker/compose/releases/download/1.28.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 
-* kubectl get pods -n spark-operator
+From https://docs.confluent.io/platform/current/quickstart/cos-docker-quickstart.html and https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
 
+Edit docker-compose.yml: 
+
+KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092,RMOFF_DOCKER_HACK://[the ip address]:19092
+
+
+* sudo docker-compose up -d
+Make sure its running
+* sudo docker-compose ps
+* sudo docker-compose exec broker kafka-topics \
+  --create \
+  --bootstrap-server localhost:9092 \
+  --replication-factor 1 \
+  --partitions 1 \
+  --topic test.test
+
+* sudo docker-compose exec broker bash -c "seq 42 | kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test && echo 'Produced 42 messages.'"
 
 # examples
 
-* docker build . -t dhs_test
+Create the jar:
+* sbt assembly 
+Compile the docker:
+* docker build . -t dhs_test -t dhs_test:v1
+
+Run
 * kubectl apply -f spark-streaming.yaml
 * kubectl get sparkapplications word-count -o=yaml
 * kubectl describe sparkapplication word-count
 * kubectl delete -f spark-streaming.yaml
 
-# write to kafka
 
-* docker run -d \
-   --net=host \
-   --name=zk-1 \
-   -e ZOOKEEPER_SERVER_ID=1 \
-   -e ZOOKEEPER_CLIENT_PORT=22181 \
-   -e ZOOKEEPER_TICK_TIME=2000 \
-   -e ZOOKEEPER_INIT_LIMIT=5 \
-   -e ZOOKEEPER_SYNC_LIMIT=2 \
-   -e ZOOKEEPER_SERVERS="localhost:22888:23888" \
-   confluentinc/cp-zookeeper:5.0.0
 
-* docker run -d \
-    --net=host \
-    --name=kafka-1 \
-    -e KAFKA_ZOOKEEPER_CONNECT=localhost:22181 \
-    -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:29092 \
-    confluentinc/cp-kafka:5.0.0
+# Knative
 
-* docker run \
-  --net=host \
-  --rm \
-  confluentinc/cp-kafka:5.0.0 \
-  kafka-topics --create --topic bar --partitions 1 --replication-factor 1 --if-not-exists --zookeeper localhost:32181
+This is needed for our back-end app
 
-* docker run \
-    --net=host \
-    --rm \
-    confluentinc/cp-kafka:5.0.0 \
-    kafka-topics --describe --topic bar --zookeeper localhost:32181
+* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-crds.yaml
+* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-core.yaml
 
-(different terminal)
-* sudo docker run \
-  --net=host \
-  --rm confluentinc/cp-kafka:5.0.0 \
-  kafka-console-producer --broker-list localhost:29092 --topic bar "hello world"
+
