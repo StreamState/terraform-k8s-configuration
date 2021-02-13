@@ -15,6 +15,7 @@
 Find the local ip address
 * minikube ssh
 * ping host.minikube.internal
+
 put this IP adress in spark-streamin.yaml for the broker:
 
 arguments:
@@ -27,6 +28,7 @@ arguments:
 
 * sudo curl -L "https://github.com/docker/compose/releases/download/1.28.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 * sudo chmod +x /usr/local/bin/docker-compose
+
 From https://docs.confluent.io/platform/current/quickstart/cos-docker-quickstart.html and https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
 
 Edit docker-compose.yml: 
@@ -35,6 +37,7 @@ KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:
 
 
 * sudo docker-compose up -d
+
 Make sure its running
 * sudo docker-compose ps
 * sudo docker-compose exec broker kafka-topics \
@@ -43,13 +46,13 @@ Make sure its running
   --replication-factor 1 \
   --partitions 1 \
   --topic test.test
-
 * sudo docker-compose exec broker bash -c "seq 42 | kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test && echo 'Produced 42 messages.'"
 
 # examples
 
 Create the jar:
 * sbt assembly 
+
 Compile the docker:
 * docker build . -t dhs_test -t dhs_test:v1
 
