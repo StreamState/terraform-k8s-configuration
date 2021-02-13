@@ -26,7 +26,7 @@ arguments:
 
 
 * sudo curl -L "https://github.com/docker/compose/releases/download/1.28.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-
+* sudo chmod +x /usr/local/bin/docker-compose
 From https://docs.confluent.io/platform/current/quickstart/cos-docker-quickstart.html and https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
 
 Edit docker-compose.yml: 
@@ -64,8 +64,21 @@ Run
 # Knative
 
 This is needed for our back-end app
-
+* sudo curl -L "https://storage.googleapis.com/knative-nightly/client/latest/kn-linux-amd64" -o /usr/local/bin/kn
+* sudo chmod +x /usr/local/bin/kn
 * kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-crds.yaml
 * kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-core.yaml
 
 
+* kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.19.1/kourier.yaml
+* export EXTERNAL_IP=$(kubectl -n kourier-system get service kourier -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+* kubectl patch configmap/config-network \
+  --namespace knative-serving \
+  --type merge \
+  --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
+* export KNATIVE_DOMAIN="$EXTERNAL_IP.nip.io"
+* kubectl patch configmap -n knative-serving config-domain -p "{\"data\": {\"$KNATIVE_DOMAIN\": \"\"}}"
+* kubectl apply --filename back-end-app.yml
+* kubectl get ksvc helloworld-go
+
+Curl the URL to test
