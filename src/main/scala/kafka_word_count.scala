@@ -70,14 +70,10 @@ object DirectKafkaWordCount {
     StreamingExamples.setStreamingLogLevels()
 
     val Array(brokers, groupId, topics) = args
-    // Create context with 2 second batch interval
-    //val sparkConf = new SparkConf().setAppName("DirectKafkaWordCount")
     val spark = SparkSession
       .builder
       .appName("DirectKafkaWordCount")
       .getOrCreate()
-    //val ssc = new StreamingContext(sparkConf, Seconds(2))
-    //val topicsSet = topics.split(",").toSet
     val df = spark
       .readStream
       .format("kafka")
