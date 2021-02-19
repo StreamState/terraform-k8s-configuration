@@ -48,6 +48,10 @@ Make sure its running
   --topic test.test
 * sudo docker-compose exec broker bash -c "seq 42 | kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test && echo 'Produced 42 messages.'"
 
+* sudo docker-compose exec broker bash -c "echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} | kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test && echo 'Produced 1 message.'"
+
+* sudo docker-compose exec broker kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test hello
+
 * cd ..
 
 # examples
@@ -63,27 +67,3 @@ Run
 * kubectl get sparkapplications word-count -o=yaml
 * kubectl describe sparkapplication word-count
 * kubectl delete -f ./sparkstreaming/spark-streaming.yaml
-
-
-
-# Knative
-
-This is needed for our back-end app
-* sudo curl -L "https://storage.googleapis.com/knative-nightly/client/latest/kn-linux-amd64" -o /usr/local/bin/kn
-* sudo chmod +x /usr/local/bin/kn
-* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-crds.yaml
-* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-core.yaml
-
-
-* kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.19.1/kourier.yaml
-* export EXTERNAL_IP=$(kubectl -n kourier-system get service kourier -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-* kubectl patch configmap/config-network \
-  --namespace knative-serving \
-  --type merge \
-  --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
-* export KNATIVE_DOMAIN="$EXTERNAL_IP.nip.io"
-* kubectl patch configmap -n knative-serving config-domain -p "{\"data\": {\"$KNATIVE_DOMAIN\": \"\"}}"
-* kubectl apply --filename back-end-app.yml
-* kubectl get ksvc helloworld-go
-
-Curl the URL to test

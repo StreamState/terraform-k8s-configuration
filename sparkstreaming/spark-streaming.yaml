@@ -34,7 +34,7 @@ spec:
     - 192.168.99.1:19092
     - test-1 # should be the default group
     - test.test # topic
-  mainClass: dhstest.DirectKafkaWordCount
+  mainClass: dhstest.KafkaSourceWrapper
   mainApplicationFile: "local:///opt/spark/work-dir/direct_kafka_word_count.jar"
   sparkVersion: "3.0.1"
   restartPolicy:

@@ -18,7 +18,6 @@
 // scalastyle:off println
 package dhstest
 import org.apache.log4j.{Level, Logger}
-
 import org.apache.spark.internal.Logging
 
 /** Utility functions for Spark Streaming examples. */
@@ -43,55 +42,42 @@ import org.apache.spark.SparkConf
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka010._
 import org.apache.spark.sql.SparkSession
-/**
- * Consumes messages from one or more topics in Kafka and does wordcount.
- * Usage: DirectKafkaWordCount <brokers> <topics>
- *   <brokers> is a list of one or more Kafka brokers
- *   <groupId> is a consumer group name to consume from topics
- *   <topics> is a list of one or more kafka topics to consume from
- *
- * Example:
- *    $ bin/run-example streaming.DirectKafkaWordCount broker1-host:port,broker2-host:port \
- *    consumer-group topic1,topic2
- */
-object DirectKafkaWordCount {
+
+object FileSourceWrapper {
   def main(args: Array[String]): Unit = {
     if (args.length < 3) {
       System.err.println(s"""
-        |Usage: DirectKafkaWordCount <brokers> <groupId> <topics>
-        |  <brokers> is a list of one or more Kafka brokers
-        |  <groupId> is a consumer group name to consume from topics
-        |  <topics> is a list of one or more kafka topics to consume from
-        |
+        |Usage: FileSourceWrapper appname filelocation
+        |  <appname> is the name of the app
+        |  <filelocation> is a location for the filestore
+        |  <maxFileAge> is how far back the history should go
         """.stripMargin)
       System.exit(1)
     }
 
     StreamingExamples.setStreamingLogLevels()
 
-    val Array(brokers, groupId, topics) = args
+    val Array(appName, fileLocation, maxFileAge) = args
     val spark = SparkSession
       .builder
-      .appName("DirectKafkaWordCount")
+      .appName(appName)
       .getOrCreate()
+      
     val df = spark
       .readStream
-      .format("kafka")
-      .option("kafka.bootstrap.servers", brokers)
-      .option("subscribe", topics)
+      .format("file")
+      .option("path", fileLocation)
+      .option("maxFileAge", maxFileAge)
       .load()
     
-    val result=df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING) as value", "1 as groupTest").groupBy("groupTest").count()
-   
+    val result=Custom.process(df)
     result.writeStream
       .format("console")
       .outputMode("Complete")
       .option("truncate","false")
+      .option("checkpointLocation", "/tmp/checkpoint")
       .start()
-      .awaitTermination()
-    // Create direct kafka stream with brokers and topics
-    
+      .awaitTermination()   
     
   }
 }
-// scalastyle:on println
