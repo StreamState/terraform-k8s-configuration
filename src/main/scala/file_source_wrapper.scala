@@ -19,7 +19,13 @@
 package dhstest
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{
+  IntegerType,
+  StringType,
+  StructField,
+  StructType
+}
+
 /** Utility functions for Spark Streaming examples. */
 object StreamingExamples extends Logging {
 
@@ -29,8 +35,10 @@ object StreamingExamples extends Logging {
     if (!log4jInitialized) {
       // We first log something to initialize Spark's default logging, then we override the
       // logging level.
-      logInfo("Setting log level to [WARN] for streaming example." +
-        " To override add a custom log4j.properties to the classpath.")
+      logInfo(
+        "Setting log level to [WARN] for streaming example." +
+          " To override add a custom log4j.properties to the classpath."
+      )
       Logger.getRootLogger.setLevel(Level.WARN)
     }
   }
@@ -60,8 +68,7 @@ object FileSourceWrapper {
     StreamingExamples.setStreamingLogLevels()
 
     val Array(appName, fileLocations, maxFileAge, outputMode, checkpoint) = args
-    val spark = SparkSession
-      .builder
+    val spark = SparkSession.builder
       .appName(appName)
       .getOrCreate()
 
@@ -72,25 +79,28 @@ object FileSourceWrapper {
         StructField("last_name", StringType, true),
         StructField("email", StringType, true),
         StructField("gender", StringType, true),
-        StructField("ip_address", StringType, true),
+        StructField("ip_address", StringType, true)
       )
     )
-    val dfs=fileLocations.split(",").map(file=>spark
-      .readStream
-      .schema(schema)
-      //.option("path", file)
-      .option("maxFileAge", maxFileAge)
-      .json(file))
-    
-    val result=Custom.process(dfs)
-    
+    val dfs = fileLocations
+      .split(",")
+      .map(file =>
+        spark.readStream
+          .schema(schema)
+          //.option("path", file)
+          .option("maxFileAge", maxFileAge)
+          .json(file)
+      )
+
+    val result = Custom.process(dfs)
+
     result.writeStream
       .format("console")
       .outputMode(outputMode)
-      .option("truncate","false")
+      .option("truncate", "false")
       .option("checkpointLocation", checkpoint)
       .start()
-      .awaitTermination()   
-    
+      .awaitTermination()
+
   }
 }
