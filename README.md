@@ -71,6 +71,6 @@ Run
 # dev area
 * sudo docker build . -t spsbt -f ./test_container/Dockerfile
 * sudo docker run -it spsbt /bin/bash
-* nohup spark-submit --master local[*] --class dhstest.FileSourceWrapper target/scala-2.12/kafka_and_file_connect.jar myapp ./tmp_file 0 Append /tmp &
+* spark-submit --master local[*] --class dhstest.FileSourceWrapper target/scala-2.12/kafka_and_file_connect.jar myapp ./tmp_file 0 Append /tmp
 * sudo docker exec -it $(sudo -S docker ps -q  --filter ancestor=spsbt) /bin/bash
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./tmp_file/mytest.json
