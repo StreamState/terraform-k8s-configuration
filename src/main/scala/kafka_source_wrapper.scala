@@ -18,10 +18,10 @@
 // scalastyle:off println
 package dhstest
 import org.apache.log4j.{Level, Logger}
-
+import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.internal.Logging
-
-
+import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.functions.{from_json, col}
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 
@@ -42,38 +42,63 @@ import org.apache.spark.sql.SparkSession
  */
 object KafkaSourceWrapper {
   def main(args: Array[String]): Unit = {
-    if (args.length < 3) {
+    if (args.length < 4) {
       System.err.println(s"""
         |Usage: KafkaSourceWrapper <brokers> <groupId> <topics>
         |  <brokers> is a list of one or more Kafka brokers
         |  <groupId> is a consumer group name to consume from topics
         |  <topics> is a list of one or more kafka topics to consume from
-        |
+        |  <outputMode> one of Complete, Append, Update
+        |  <sink> file output for kafka sink
+        |  <checkpoint> file output for streaming checkpoint
         """.stripMargin)
       System.exit(1)
     }
 
     StreamingExamples.setStreamingLogLevels()
 
-    val Array(brokers, groupId, topics) = args
+    val Array(brokers, groupId, topics, outputMode, sink, checkpoint) = args
     val spark = SparkSession
       .builder
       .appName("DirectKafkaWordCount")
       .getOrCreate()
-    val df = spark
+    val schema = StructType(
+      List(
+        StructField("id", IntegerType, true),
+        StructField("first_name", StringType, true),
+        StructField("last_name", StringType, true),
+        StructField("email", StringType, true),
+        StructField("gender", StringType, true),
+        StructField("ip_address", StringType, true),
+      )
+    )
+    val dfs=topics.split(",").map(topic=>spark
       .readStream
       .format("kafka")
       .option("kafka.bootstrap.servers", brokers)
-      .option("subscribe", topics)
+      .option("subscribe", topic)
       .load()
+      .selectExpr("CAST(value AS STRING) as json")
+      .select( from_json(col("json"), schema=schema).as("data"))
+      .select("data.*"))
     
-    val result=Custom.process(df)
+    val result=Custom.process(dfs)
+
+    //so we keep a record in case we need to replay history
+    dfs.foreach(df=>df.writeStream
+      .format("json")  // can be "orc", "json", "csv", etc.
+      .outputMode("Append")  
+      .option("checkpointLocation", checkpoint)
+      .trigger(Trigger.ProcessingTime("2 seconds")) //only write every so often   
+      .option("path", sink)
+      .start()
+    )
 
     result.writeStream
       .format("console")
-      //.outputMode("Complete")
+      .outputMode(outputMode)
       .option("truncate","false")
-      .option("checkpointLocation", "/tmp/checkpoint")
+      .option("checkpointLocation", checkpoint)
       .start()
       .awaitTermination()    
     

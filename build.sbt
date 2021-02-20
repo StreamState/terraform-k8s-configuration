@@ -1,4 +1,4 @@
-name := "direct_kafka_word_count"
+name := "kafka_and_file_connect"
 
 scalaVersion := "2.12.12"
 

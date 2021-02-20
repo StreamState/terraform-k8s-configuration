@@ -19,7 +19,7 @@
 package dhstest
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.internal.Logging
-
+import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 /** Utility functions for Spark Streaming examples. */
 object StreamingExamples extends Logging {
 
@@ -45,37 +45,50 @@ import org.apache.spark.sql.SparkSession
 
 object FileSourceWrapper {
   def main(args: Array[String]): Unit = {
-    if (args.length < 3) {
+    if (args.length < 5) {
       System.err.println(s"""
         |Usage: FileSourceWrapper appname filelocation
         |  <appname> is the name of the app
-        |  <filelocation> is a location for the filestore
+        |  <filelocations> is a comma seperated locations for the filestore
         |  <maxFileAge> is how far back the history should go
+        |  <outputMode> one of Complete, Append, Update
+        |  <checkpoint> file output for streaming checkpoint
         """.stripMargin)
       System.exit(1)
     }
 
     StreamingExamples.setStreamingLogLevels()
 
-    val Array(appName, fileLocation, maxFileAge) = args
+    val Array(appName, fileLocations, maxFileAge, outputMode, checkpoint) = args
     val spark = SparkSession
       .builder
       .appName(appName)
       .getOrCreate()
-      
-    val df = spark
+
+    val schema = StructType(
+      List(
+        StructField("id", IntegerType, true),
+        StructField("first_name", StringType, true),
+        StructField("last_name", StringType, true),
+        StructField("email", StringType, true),
+        StructField("gender", StringType, true),
+        StructField("ip_address", StringType, true),
+      )
+    )
+    val dfs=fileLocations.split(",").map(file=>spark
       .readStream
-      .format("file")
-      .option("path", fileLocation)
+      .schema(schema)
+      //.option("path", file)
       .option("maxFileAge", maxFileAge)
-      .load()
+      .json(file))
     
-    val result=Custom.process(df)
+    val result=Custom.process(dfs)
+    
     result.writeStream
       .format("console")
-      .outputMode("Complete")
+      .outputMode(outputMode)
       .option("truncate","false")
-      .option("checkpointLocation", "/tmp/checkpoint")
+      .option("checkpointLocation", checkpoint)
       .start()
       .awaitTermination()   
     
