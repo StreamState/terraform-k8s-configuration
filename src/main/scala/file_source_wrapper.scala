@@ -19,12 +19,6 @@
 package dhstest
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types.{
-  IntegerType,
-  StringType,
-  StructField,
-  StructType
-}
 
 /** Utility functions for Spark Streaming examples. */
 object StreamingExamples extends Logging {
@@ -72,22 +66,11 @@ object FileSourceWrapper {
       .appName(appName)
       .getOrCreate()
 
-    val schema = StructType(
-      List(
-        StructField("id", IntegerType, true),
-        StructField("first_name", StringType, true),
-        StructField("last_name", StringType, true),
-        StructField("email", StringType, true),
-        StructField("gender", StringType, true),
-        StructField("ip_address", StringType, true)
-      )
-    )
     val dfs = fileLocations
       .split(",")
       .map(file =>
         spark.readStream
-          .schema(schema)
-          //.option("path", file)
+          .schema(Custom.schema)
           .option("maxFileAge", maxFileAge)
           .json(file)
       )

@@ -20,12 +20,7 @@ package dhstest
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types.{
-  IntegerType,
-  StringType,
-  StructField,
-  StructType
-}
+
 import org.apache.spark.sql.functions.{from_json, col}
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -66,16 +61,7 @@ object KafkaSourceWrapper {
     val spark = SparkSession.builder
       .appName("DirectKafkaWordCount")
       .getOrCreate()
-    val schema = StructType(
-      List(
-        StructField("id", IntegerType, true),
-        StructField("first_name", StringType, true),
-        StructField("last_name", StringType, true),
-        StructField("email", StringType, true),
-        StructField("gender", StringType, true),
-        StructField("ip_address", StringType, true)
-      )
-    )
+
     val dfs = topics
       .split(",")
       .map(topic =>
@@ -85,7 +71,7 @@ object KafkaSourceWrapper {
           .option("subscribe", topic)
           .load()
           .selectExpr("CAST(value AS STRING) as json")
-          .select(from_json(col("json"), schema = schema).as("data"))
+          .select(from_json(col("json"), schema = Custom.schema).as("data"))
           .select("data.*")
       )
 
