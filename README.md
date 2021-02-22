@@ -64,8 +64,8 @@ Compile the docker:
 
 Run
 * kubectl apply -f ./sparkstreaming/spark-streaming.yaml
-* kubectl get sparkapplications word-count -o=yaml
-* kubectl describe sparkapplication word-count
+* kubectl get pods
+* kubectl logs kafka-wrapper-driver 
 * kubectl delete -f ./sparkstreaming/spark-streaming.yaml
 
 # dev area

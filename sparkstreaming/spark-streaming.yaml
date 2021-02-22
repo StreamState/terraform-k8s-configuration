@@ -16,7 +16,7 @@
 apiVersion: "sparkoperator.k8s.io/v1beta2"
 kind: SparkApplication
 metadata:
-  name: word-count
+  name: kafka-wrapper
   namespace: default
 spec:
   #deps:
