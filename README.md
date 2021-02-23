@@ -48,7 +48,7 @@ Make sure its running
   --topic test.test
 * sudo docker-compose exec broker bash -c "seq 42 | kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test && echo 'Produced 42 messages.'"
 
-* sudo docker-compose exec broker bash -c "echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} | kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test && echo 'Produced 1 message.'"
+* sudo docker-compose exec broker bash -c 'echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} | kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test && echo "Produced 1 message."'
 
 * sudo docker-compose exec broker kafka-console-producer --request-required-acks 1 --broker-list localhost:29092 --topic test.test hello
 
