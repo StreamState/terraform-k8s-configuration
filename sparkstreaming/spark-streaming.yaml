@@ -38,7 +38,7 @@ spec:
     - /tmp/sink # sink
     - /tmp/checkpoint # checkpoint
   mainClass: dhstest.KafkaSourceWrapper
-  mainApplicationFile: "local:///opt/spark/work-dir/kafka_and_file_connect.jar"
+  mainApplicationFile: "local:///opt/spark/work-dir/sparkstreaming.jar"
   sparkVersion: "3.0.1"
   restartPolicy:
     type: Never
