@@ -1,4 +1,4 @@
-name := "direct_kafka_word_count"
+name := "kafka_and_file_connect"
 
 scalaVersion := "2.12.12"
 
@@ -15,6 +15,6 @@ libraryDependencies ++= Seq(
 assemblyJarName in assembly := name.value + ".jar"
 
 assemblyMergeStrategy in assembly := {
-    case PathList("META-INF", xs @ _*)=>MergeStrategy.discard
-    case x =>MergeStrategy.last
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x                             => MergeStrategy.last
 }

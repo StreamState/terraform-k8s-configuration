@@ -18,7 +18,6 @@
 // scalastyle:off println
 package dhstest
 import org.apache.log4j.{Level, Logger}
-
 import org.apache.spark.internal.Logging
 
 /** Utility functions for Spark Streaming examples. */
@@ -30,8 +29,10 @@ object StreamingExamples extends Logging {
     if (!log4jInitialized) {
       // We first log something to initialize Spark's default logging, then we override the
       // logging level.
-      logInfo("Setting log level to [WARN] for streaming example." +
-        " To override add a custom log4j.properties to the classpath.")
+      logInfo(
+        "Setting log level to [WARN] for streaming example." +
+          " To override add a custom log4j.properties to the classpath."
+      )
       Logger.getRootLogger.setLevel(Level.WARN)
     }
   }
@@ -43,55 +44,46 @@ import org.apache.spark.SparkConf
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka010._
 import org.apache.spark.sql.SparkSession
-/**
- * Consumes messages from one or more topics in Kafka and does wordcount.
- * Usage: DirectKafkaWordCount <brokers> <topics>
- *   <brokers> is a list of one or more Kafka brokers
- *   <groupId> is a consumer group name to consume from topics
- *   <topics> is a list of one or more kafka topics to consume from
- *
- * Example:
- *    $ bin/run-example streaming.DirectKafkaWordCount broker1-host:port,broker2-host:port \
- *    consumer-group topic1,topic2
- */
-object DirectKafkaWordCount {
+
+object FileSourceWrapper {
   def main(args: Array[String]): Unit = {
-    if (args.length < 3) {
+    if (args.length < 5) {
       System.err.println(s"""
-        |Usage: DirectKafkaWordCount <brokers> <groupId> <topics>
-        |  <brokers> is a list of one or more Kafka brokers
-        |  <groupId> is a consumer group name to consume from topics
-        |  <topics> is a list of one or more kafka topics to consume from
-        |
+        |Usage: FileSourceWrapper appname filelocation
+        |  <appname> is the name of the app
+        |  <filelocations> is a comma seperated locations for the filestore
+        |  <maxFileAge> is how far back the history should go
+        |  <outputMode> one of Complete, Append, Update
+        |  <checkpoint> file output for streaming checkpoint
         """.stripMargin)
       System.exit(1)
     }
 
     StreamingExamples.setStreamingLogLevels()
 
-    val Array(brokers, groupId, topics) = args
-    val spark = SparkSession
-      .builder
-      .appName("DirectKafkaWordCount")
+    val Array(appName, fileLocations, maxFileAge, outputMode, checkpoint) = args
+    val spark = SparkSession.builder
+      .appName(appName)
       .getOrCreate()
-    val df = spark
-      .readStream
-      .format("kafka")
-      .option("kafka.bootstrap.servers", brokers)
-      .option("subscribe", topics)
-      .load()
-    
-    val result=df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING) as value", "1 as groupTest").groupBy("groupTest").count()
-   
+
+    val dfs = fileLocations
+      .split(",")
+      .map(file =>
+        spark.readStream
+          .schema(Custom.schema)
+          .option("maxFileAge", maxFileAge)
+          .json(file)
+      )
+
+    val result = Custom.process(dfs)
+
     result.writeStream
       .format("console")
-      .outputMode("Complete")
-      .option("truncate","false")
+      .outputMode(outputMode)
+      .option("truncate", "false")
+      .option("checkpointLocation", checkpoint)
       .start()
       .awaitTermination()
-    // Create direct kafka stream with brokers and topics
-    
-    
+
   }
 }
-// scalastyle:on println
