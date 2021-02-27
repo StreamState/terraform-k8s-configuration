@@ -96,15 +96,10 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 * kubectl exec -n cass-operator -i -t -c cassandra cluster1-dc1-default-sts-0 -- /opt/cassandra/bin/cqlsh -u cluster1-superuser -p $(kubectl get secrets/cluster1-superuser -n cass-operator --template={{.data.password}} | base64 -d)
 * CREATE KEYSPACE IF NOT EXISTS cycling WITH replication = { 'class' : 'NetworkTopologyStrategy', 'dc1' : '3' };
 * CREATE TABLE IF NOT EXISTS cycling.cyclist_semi_pro (
-   id int, 
-   firstname text, 
-   lastname text, 
-   age int, 
-   affiliation text,
-   country text,
-   registration date,
-   PRIMARY KEY (id));
-* INSERT INTO cycling.cyclist_semi_pro (id, firstname, lastname, age, affiliation, country, registration) VALUES (1, 'Carlos', 'Perotti', 22, 'Recco Club', 'ITA', '2020-01-12');
+   first_name text, 
+   last_name text, 
+   PRIMARY KEY (last_name));
+* INSERT INTO cycling.cyclist_semi_pro (firstname, lastname) VALUES ('Carlos', 'Perotti');
 
 
 * kubectl get pod cluster1-dc1-default-sts-0 --template='{{(index (index .spec.containers 0).ports 0).containerPort}}{{"\n"}}' -n cass-operator

@@ -28,7 +28,13 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka010._
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{SparkSession, DataFrame}
+
+import org.apache.spark.sql.cassandra._
+
+import com.datastax.spark.connector.cql.CassandraConnectorConf
+import com.datastax.spark.connector.rdd.ReadConf
+import com.datastax.spark.connector._
 
 /** Consumes messages from one or more topics in Kafka and does wordcount.
   * Usage: DirectKafkaWordCount <brokers> <topics>
@@ -61,6 +67,13 @@ object KafkaSourceWrapper {
     val spark = SparkSession.builder
       .appName("DirectKafkaWordCount")
       .getOrCreate()
+    val clusterName = "cluster1" //see cassandra/datacenter.yaml
+    spark.setCassandraConf(
+      clusterName,
+      CassandraConnectorConf.ConnectionHostParam.option(
+        "172.17.0.8"
+      ) //kubectl get pods -o wide -n cass-operator
+    )
 
     val dfs = topics
       .split(",")
@@ -91,10 +104,26 @@ object KafkaSourceWrapper {
     )
 
     result.writeStream
+      .format("org.apache.spark.sql.cassandra")
+      .option("cyclist_semi_pro", "cycling")
+      .option("checkpointLocation", checkpoint)
+
+      //.cassandraFormat("cyclist_semi_pro", "cycling")
+      .outputMode(outputMode)
+      .start()
+
+    result.writeStream
       .format("console")
       .outputMode(outputMode)
       .option("truncate", "false")
       .option("checkpointLocation", checkpoint)
+      /*.foreachBatch { (batchDF: DataFrame, batchId: Long) =>
+        batchDF.write // Use Cassandra batch data source to write streaming out
+          .cassandraFormat("cyclist_semi_pro", "cycling")
+          .option("cluster", clusterName)
+          .mode("append")
+          .save()
+      }*/
       .start()
       .awaitTermination()
 

@@ -14,6 +14,6 @@ auth_provider = PlainTextAuthProvider(
 )
 cluster = Cluster(["127.0.0.1"], port=30500, auth_provider=auth_provider)
 session = cluster.connect()
-rows = session.execute("SELECT firstname FROM cycling.cyclist_semi_pro")
+rows = session.execute("SELECT first_name FROM cycling.cyclist_semi_pro")
 for user_row in rows:
     print(user_row)
