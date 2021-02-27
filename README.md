@@ -1,9 +1,7 @@
 # getting started
 
-* minikube start --cpus 4 --memory 6000 --kubernetes-version=v1.20.2
+* minikube start --cpus 6 --memory 6000 --kubernetes-version=v1.20.2
 * minikube addons enable registry
-* minikube addons enable dashboard
-* #minikube addons enable istio
 * eval $(minikube docker-env)
 
 # install spark operator
@@ -74,3 +72,50 @@ Run
 * spark-submit --master local[*] --class dhstest.FileSourceWrapper target/scala-2.12/kafka_and_file_connect.jar myapp ./tmp_file 0 Append /tmp
 * sudo docker exec -it $(sudo -S docker ps -q  --filter ancestor=spsbt) /bin/bash
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./tmp_file/mytest.json
+
+# Cassandra
+
+* helm repo add datastax https://datastax.github.io/charts
+* helm repo update
+* helm install cass-operator datastax/cass-operator  --namespace cass-operator --create-namespace
+
+In real life/google cloud, configure a new storage, using eg `kubectl apply -f ./cassandra/storage.yaml`
+
+* kubectl -n cass-operator apply -f ./cassandra/datacenter.yaml
+
+Check progress
+
+* kubectl get pods -n cass-operator -o wide
+* kubectl -n cass-operator get cassdc/dc1 -o "jsonpath={.status.cassandraOperatorProgress}"
+
+Start being able to query
+
+https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnectWithinK8sCluster.html
+
+* kubectl get secrets/cluster1-superuser -n cass-operator --template={{.data.password}} | base64 -d
+* kubectl exec -n cass-operator -i -t -c cassandra cluster1-dc1-default-sts-0 -- /opt/cassandra/bin/cqlsh -u cluster1-superuser -p $(kubectl get secrets/cluster1-superuser -n cass-operator --template={{.data.password}} | base64 -d)
+* CREATE KEYSPACE IF NOT EXISTS cycling WITH replication = { 'class' : 'NetworkTopologyStrategy', 'dc1' : '3' };
+* CREATE TABLE IF NOT EXISTS cycling.cyclist_semi_pro (
+   id int, 
+   firstname text, 
+   lastname text, 
+   age int, 
+   affiliation text,
+   country text,
+   registration date,
+   PRIMARY KEY (id));
+* INSERT INTO cycling.cyclist_semi_pro (id, firstname, lastname, age, affiliation, country, registration) VALUES (1, 'Carlos', 'Perotti', 22, 'Recco Club', 'ITA', '2020-01-12');
+
+
+* kubectl get pod cluster1-dc1-default-sts-0 --template='{{(index (index .spec.containers 0).ports 0).containerPort}}{{"\n"}}' -n cass-operator
+* kubectl port-forward pod/cluster1-dc1-default-sts-0 30500:9042 -n cass-operator
+
+
+
+
+# python consume cassandra
+
+* python3 -m venv env
+* source env/bin/activate
+* pip3 install -r ./pythonexample/requirements.txt
+* python3 pythonexample/connect_cassandra.py

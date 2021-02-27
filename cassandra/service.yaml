@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: cassandraservice
+spec:
+  type: NodePort
+  ports:
+    - port: 9042
+      #nodePort: 30051
+        #native: 30001
+        #internode: 30002
+  selector:
+    name: cass-operator
