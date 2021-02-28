@@ -63,18 +63,20 @@ object KafkaSourceWrapper {
 
     StreamingExamples.setStreamingLogLevels()
 
-    val Array(brokers, groupId, topics, outputMode, sink, checkpoint) = args
+    val Array(brokers, groupId, topics, outputMode, sink, checkpoint, cassandraIp, cassandraPassword) = args
     val spark = SparkSession.builder
       .appName("DirectKafkaWordCount")
       .getOrCreate()
     val clusterName = "cluster1" //see cassandra/datacenter.yaml
-    spark.setCassandraConf(
-      clusterName,
-      CassandraConnectorConf.ConnectionHostParam.option(
-        "172.17.0.8"
-      ) //kubectl get pods -o wide -n cass-operator
-    )
 
+ 
+    spark.conf.set("spark.cassandra.connection.host",cassandraIp)
+    spark.conf.set("spark.cassandra.connection.port","9042")
+    spark.conf.set("spark.cassandra.auth.username","cluster1-superuser")
+    spark.conf.set(
+      "spark.cassandra.auth.password",
+      cassandraPassword
+    )
     val dfs = topics
       .split(",")
       .map(topic =>
@@ -103,29 +105,34 @@ object KafkaSourceWrapper {
         .start()
     )
 
-    result.writeStream
+    /*result.writeStream
       .format("org.apache.spark.sql.cassandra")
-      .option("cyclist_semi_pro", "cycling")
+      .option("keyspace", "cycling")
+      .option("table", "cyclist_semi_pro")
       .option("checkpointLocation", checkpoint)
 
       //.cassandraFormat("cyclist_semi_pro", "cycling")
       .outputMode(outputMode)
-      .start()
+      .start()*/
 
     result.writeStream
-      .format("console")
+      //.format("console")
       .outputMode(outputMode)
       .option("truncate", "false")
       .option("checkpointLocation", checkpoint)
-      /*.foreachBatch { (batchDF: DataFrame, batchId: Long) =>
+      .foreachBatch { (batchDF: DataFrame, batchId: Long) =>
+      	batchDF.persist() 
+      	println(batchDF.show(10))
         batchDF.write // Use Cassandra batch data source to write streaming out
-          .cassandraFormat("cyclist_semi_pro", "cycling")
+          .format("org.apache.spark.sql.cassandra")
+          .option("keyspace", "cycling")
+          .option("table", "cyclist_semi_pro")
           .option("cluster", clusterName)
-          .mode("append")
+          .mode("APPEND")
           .save()
-      }*/
-      .start()
-      .awaitTermination()
+      }
+      .start().awaitTermination()
+   //spark.streams.awaitAnyTermination()
 
   }
 }

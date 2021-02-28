@@ -6,4 +6,5 @@ COPY project/build.properties project/build.properties
 RUN sbt assembly
 
 FROM gcr.io/spark-operator/spark:v3.0.0
-COPY --from=build /root/target/scala-2.12/*.jar /opt/spark/work-dir/sparkstreaming.jar
+COPY --from=build /root/target/scala-2.12/kafka_and_file_connect.jar /opt/spark/work-dir/sparkstreaming.jar
+#COPY target/scala-2.12/kafka_and_file_connect.jar /opt/spark/work-dir/sparkstreaming.jar

@@ -37,6 +37,9 @@ spec:
     - Append # output mode,  Append, Update, Complete
     - /tmp/sink # sink
     - /tmp/checkpoint # checkpoint
+    - 172.17.0.7
+    - A84oSK9s_cWK84QuPeYQvA1D8F9ScpHRI_24S7XnYsZPJvDtRNUSlg
+    
   mainClass: dhstest.KafkaSourceWrapper
   mainApplicationFile: "local:///opt/spark/work-dir/sparkstreaming.jar"
   sparkVersion: "3.0.1"

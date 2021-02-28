@@ -1,6 +1,6 @@
 # getting started
 
-* minikube start --cpus 6 --memory 6000 --kubernetes-version=v1.20.2
+* minikube start --cpus 8 --memory 8000 --kubernetes-version=v1.20.2
 * minikube addons enable registry
 * eval $(minikube docker-env)
 
@@ -94,12 +94,12 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 
 * kubectl get secrets/cluster1-superuser -n cass-operator --template={{.data.password}} | base64 -d
 * kubectl exec -n cass-operator -i -t -c cassandra cluster1-dc1-default-sts-0 -- /opt/cassandra/bin/cqlsh -u cluster1-superuser -p $(kubectl get secrets/cluster1-superuser -n cass-operator --template={{.data.password}} | base64 -d)
-* CREATE KEYSPACE IF NOT EXISTS cycling WITH replication = { 'class' : 'NetworkTopologyStrategy', 'dc1' : '3' };
+* CREATE KEYSPACE IF NOT EXISTS cycling WITH replication = { 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' };
 * CREATE TABLE IF NOT EXISTS cycling.cyclist_semi_pro (
    first_name text, 
    last_name text, 
    PRIMARY KEY (last_name));
-* INSERT INTO cycling.cyclist_semi_pro (firstname, lastname) VALUES ('Carlos', 'Perotti');
+* INSERT INTO cycling.cyclist_semi_pro (first_name, last_name) VALUES ('Carlos', 'Perotti');
 
 
 * kubectl get pod cluster1-dc1-default-sts-0 --template='{{(index (index .spec.containers 0).ports 0).containerPort}}{{"\n"}}' -n cass-operator
