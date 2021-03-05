@@ -16,27 +16,10 @@
  */
 
 // scalastyle:off println
-package dhstest
-import org.apache.log4j.{Level, Logger}
-import org.apache.spark.internal.Logging
+package sparkwrappers
 
-/** Utility functions for Spark Streaming examples. */
-object StreamingExamples extends Logging {
+import org.apache.spark.sql.streaming.Trigger
 
-  /** Set reasonable logging levels for streaming if the user has not configured log4j. */
-  def setStreamingLogLevels(): Unit = {
-    val log4jInitialized = Logger.getRootLogger.getAllAppenders.hasMoreElements
-    if (!log4jInitialized) {
-      // We first log something to initialize Spark's default logging, then we override the
-      // logging level.
-      logInfo(
-        "Setting log level to [WARN] for streaming example." +
-          " To override add a custom log4j.properties to the classpath."
-      )
-      Logger.getRootLogger.setLevel(Level.WARN)
-    }
-  }
-}
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 
@@ -45,7 +28,7 @@ import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka010._
 import org.apache.spark.sql.SparkSession
 
-object FileSourceWrapper {
+object DevFromFile {
   def main(args: Array[String]): Unit = {
     if (args.length < 5) {
       System.err.println(s"""
@@ -61,13 +44,19 @@ object FileSourceWrapper {
 
     StreamingExamples.setStreamingLogLevels()
 
-    val Array(appName, fileLocations, maxFileAge, outputMode, checkpoint) = args
+    val Array(
+      appName,
+      fileLocations,
+      maxFileAge,
+      checkpoint
+    ) = args
+    val files = fileLocations
+      .split(",")
     val spark = SparkSession.builder
       .appName(appName)
       .getOrCreate()
 
-    val dfs = fileLocations
-      .split(",")
+    val dfs = files
       .map(file =>
         spark.readStream
           .schema(Custom.schema)
@@ -76,10 +65,9 @@ object FileSourceWrapper {
       )
 
     val result = Custom.process(dfs)
-
     result.writeStream
       .format("console")
-      .outputMode(outputMode)
+      .outputMode(Custom.mode)
       .option("truncate", "false")
       .option("checkpointLocation", checkpoint)
       .start()

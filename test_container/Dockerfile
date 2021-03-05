@@ -24,8 +24,8 @@ RUN wget -O - https://github.com/sbt/sbt/releases/download/v$SBT_VERSION/sbt-$SB
 USER developer
 WORKDIR /home/developer
 RUN /scala/sbt/bin/sbt sbtVersion
+ADD project/assembly.sbt project/assembly.sbt
 ADD build.sbt .
 ADD src src
-ADD project/assembly.sbt project/assembly.sbt
 RUN /scala/sbt/bin/sbt assembly
 RUN mkdir tmp_file

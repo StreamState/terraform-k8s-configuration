@@ -1,5 +1,6 @@
-package dhstest
+package sparkwrappers
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.{
   IntegerType,
   StringType,
@@ -31,4 +32,5 @@ object Custom {
       s"SELECT CAST(key AS STRING), CAST(value AS STRING) as value, 1 as groupTest from $topic group by groupTest"
     )
   }
+  val mode = OutputMode.Append()
 }
