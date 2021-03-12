@@ -7,7 +7,7 @@ spec:
   template:
     spec:
       containers:
-        - image: gcr.io/knative-samples/helloworld-go # Reference to the image of the app
+        - image: backendapp:latest # Reference to the image of the app
           env:
             - name: TARGET # The environment variable printed out by the sample app
               value: "Go Sample v1"

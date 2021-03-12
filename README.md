@@ -136,10 +136,7 @@ Initial KNative app will be stateless: simply take a json payload (including kaf
 
 * export EXTERNAL_IP=$(kubectl -n kourier-system get service kourier -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-* kubectl patch configmap/config-network
-    --namespace knative-serving
-    --type merge
-    --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
+* kubectl patch configmap/config-network --namespace knative-serving --type merge --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
 * export KNATIVE_DOMAIN="$EXTERNAL_IP.nip.io"
 

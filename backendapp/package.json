@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1"
+    "@kubernetes/client-node": "^0.13.2",
+    "express": "^4.17.1",
+    "js-yaml": "^3.14.1"
   }
 }
