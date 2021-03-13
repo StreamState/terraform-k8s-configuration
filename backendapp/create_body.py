@@ -1,25 +1,20 @@
 from typing import List
-
-
-def _metadata(default_body: dict, namespace: str) -> dict:
-    default_body["metadata"]["namespace"] = namespace
-    return default_body
+from kubernetes.client import V1Role, V1ServiceAccount, V1RoleBinding
 
 
 def spark_service_account_spec(namespace: str) -> dict:
-    return {
-        "apiVersion": "v1",
-        "kind": "ServiceAccount",
-        "metadata": {"name": "spark", "namespace": namespace},
-    }
+    return V1ServiceAccount(
+        api_version="v1",
+        kind="ServiceAccount",
+        metadata={"name": "spark", "namespace": namespace},
+    )
 
 
 def spark_role_spec(namespace: str) -> dict:
-    return {
-        "apiVersion": "rbac.authorization.k8s.io/v1",
-        "kind": "Role",
-        "metadata": {"namespace": namespace, "name": "spark-role"},
-        "rules": [
+    return V1Role(
+        api_version="rbac.authorization.k8s.io/v1",
+        metadata={"namespace": namespace, "name": "spark-role"},
+        rules=[
             {
                 "apiGroups": [""],
                 "resources": ["pods"],
@@ -27,27 +22,28 @@ def spark_role_spec(namespace: str) -> dict:
             },
             {"apiGroups": [""], "resources": ["services"], "verbs": ["*"]},
         ],
-    }
+        kind="Role",
+    )
 
 
 def spark_role_binding_spec(namespace: str) -> dict:
-    return {
-        "apiVersion": "rbac.authorization.k8s.io/v1",
-        "kind": "RoleBinding",
-        "metadata": {"namespace": namespace, "name": "spark-role-binding"},
-        "subjects": [
+    return V1RoleBinding(
+        api_version="rbac.authorization.k8s.io/v1",
+        kind="RoleBinding",
+        metadata={"namespace": namespace, "name": "spark-role-binding"},
+        subjects=[
             {
                 "kind": "ServiceAccount",
                 "name": "spark",
                 "namespace": namespace,
             },
         ],
-        "roleRef": {
+        role_ref={
             "kind": "Role",
             "name": "spark-role",
             "apiGroup": "rbac.authorization.k8s.io",
         },
-    }
+    )
 
 
 def spark_persist_job_spec(

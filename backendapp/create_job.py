@@ -2,6 +2,7 @@ import yaml
 from kubernetes import client, config
 from kubernetes.client.api import CustomObjectsApi
 from create_body import spark_state_job_spec, spark_persist_job_spec
+from kubernetes.client.api_client import ApiClient
 
 
 def yaml_load(path: str) -> dict:
@@ -33,7 +34,7 @@ def create_job(api: CustomObjectsApi, pay_load: dict):
             file_persist_local,
             "streamstate:latest",
             brokers,
-            topics,
+            topic,
             namespace,
         )
         # this can throw, so make sure that we catch that when calling this function
@@ -69,7 +70,8 @@ def create_job(api: CustomObjectsApi, pay_load: dict):
 
 if __name__ == "__main__":
     config.load_incluster_config()
-    api = client.CustomObjectsApi()
+    apiclient = ApiClient()
+    api = client.CustomObjectsApi(apiclient)
     create_job(
         api,
         {
