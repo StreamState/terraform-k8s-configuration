@@ -4,3 +4,5 @@ target
 .vscode
 project/project
 env
+node_modules
+__pycache__

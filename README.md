@@ -1,6 +1,6 @@
 # getting started
 
-* minikube start --cpus 8 --memory 8000 --kubernetes-version=v1.20.2
+* minikube start --cpus 7 --memory 7000 --kubernetes-version=v1.20.2
 * minikube addons enable registry
 * eval $(minikube docker-env)
 
@@ -66,13 +66,6 @@ Run
 * kubectl logs kafka-wrapper-driver 
 * kubectl delete -f ./sparkstreaming/spark-streaming.yaml
 
-# dev area
-* sudo docker build . -t spsbt -f ./test_container/Dockerfile
-* sudo docker run -it spsbt /bin/bash
-* spark-submit --master local[*] --class dhstest.FileSourceWrapper target/scala-2.12/kafka_and_file_connect.jar myapp ./tmp_file 0 Append /tmp
-* sudo docker exec -it $(sudo -S docker ps -q  --filter ancestor=spsbt) /bin/bash
-* echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./tmp_file/mytest.json
-
 # Cassandra
 
 * helm repo add datastax https://datastax.github.io/charts
@@ -114,3 +107,51 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 * source env/bin/activate
 * pip3 install -r ./pythonexample/requirements.txt
 * python3 pythonexample/connect_cassandra.py
+
+# Kubectl service 
+
+This is needed for the back end app.  There are two choices here: leverage argo cd and its rest API to kick off "builds"/workflows or use a live knative app to convert json to deploy applications.  
+
+For now, I am going to use a knative app.  In the future it is likely more maintainable to use Argo.
+
+Needed functionality:
+* Authentication and secrets storage, multi-tenant
+* Deploy applications in unique namespaces for each tenant
+* Host spark ui for jobs within a namespace
+* RBAC for specific jobs
+
+## Knative
+
+Initial KNative app will be stateless: simply take a json payload (including kafka secrets, and maybe cassandra secrets, though kafka will be outside the cluster and cassandra is within cluster) and create the required applications.  There will be one spark streaming application per topic (to persist) and one spark streaming application for doing stateful transformations on the kafka topics.   
+
+* sudo curl -L "https://storage.googleapis.com/knative-nightly/client/latest/kn-linux-amd64" -o /usr/local/bin/kn
+
+* sudo chmod +x /usr/local/bin/kn
+
+* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-crds.yaml
+
+* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-core.yaml
+
+* kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.19.1/kourier.yaml
+
+* export EXTERNAL_IP=$(kubectl -n kourier-system get service kourier -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+* kubectl patch configmap/config-network --namespace knative-serving --type merge --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
+
+* export KNATIVE_DOMAIN="$EXTERNAL_IP.nip.io"
+
+* kubectl patch configmap -n knative-serving config-domain -p "{"data": {"$KNATIVE_DOMAIN": ""}}"
+
+* kubectl apply --filename back-end-app.yml
+
+* kubectl get ksvc helloworld-go
+
+Curl the URL to test
+
+
+# dev area
+* sudo docker build . -t spsbt -f ./test_container/Dockerfile
+* sudo docker run -it spsbt /bin/bash
+* spark-submit --master local[*] --class dhstest.FileSourceWrapper target/scala-2.12/kafka_and_file_connect.jar myapp ./tmp_file 0 Append /tmp
+* sudo docker exec -it $(sudo -S docker ps -q  --filter ancestor=spsbt) /bin/bash
+* echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./tmp_file/mytest.json
