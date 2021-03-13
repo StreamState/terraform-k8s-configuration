@@ -17,7 +17,7 @@ apiVersion: "sparkoperator.k8s.io/v1beta2"
 kind: SparkApplication
 metadata:
   name: kafka-wrapper
-  namespace: default # todo, adjust per tenant
+  namespace: mynamespace # todo, adjust per tenant
 spec:
   #deps:
   #  packages:
@@ -28,7 +28,7 @@ spec:
     spark.jars.ivy: "/tmp/ivy"
   type: Scala
   mode: cluster
-  image: dhs_test:latest #"gcr.io/spark-operator/spark:v3.0.1"
+  image: streamstate:latest #"gcr.io/spark-operator/spark:v3.0.1"
   imagePullPolicy: Never
   arguments:
     - 192.168.99.1:19092
