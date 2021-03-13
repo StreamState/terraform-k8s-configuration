@@ -3,6 +3,8 @@ from kubernetes import client, config
 from kubernetes.client.api import CustomObjectsApi
 from create_body import spark_state_job_spec, spark_persist_job_spec
 from kubernetes.client.api_client import ApiClient
+from typing import List
+from request_body import Job
 
 
 def yaml_load(path: str) -> dict:
@@ -20,67 +22,72 @@ files = [
 ]
 
 
-def create_job(api: CustomObjectsApi, pay_load: dict):
-    topics = pay_load["topics"]
-    brokers = pay_load["brokers"]
-    namespace = pay_load["namespace"]
-    cassandraIp = pay_load["cassandraIp"]
-    cassandraPassword = pay_load["cassandraPassword"]
-    [file_persist, spark_job] = [yaml_load(ymlFile) for ymlFile in files]
-    config.load_incluster_config()
-    for topic in topics:
+def load_all_ymls(paths: List[str]) -> List[dict]:
+    return [yaml_load(ymlFile) for ymlFile in files]
+
+
+def create_all_spark_jobs(
+    apiclient: ApiClient, file_persist: dict, spark_job: dict, pay_load: Job
+) -> List[str]:
+    api = client.CustomObjectsApi(apiclient)
+    exceptions: List[str] = []
+    for topic in pay_load.topics:
         file_persist_local = file_persist.copy()
         file_persist_local = spark_persist_job_spec(
             file_persist_local,
             "streamstate:latest",
-            brokers,
+            pay_load.brokers,
             topic,
-            namespace,
+            pay_load.namespace,
         )
         # this can throw, so make sure that we catch that when calling this function
+        try:
+            api_response = api.create_namespaced_custom_object(
+                body=file_persist_local,
+                namespace=pay_load.namespace,
+                group="sparkoperator.k8s.io",
+                version="v1beta2",
+                plural="sparkapplications",
+            )
+        except Exception as e:
+            exceptions.append(str(e))
+    name = "-".join(pay_load.topics)
+    spark_job = spark_state_job_spec(
+        spark_job,
+        "streamstate:latest",
+        pay_load.brokers,
+        pay_load.topics,
+        pay_load.namespace,
+        pay_load.cassandraIp,
+        pay_load.cassandraPassword,
+    )
+    # this can throw, so make sure that we catch that when calling this function
+    try:
         api_response = api.create_namespaced_custom_object(
-            body=file_persist_local,
-            namespace=namespace,
+            body=spark_job,
+            namespace=pay_load.namespace,
             group="sparkoperator.k8s.io",
             version="v1beta2",
             plural="sparkapplications",
         )
-        print(api_response)
-    name = "-".join(topics)
-    spark_job = spark_state_job_spec(
-        spark_job,
-        "streamstate:latest",
-        brokers,
-        topics,
-        namespace,
-        cassandraIp,
-        cassandraPassword,
-    )
-    print(spark_job)
-    # this can throw, so make sure that we catch that when calling this function
-    api_response = api.create_namespaced_custom_object(
-        body=spark_job,
-        namespace=namespace,
-        group="sparkoperator.k8s.io",
-        version="v1beta2",
-        plural="sparkapplications",
-    )
-    print(api_response)
+    except Exception as e:
+        exceptions.append(str(e))
+    return exceptions
 
 
 if __name__ == "__main__":
     config.load_incluster_config()
     apiclient = ApiClient()
-    api = client.CustomObjectsApi(apiclient)
-    create_job(
-        api,
-        {
-            "topics": ["topic1"],
-            "authType": "",
-            "brokers": ["broker1"],
-            "credentials": "",
-            "namespace": "mynamespace",
-            "cassandraIp": "127.0.0.1",
-            "cassandraPassword": "hello",
-        },
+    [file_persist, spark_job] = load_all_ymls(files)
+    create_all_spark_jobs(
+        apiclient,
+        file_persist,
+        spark_job,
+        Job(
+            topics=["topic1"],
+            brokers=["broker1"],
+            namespace="mynamespace",
+            cassandraIp="127.0.0.1",
+            cassandraPassword="hello",
+        ),
     )
