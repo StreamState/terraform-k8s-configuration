@@ -6,3 +6,8 @@ project/project
 env
 node_modules
 __pycache__
+spark-sa.json
+admin.json
+.terraform*
+terraform.tfstate*
+account_id
