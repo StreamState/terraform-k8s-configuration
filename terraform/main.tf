@@ -1,18 +1,7 @@
-
-#variable "billing_account" {}
-#resource "random_id" "id" {
-#  byte_length = 4
-#  prefix      = var.project
-#}
 variable "project" {
   type    = string
   default = "streamstate"
 }
-#resource "google_project" "project" {
-#  name            = var.project
-#  project_id      = random_id.id.hex
-#  billing_account = var.billing_account
-#}
 
 terraform {
   backend "gcs" {
@@ -24,7 +13,7 @@ terraform {
 provider "google" {
   project = var.project
   region  = "us-central1"
-  zone    = "us-central1-c"
+  #zone    = "us-central1-c"
 }
 
 
@@ -62,7 +51,7 @@ resource "google_storage_bucket" "sparkstorage" {
 resource "google_storage_bucket_iam_member" "sparkadmin" {
   bucket = google_storage_bucket.sparkstorage.name
   role   = "roles/storage.objectAdmin"
-  member = "${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
+  member = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
 }
 
 
@@ -82,7 +71,7 @@ resource "google_container_registry" "registry" {
 resource "google_storage_bucket_iam_member" "viewer" {
   bucket = google_container_registry.registry.id
   role   = "roles/storage.objectViewer"
-  member = "${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
+  member = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
 }
 
 resource "google_project_service" "container_cluster" {
@@ -105,18 +94,18 @@ resource "google_container_cluster" "primary" {
 }
 
 resource "google_container_node_pool" "primary_preemptible_nodes" {
-  name     = "streamstatepool"
-  location = "us-central1"
-  cluster  = google_container_cluster.primary.name
-  #node_count = 1
-  initial_node_count = 2
-  autoscaling {
-    min_node_count = 1
-    max_node_count = 5
-  }
+  name       = "streamstatepool"
+  location   = "us-central1"
+  cluster    = google_container_cluster.primary.name
+  node_count = 1
+  # initial_node_count = 2
+  #autoscaling {
+  #  min_node_count = 1
+  #  max_node_count = 5
+  #}
   node_config {
     preemptible  = true
-    machine_type = "e2-medium"
+    machine_type = "e2-standard-2" # "e2-medium"
 
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
     service_account = google_service_account.default.email

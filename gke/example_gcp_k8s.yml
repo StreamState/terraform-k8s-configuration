@@ -18,7 +18,7 @@ spec:
     - Append # output mode,  Append, Update, Complete
     - /tmp/checkpoint # checkpoint
   hadoopConf:
-    "fs.gs.project.id": "streamstate" 
+    "fs.gs.project.id": "streamstatetest" 
     "fs.gs.system.bucket": "streamstate-sparkstorage" 
     "google.cloud.auth.service.account.enable": "true"
     "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json" # is this autocreated?
@@ -28,24 +28,25 @@ spec:
   driver:
     cores: 1
     #limits:
-    cpu: 100m
-    memory: "200m"
+    cpu: "50m"
+    memory: "100m"
     secrets:
     - name: "gcs-bq" # I think this can be whatever?  but this may also be spark-gcs
       path: "/mnt/secrets"
       secretType: GCPServiceAccount
     envVars:
-      GCS_PROJECT_ID: streamstate
+      GCS_PROJECT_ID: streamstatetest
     serviceAccount: spark # or is this spark-gcs?
   executor:
-    instances: 2
+    instances: 1
     cores: 1
+    coreRequest: "50m"
     #limits:
-    cpu: 100m
-    memory: "200m"
+    #cpu: "50m"
+    memory: "100m"
     secrets:
     - name: "gcs-bq" # I think this can be whatever?  but this may also be spark-gcs
       path: "/mnt/secrets"
       secretType: GCPServiceAccount
     envVars:
-      GCS_PROJECT_ID: streamstate
+      GCS_PROJECT_ID: streamstatetest

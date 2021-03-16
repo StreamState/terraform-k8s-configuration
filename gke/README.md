@@ -23,15 +23,16 @@ See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terr
 Enable the Cloud Resource Manager through the GCP ui :|
 * terraform init
 * terraform apply -var="project=$PROJECT_NAME"
+* gcloud container clusters get-credentials streamstatecluster --zone us-central1 # if needed for helm
 * helm install my-release spark-operator/spark-operator --namespace spark-operator --create-namespace
 
-* sudo docker build .  -f ./sparkstreaming/Dockerfile -t gcr.io/$PROJECT/streamstate -t gcr.io/$PROJECT/streamstate:v0.1.0
-* cat terraform/admin.json | sudo docker login -u _json_key --password-stdin https://gcr.io
-* sudo docker push gcr.io/$PROJECT/streamstate
-* sudo docker push gcr.io/$PROJECT/streamstate:v0.1.0
+# build and push the container
+* sudo docker build .  -f ./sparkstreaming/Dockerfile -t gcr.io/$PROJECT_NAME/streamstate -t gcr.io/$PROJECT_NAME/streamstate:v0.1.0
+* cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://gcr.io
+* sudo docker push gcr.io/$PROJECT_NAME/streamstate
+* sudo docker push gcr.io/$PROJECT_NAME/streamstate:v0.1.0
 
-
-
+# create the spark application
 * kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/spark-on-k8s-operator/master/manifest/spark-rbac.yaml
 * kubectl apply -f gke/example_gcp_k8s.yml
 
