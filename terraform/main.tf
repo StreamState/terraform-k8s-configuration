@@ -1,6 +1,6 @@
 variable "project" {
-  type    = string
-  default = "streamstate"
+  type = string
+  #default = "streamstate"
 }
 
 terraform {
@@ -17,28 +17,13 @@ provider "google" {
 }
 
 
-resource "google_project_service" "resource_manager" {
-  project                    = var.project
-  service                    = "cloudresourcemanager.googleapis.com"
-  disable_dependent_services = true
-}
-
-resource "google_project_service" "iam" {
-  project                    = var.project
-  service                    = "iam.googleapis.com"
-  disable_dependent_services = true
-  depends_on                 = [google_project_service.resource_manager]
-}
-
 resource "google_service_account" "default" {
   account_id   = "service-account-id"
   display_name = "Service Account"
-  depends_on   = [google_project_service.iam]
 }
 resource "google_service_account" "spark-gcs" {
   account_id   = "spark-gcs"
   display_name = "spark-gcs"
-  depends_on   = [google_project_service.iam]
 }
 
 resource "google_storage_bucket" "sparkstorage" {
@@ -54,32 +39,26 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
 }
 
-
-resource "google_project_service" "registry" {
-  project                    = var.project
-  service                    = "containerregistry.googleapis.com"
-  depends_on                 = [google_project_service.resource_manager]
-  disable_dependent_services = true
+resource "google_project_iam_member" "containerpolicy" {
+  project = var.project
+  role    = "roles/container.developer"
+  member  = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
 }
+
+
 
 resource "google_container_registry" "registry" {
-  project    = var.project
-  location   = "US"
-  depends_on = [google_project_service.registry]
+  project  = var.project
+  location = "US"
 }
+
 
 resource "google_storage_bucket_iam_member" "viewer" {
   bucket = google_container_registry.registry.id
   role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
+  member = "allUsers"
 }
 
-resource "google_project_service" "container_cluster" {
-  project                    = var.project
-  service                    = "container.googleapis.com"
-  depends_on                 = [google_project_service.resource_manager]
-  disable_dependent_services = true
-}
 
 resource "google_container_cluster" "primary" {
   name     = "streamstatecluster"
@@ -90,7 +69,6 @@ resource "google_container_cluster" "primary" {
   # node pool and immediately delete it.
   remove_default_node_pool = true
   initial_node_count       = 1
-  depends_on               = [google_project_service.container_cluster]
 }
 
 resource "google_container_node_pool" "primary_preemptible_nodes" {
@@ -105,7 +83,7 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   #}
   node_config {
     preemptible  = true
-    machine_type = "e2-standard-2" # "e2-medium"
+    machine_type = "e2-standard-2" # "e2-medium" # todo, try e2 medium again AFTER destroying
 
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
     service_account = google_service_account.default.email
@@ -113,5 +91,4 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
       "https://www.googleapis.com/auth/cloud-platform"
     ]
   }
-  depends_on = [google_project_service.container_cluster]
 }

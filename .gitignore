@@ -11,3 +11,4 @@ admin.json
 .terraform*
 terraform.tfstate*
 account_id
+key.json

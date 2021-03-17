@@ -30,13 +30,12 @@ import org.apache.spark.sql.SparkSession
 
 object DevFromFile {
   def main(args: Array[String]): Unit = {
-    if (args.length < 5) {
+    if (args.length < 4) {
       System.err.println(s"""
         |Usage: FileSourceWrapper appname filelocation
         |  <appname> is the name of the app
         |  <filelocations> is a comma seperated locations for the filestore
         |  <maxFileAge> is how far back the history should go
-        |  <outputMode> one of Complete, Append, Update
         |  <checkpoint> file output for streaming checkpoint
         """.stripMargin)
       System.exit(1)
