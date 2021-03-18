@@ -2,7 +2,6 @@ variable "project" {
   type = string
   #default = "streamstate"
 }
-
 terraform {
   backend "gcs" {
     bucket = "terraform-state-streamstate"
@@ -35,7 +34,7 @@ resource "google_storage_bucket" "sparkstorage" {
 
 resource "google_storage_bucket_iam_member" "sparkadmin" {
   bucket = google_storage_bucket.sparkstorage.name
-  role   = "roles/storage.objectAdmin"
+  role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
 }
 
@@ -46,7 +45,7 @@ resource "google_project_iam_member" "containerpolicy" {
 }
 
 
-
+# destroying this does NOT destroy the bucket behind the scenes
 resource "google_container_registry" "registry" {
   project  = var.project
   location = "US"
@@ -83,7 +82,7 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   #}
   node_config {
     preemptible  = true
-    machine_type = "e2-standard-2" # "e2-medium" # todo, try e2 medium again AFTER destroying
+    machine_type = "e2-standard-2" #"e2-medium" 
 
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
     service_account = google_service_account.default.email

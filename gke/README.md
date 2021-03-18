@@ -28,7 +28,7 @@ Enable the Cloud Resource Manager through the GCP ui :|
 * terraform init
 * terraform apply -var="project=$PROJECT_NAME"
 * gcloud container clusters get-credentials streamstatecluster --zone us-central1 # if needed for helm
-* helm install my-release spark-operator/spark-operator --set enableWebhook=true --namespace spark-operator --create-namespace
+* helm install my-release spark-operator/spark-operator  --namespace spark-operator --create-namespace # --set enableWebhook=true
 * cd .
 
 # build and push the container
@@ -39,8 +39,11 @@ Enable the Cloud Resource Manager through the GCP ui :|
 
 # create the spark application
 * gcloud iam service-accounts keys create key.json --iam-account spark-gcs@${PROJECT_NAME}.iam.gserviceaccount.com
-* kubectl create secret generic spark-secret --from-file=key.json
+* kubectl create secret generic spark-secret --from-file=key.json --save-config --dry-run=client  -o yaml | kubectl apply -f - 
 * kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/spark-on-k8s-operator/master/manifest/spark-rbac.yaml
 * kubectl apply -f gke/example_gcp_k8s.yml
 
+# upload json to bucket
 
+* echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./mytest.json
+* gsutil cp ./mytest.json gs://streamstate-sparkstorage/
