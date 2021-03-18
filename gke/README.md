@@ -47,3 +47,5 @@ Enable the Cloud Resource Manager through the GCP ui :|
 
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./mytest.json
 * gsutil cp ./mytest.json gs://streamstate-sparkstorage/
+* kubectl logs examplegcp-driver
+* kubectl port-forward examplegcp-driver 4040:4040 # to view spark-ui, go to localhost:4040
