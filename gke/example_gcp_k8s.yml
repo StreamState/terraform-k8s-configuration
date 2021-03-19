@@ -1,0 +1,49 @@
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: examplegcp
+  namespace: default # todo, adjust per tenant
+spec:
+  sparkConf:
+    spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
+    spark.jars.repositories: "https://packages.confluent.io/maven"
+    spark.jars.ivy: "/tmp/ivy"
+  type: Scala
+  mode: cluster
+  image: us.gcr.io/streamstatetest/streamstate:v0.1.0
+  imagePullPolicy: Always
+  arguments:
+    - mytestapp
+    - gs://streamstate-sparkstorage/
+    - 2d
+    - /tmp/checkpoint # checkpoint, where does this store data? ephemerally? can I directly calls gs:// or do I need to mount gs inside this container?
+  hadoopConf:
+    "fs.gs.project.id": "streamstatetest" 
+    "fs.gs.system.bucket": "streamstate-sparkstorage"  # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
+    "google.cloud.auth.service.account.enable": "true"
+    "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json"
+    "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+    "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+  mainClass: sparkwrappers.DevFromFile
+  mainApplicationFile: "local:///opt/spark/work-dir/streamstate.jar"
+  sparkVersion: "3.0.1"
+  driver:
+    cores: 1
+    memory: "512m"
+    secrets:
+    - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
+      path: "/mnt/secrets"
+      secretType: GCPServiceAccount
+    #envVars:
+    #  GCS_PROJECT_ID: streamstatetest
+    serviceAccount: spark # defined in spark-rbac.yml, NOT based on gcp service accounts at all
+  executor:
+    instances: 1
+    cores: 1
+    memory: "512m"
+    secrets:
+    - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
+      path: "/mnt/secrets"
+      secretType: GCPServiceAccount
+    #envVars:
+    #  GCS_PROJECT_ID: streamstatetest
