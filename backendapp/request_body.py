@@ -12,4 +12,8 @@ class Job(BaseModel):
     brokers: List[str]
     namespace: str
     cassandraIp: str
-    cassandraPassword: str
+
+
+class Table(BaseModel):
+    namespace: str
+    app_name: str

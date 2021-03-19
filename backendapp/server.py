@@ -3,7 +3,9 @@ from fastapi import FastAPI
 from initial_setup import setup_connection, create_namespace_and_service_accounts
 from create_job import load_all_ymls, create_all_spark_jobs
 from typing import List
-from request_body import Customer, Job
+from request_body import Customer, Job, Table
+from provision_cassandra import get_cassandra_session, create_schema
+import os
 
 app = FastAPI()
 apiclient = setup_connection()
@@ -21,6 +23,7 @@ def read_root():
     return {"Hello": "World"}
 
 
+## TODO this should be done via github action, not the REST API
 @app.post("/new_tenant/")
 def create_client(customer: Customer):
     result = create_namespace_and_service_accounts(apiclient, customer.name)
@@ -31,3 +34,13 @@ def create_client(customer: Customer):
 def create_job(job: Job):
     result = create_all_spark_jobs(apiclient, persist_template, stateful_template, job)
     return {"exceptions": result}  # if any exceptions, will be listed here
+
+
+@app.post("/new_database/")
+def create_database(table: Table):
+    try:
+        session = get_cassandra_session(os.getenv("username"), os.getenv("password"))
+        create_schema(session, table.namespace, table.app_name)
+        return {"exceptions": []}  # if any exceptions, will be listed here
+    except Exception as e:
+        return {"exceptions": [str(e)]}  # if any exceptions, will be listed here

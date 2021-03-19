@@ -74,18 +74,18 @@ object KafkaSourceWrapper {
       topics,
       checkpoint,
       cassandraCluster,
-      cassandraIp,
-      cassandraPassword
+      cassandraIp
     ) = args
     val spark = SparkSession.builder
       .appName(appName)
       .getOrCreate()
-
+    val user = sys.env.get("username").getOrElse("")
+    val cassandraPassword = sys.env.get("password").getOrElse("")
     SparkCassandra
       .applyCassandra(
         cassandraIp,
         "9042",
-        "cluster1-superuser",
+        user,
         cassandraPassword
       )
       .foreach({ case (key, sval) => spark.conf.set(key, sval) })

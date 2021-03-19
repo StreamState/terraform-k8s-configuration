@@ -1,65 +1,61 @@
+variable "organization" {
+  type = string
+}
 variable "project" {
   type = string
-  #default = "streamstate"
 }
+# this is likely a per-organization bucket
+# TODO probably need to subsitute prefix at runtime
+# so each organization gets own "backend"
 terraform {
   backend "gcs" {
     bucket = "terraform-state-streamstate"
-    prefix = "terraform/state"
+    prefix = "terraform/state-organization"
   }
 }
 
-provider "google" {
-  project = var.project
-  region  = "us-central1"
-  #zone    = "us-central1-c"
-}
-
-
+# not actually sure what this is used for...
 resource "google_service_account" "default" {
-  account_id   = "service-account-id"
-  display_name = "Service Account"
+  project      = var.project
+  account_id   = "service-account-id-${var.organization}"
+  display_name = "Service Account ${var.organization}"
 }
+
+# eventually this should be a per project/app, and created via rest api?
+# open question, do I want to deploy gcp resources through rest, or should
+# we just have a single service account per org on the back end
 resource "google_service_account" "spark-gcs" {
+  project      = var.project
   account_id   = "spark-gcs"
   display_name = "spark-gcs"
 }
 
+# eventually this should be a per project
 resource "google_storage_bucket" "sparkstorage" {
+  project                     = var.project
   name                        = "streamstate-sparkstorage"
   location                    = "US"
   force_destroy               = true
   uniform_bucket_level_access = true
 }
 
+# eventually this should be a per project
 resource "google_storage_bucket_iam_member" "sparkadmin" {
   bucket = google_storage_bucket.sparkstorage.name
   role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
 }
 
+# eventually this should be a per project
 resource "google_project_iam_member" "containerpolicy" {
   project = var.project
   role    = "roles/container.developer"
   member  = "serviceAccount:${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
 }
 
-
-# destroying this does NOT destroy the bucket behind the scenes
-resource "google_container_registry" "registry" {
-  project  = var.project
-  location = "US"
-}
-
-
-resource "google_storage_bucket_iam_member" "viewer" {
-  bucket = google_container_registry.registry.id
-  role   = "roles/storage.objectViewer"
-  member = "allUsers"
-}
-
-
+# this should be at the organization level (each organization gets their own cluster)
 resource "google_container_cluster" "primary" {
+  project  = var.project
   name     = "streamstatecluster"
   location = "us-central1"
 
@@ -70,11 +66,13 @@ resource "google_container_cluster" "primary" {
   initial_node_count       = 1
 }
 
+# this should be at the organization level (each organization gets their own cluster)
 resource "google_container_node_pool" "primary_preemptible_nodes" {
-  name       = "streamstatepool"
+  project    = var.project
+  name       = "${var.project}pool-${var.organization}"
   location   = "us-central1"
   cluster    = google_container_cluster.primary.name
-  node_count = 1
+  node_count = 1 # it keeps giving me 3 nodes though
   # initial_node_count = 2
   #autoscaling {
   #  min_node_count = 1
