@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Union
 
 
 class Customer(BaseModel):
@@ -12,4 +12,10 @@ class Job(BaseModel):
     brokers: List[str]
     namespace: str
     cassandraIp: str
-    cassandraPassword: str
+    cassandraPort: str
+
+
+class Table(BaseModel):
+    namespace: str
+    app_name: str
+    db_schema: Dict[str, Union[Dict[str, str], List[str]]]

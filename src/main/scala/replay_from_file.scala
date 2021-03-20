@@ -34,7 +34,7 @@ import com.datastax.spark.connector.rdd.ReadConf
 import com.datastax.spark.connector._
 object ReplayHistoryFromFile {
   def main(args: Array[String]): Unit = {
-    if (args.length < 10) {
+    if (args.length < 5) {
       System.err.println(s"""
         |Usage: FileSourceWrapper appname filelocation
         |  <appname> is the name of the app
@@ -42,11 +42,8 @@ object ReplayHistoryFromFile {
         |  <outputTopic> is the kafka topic to produce to
         |  <filelocations> is a comma seperated locations for the filestore
         |  <maxFileAge> is how far back the history should go
-        |  <outputMode> one of Complete, Append, Update
         |  <checkpoint> file output for streaming checkpoint
         |  <cassandraCluster> cassandra cluster name
-        |  <cassandraIp> ip address of cassandra cluster 
-        |  <cassandraPassword> password of cassandra cluster
         """.stripMargin)
       System.exit(1)
     }
@@ -55,14 +52,12 @@ object ReplayHistoryFromFile {
 
     val Array(
       appName,
-      brokers,
-      outputTopic,
+      //brokers,
+      //outputTopic,
       fileLocations,
       maxFileAge,
       checkpoint,
-      cassandraCluster,
-      cassandraIp,
-      cassandraPassword
+      cassandraCluster
     ) = args
 
     val files = fileLocations
@@ -70,12 +65,18 @@ object ReplayHistoryFromFile {
     val spark = SparkSession.builder
       .appName(appName)
       .getOrCreate()
+    val user = sys.env.get("username").getOrElse("")
+    val cassandraPassword = sys.env.get("password").getOrElse("")
+    val cassandraIp =
+      sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_HOST").getOrElse("")
+    val cassandraPort =
+      sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_PORT").getOrElse("")
 
     SparkCassandra
       .applyCassandra(
         cassandraIp,
-        "9042",
-        "cluster1-superuser",
+        cassandraPort,
+        user,
         cassandraPassword
       )
       .foreach({ case (key, sval) => spark.conf.set(key, sval) })
@@ -105,11 +106,11 @@ object ReplayHistoryFromFile {
             "APPEND"
           ) //upserts if primary key already exists (exact behavior we want)
           .save()
-        batchDF.write
+      /*batchDF.write
           .format("kafka")
           .option("kafka.bootstrap.servers", brokers)
           .option("topic", outputTopic)
-          .save()
+          .save()*/
       }
       .start()
       .awaitTermination()

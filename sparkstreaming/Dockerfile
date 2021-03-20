@@ -23,19 +23,13 @@ RUN chmod 644 $SPARK_HOME/jars/gcs-connector-latest-hadoop3.jar
 ADD https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.11.0/jmx_prometheus_javaagent-0.11.0.jar /prometheus/
 RUN chmod 644 /prometheus/jmx_prometheus_javaagent-0.11.0.jar
 
-USER ${spark_uid}
+
 
 RUN mkdir -p /etc/metrics/conf
 COPY sparkstreaming/metrics.properties /etc/metrics/conf
 COPY sparkstreaming/prometheus.yaml /etc/metrics/conf
+
+USER 1001
 COPY --from=build /root/target/scala-2.12/kafka_and_file_connect.jar /opt/spark/work-dir/streamstate.jar
 
 ENTRYPOINT ["/opt/entrypoint.sh"]
-
-
-
-#FROM gcr.io/spark-operator/spark:v3.0.0-gcs-prometheus
-#RUN mkdir -p /opt/hadoop/conf
-#COPY sparkstreaming/core-site.xml /opt/hadoop/conf/core-site.xml
-#COPY sparkstreaming/spark-env.sh $SPARK_HOME/conf/spark-env.sh
-#ENTRYPOINT [ "/opt/entrypoint.sh" ]

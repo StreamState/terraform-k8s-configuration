@@ -48,7 +48,7 @@ import com.datastax.spark.connector._
   */
 object KafkaSourceWrapper {
   def main(args: Array[String]): Unit = {
-    if (args.length < 9) {
+    if (args.length < 7) {
       System.err.println(s"""
         |Usage: KafkaSourceWrapper <brokers> <groupId> <topics>
         |  <appName> spark app name
@@ -58,8 +58,6 @@ object KafkaSourceWrapper {
         |  <topics> is a list of one or more kafka topics to consume from
         |  <checkpoint> file output for streaming checkpoint
         |  <cassandraCluster> cassandra cluster name
-        |  <cassandraIp> ip address of cassandra cluster 
-        |  <cassandraPassword> password of cassandra cluster
         """.stripMargin)
       System.exit(1)
     }
@@ -73,19 +71,22 @@ object KafkaSourceWrapper {
       groupId,
       topics,
       checkpoint,
-      cassandraCluster,
-      cassandraIp,
-      cassandraPassword
+      cassandraCluster
     ) = args
     val spark = SparkSession.builder
       .appName(appName)
       .getOrCreate()
-
+    val user = sys.env.get("username").getOrElse("")
+    val cassandraPassword = sys.env.get("password").getOrElse("")
+    val cassandraIp =
+      sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_HOST").getOrElse("")
+    val cassandraPort =
+      sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_PORT").getOrElse("")
     SparkCassandra
       .applyCassandra(
         cassandraIp,
-        "9042",
-        "cluster1-superuser",
+        cassandraPort,
+        user,
         cassandraPassword
       )
       .foreach({ case (key, sval) => spark.conf.set(key, sval) })

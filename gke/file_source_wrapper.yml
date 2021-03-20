@@ -34,8 +34,9 @@ spec:
     - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
       path: "/mnt/secrets"
       secretType: GCPServiceAccount
-    #envVars:
-    #  GCS_PROJECT_ID: streamstatetest
+    envFrom:
+      - secretRef:
+          name: "spark-secret-basic" # pass in from spark-secret-basic credentials
     serviceAccount: spark # defined in spark-rbac.yml, NOT based on gcp service accounts at all
   executor:
     instances: 1
@@ -45,5 +46,39 @@ spec:
     - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
       path: "/mnt/secrets"
       secretType: GCPServiceAccount
-    #envVars:
-    #  GCS_PROJECT_ID: streamstatetest
+    envFrom:
+      - secretRef:
+          name: "spark-secret-basic"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: spark-role
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-role-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: spark
+  namespace: default
+roleRef:
+  kind: Role
+  name: spark-role
+  apiGroup: rbac.authorization.k8s.io
