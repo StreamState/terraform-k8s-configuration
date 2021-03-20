@@ -36,7 +36,7 @@ spec:
       secretType: GCPServiceAccount
     envFrom:
       - secretRef:
-          name: "spark-secret" # pass in from spark-secret credentials
+          name: "spark-secret-basic" # pass in from spark-secret-basic credentials
     serviceAccount: spark # defined in spark-rbac.yml, NOT based on gcp service accounts at all
   executor:
     instances: 1
@@ -48,7 +48,7 @@ spec:
       secretType: GCPServiceAccount
     envFrom:
       - secretRef:
-          name: "spark-secret"
+          name: "spark-secret-basic"
 ---
 apiVersion: v1
 kind: ServiceAccount

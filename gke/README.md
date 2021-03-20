@@ -38,8 +38,8 @@ The organization tf creates expensive resources, so please destroy afterwards!
 * terraform init
 * terraform apply -var="organization=$ORGANIZATION_NAME" -var="project=$PROJECT_NAME"
 * gcloud container clusters get-credentials streamstatecluster --zone us-central1 # if needed for helm
-* helm install my-release spark-operator/spark-operator  --namespace spark-operator --create-namespace # --set enableWebhook=true
-* cd .
+* helm install my-release spark-operator/spark-operator  --namespace spark-operator --create-namespace --set webhook.enable=true
+* cd ..
 
 # build and push the container
 This should be done once for streamstate, and available to every organization
@@ -54,8 +54,11 @@ This should be done at the project/app level
 
 * gcloud iam service-accounts keys create key.json --iam-account spark-gcs@${PROJECT_NAME}.iam.gserviceaccount.com # eventually do this per app
 * kubectl create secret generic spark-secret --from-file=key.json --save-config --dry-run=client  -o yaml | kubectl apply -f - 
-* kubectl apply -f gke/spark-service-account.yml
-* kubectl apply -f gke/example_gcp_k8s.yml
+* USERNAME=$(cat key.json | python3 -c "import sys, json; print(json.load(sys.stdin)['client_id'])")
+* PASSWORD=$(cat key.json | python3 -c "import sys, json; print(''.join(json.load(sys.stdin)['private_key'].splitlines()[1:-1]))")
+
+* kubectl create secret generic spark-secret-basic --from-literal=username=$USERNAME --from-literal=password=$PASSWORD --save-config --dry-run=client  -o yaml | kubectl apply -f - 
+* kubectl apply -f gke/file_source_wrapper.yml
 
 # upload json to bucket
 
@@ -68,5 +71,9 @@ This should be done at the project/app level
 
 This should be done at the organization level, with a table per project/app
 
-* helm install cass-operator datastax/cass-operator  --namespace cass-operator --create-namespace
-* kubectl -n cass-operator apply -f ./gke/cassandra.yaml
+* helm install cass-operator datastax/cass-operator  --set clusterWideInstall=true --namespace cass-operator --create-namespace
+* kubectl  apply -f ./gke/cassandra.yml # for now, deploy to default namespace
+
+# Spark streaming to cassandra
+This should be done at the project/app level
+* kubectl apply -f gke/replay_from_file.yml

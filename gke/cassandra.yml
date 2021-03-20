@@ -13,11 +13,12 @@ apiVersion: cassandra.datastax.com/v1beta1
 kind: CassandraDatacenter
 metadata:
   name: dc1
+  namespace: default
 spec:
   clusterName: cluster1
   serverType: cassandra
   serverVersion: 3.11.7
-  superuserSecretName: spark-secret # created from spark secret, but I don't think this is the right level
+  superuserSecretName: spark-secret-basic # created from spark secret
   managementApiAuth:
     insecure: {}
   size: 1
@@ -37,3 +38,22 @@ spec:
     jvm-options:
       initial_heap_size: 800M
       max_heap_size: 800M
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cassandra-loadbalancer
+  namespace: default
+  labels:
+    cassandra.datastax.com/cluster: cluster1
+    cassandra.datastax.com/datacenter: dc1
+    cassandra.datastax.com/rack: default
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 9042
+    protocol: TCP
+  selector:
+    cassandra.datastax.com/cluster: cluster1
+    cassandra.datastax.com/datacenter: dc1
+    cassandra.datastax.com/rack: default

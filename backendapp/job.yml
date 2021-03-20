@@ -14,12 +14,12 @@ spec:
         bb: web
     spec:
       containers:
-      envFrom:
-      - secretRef:
-          name: "spark-secret" # pass in from spark-secret credentials
       - name: managek8s-site
-        image: createfrominside:latest
-        imagePullPolicy: Never # ensure going to  local docker registry and not docker.io
+        image: us.gcr.io/streamstatetest/streamstaterest:v0.2.0
+        envFrom:
+        - secretRef:
+            name: "spark-secret-basic" # pass in from spark-secret credentials
+        #imagePullPolicy: Never # ensure going to  local docker registry and not docker.io
 ---
 apiVersion: v1
 kind: Service
