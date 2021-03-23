@@ -18,11 +18,11 @@ provider "google" {
 
 
 # TODO!  make this accessible by the spark service account (or service-account-id?) but not public
-resource "google_storage_bucket_iam_member" "viewer" {
-  bucket = google_container_registry.registry.id
-  role   = "roles/storage.objectViewer"
-  member = "allUsers"
-}
+#resource "google_storage_bucket_iam_member" "viewer" {
+#  bucket = google_container_registry.registry.id
+#  role   = "roles/storage.objectViewer"
+#  member = "allUsers"
+#}
 
 resource "google_project_service" "resource_manager" {
   project = var.project

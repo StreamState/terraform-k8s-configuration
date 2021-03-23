@@ -45,6 +45,8 @@ The organization tf creates expensive resources, so please destroy afterwards!
 This should be done once for streamstate, and available to every organization
 * sudo docker build .  -f ./sparkstreaming/Dockerfile -t us.gcr.io/$PROJECT_NAME/streamstate -t us.gcr.io/$PROJECT_NAME/streamstate:v0.1.0
 * cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us.gcr.io
+* kubectl create secret docker-registry gcr-secret --docker-server=us.gcr.io --docker-username=_json_key --docker-email=terraform@${PROJECT_NAME}.iam.gserviceaccount.com --docker-password="$(cat $TF_CREDS)"
+* /usr/bin/kubectl create secret generic artifact-secret-for-local-argo --from-file=serviceAccountKey=$TF_CREDS --save-config --dry-run=client  -o yaml | /usr/bin/kubectl apply -n argo-events -f - # temporary for testing Argo locally
 * sudo docker push us.gcr.io/$PROJECT_NAME/streamstate
 * sudo docker push us.gcr.io/$PROJECT_NAME/streamstate:v0.1.0
 

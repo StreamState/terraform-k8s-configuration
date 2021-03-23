@@ -1,0 +1,142 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: webhook
+spec:
+  template:
+    serviceAccountName: argo-events-sa # whats this needed for
+  dependencies:
+    - name: test-dep
+      eventSourceName: webhook
+      eventName: example
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        k8s:
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: spark-streaming-ci-  # Name of this Workflow
+              spec:
+                arguments:
+                  parameters:
+                    - name: scalacode
+                    # value: this will get overridden by test-dep
+                entrypoint: build-jar       # Defines "whalesay" as the "main" template
+                templates:
+                #- name: main
+                #  inputs:
+                #    parameters:
+                #    - name: scalacode
+                #  dag:
+                #    tasks:
+                #    - name: step-A 
+                #      template: build-jar  
+                #      arguments:
+                #        parameters:
+                #        - name: scalacode
+                #          value: inputs.parameters.scalacode
+                #    - name: step-B
+                #      template: build-docker-image 
+                #      arguments:
+                #        parameters:
+                #        - name: image
+                #          value: us.gcr.io/streamstatetest/scalaapp:v0.1.0
+                #        - name: work 
+                #          value: work 
+                #        - name: path 
+                #          value: scratch
+
+                - name: build-jar            # Defining the "whalesay" template
+                  inputs:
+                    parameters:
+                      - name: scalacode
+                  container:
+                    image: us.gcr.io/streamstatetest/scalacompile:v0.1.0
+                    command: [sh, -c]
+                    args: ["echo {{inputs.parameters.scalacode}} | base64 --decode > src/main/scala/custom.scala; cat src/main/scala/custom.scala; sbt assembly"]
+                  outputs:
+                    artifacts:
+                    - name: fulljar
+                      path: /root/target/scala-2.12/kafka_and_file_connect.jar
+                      archive:
+                        none: {}
+                      gcs:
+                        bucket: streamstatetest 
+                        key: jars
+                        # remove this once in GKE
+                        serviceAccountKeySecret:
+                          name: artifact-secret-for-local-argo
+                          key: serviceAccountKey
+                - name: build-docker-image
+                  inputs:
+                    parameters:
+                      # Name of volume to mount
+                      - name: work
+                        value: work
+                      # Path on the value
+                      - name: path
+                        value: scratch
+                      # Name of the image to push
+                      - name: image
+                        value: us.gcr.io/streamstatetest/scalaapp:v0.1.0
+                  # Mount the configuration so we can push the image.
+                  # This should create the /.docker/config.json file.
+                  volumes:
+                    - name: docker-config
+                      secret:
+                        secretName: gcr-secret
+                  container:
+                    image: us.gcr.io/streamstatetest/dockerindocker:v0.1.0
+                    volumeMounts:
+                      - name: "{{inputs.parameters.work}}"
+                        mountPath: /work
+                      - name: docker-config
+                        mountPath: /.docker
+                    workingDir: /work/{{inputs.parameters.path}}
+                    env:
+                      - name: BUILDKITD_FLAGS
+                        value: --oci-worker-no-process-sandbox
+                      - name: DOCKER_CONFIG
+                        value: /.docker
+                    command:
+                      - buildctl-daemonless.sh
+                    args:
+                      - build
+                      - --frontend
+                      - dockerfile.v0
+                      - --local
+                      - context=.
+                      - --local
+                      - dockerfile=Final.Dockerfile
+                      - --output
+                      - type=image,name={{inputs.parameters.image}},push=true
+          parameters:
+            - src:
+                dependencyName: test-dep
+                dataKey: body.code # scala code to write to custom.scala (for now)
+              dest: spec.arguments.parameters.0.value
+#---
+#apiVersion: v1
+#kind: ConfigMap
+#metadata:
+    # if you want to use this config map by default - name it "artifact-repositories" 
+#  name: artifact-repositories
+#  annotations:
+    # v3.0 and after - if you want to use a specific key, put that's key into this annotation 
+#    workflows.argoproj.io/default-artifact-repository: default-v1
+#data:
+#  default-v1: |
+#    gcs:
+#      bucket: streamstatetest 
+#      key: jars
+      # remove this once in GKE
+#      serviceAccountKeySecret:
+#        name: artifact-secret-for-local-argo
+#        key: serviceAccountKey

@@ -11,6 +11,8 @@ spec:
   type: Scala
   mode: cluster
   image: us.gcr.io/streamstatetest/streamstate:v0.1.0
+  imagePullSecrets: 
+    - gcr-secret
   imagePullPolicy: Always
   arguments:
     - mytestapp
