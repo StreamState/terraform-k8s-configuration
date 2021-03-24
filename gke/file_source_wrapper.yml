@@ -18,7 +18,7 @@ spec:
     - 2d
     - /tmp/checkpoint # checkpoint, where does this store data? ephemerally? can I directly calls gs:// or do I need to mount gs inside this container?
   hadoopConf:
-    "fs.gs.project.id": "streamstatetest" 
+    "fs.gs.project.id": "streamstate-sparkstorage" 
     "fs.gs.system.bucket": "streamstate-sparkstorage"  # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
     "google.cloud.auth.service.account.enable": "true"
     "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json"

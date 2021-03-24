@@ -47,6 +47,13 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
 }
 
 # eventually this should be a per project
+resource "google_storage_bucket_iam_member" "clusterrole" {
+  bucket = google_storage_bucket.sparkstorage.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.default.account_id}@${var.project}.iam.gserviceaccount.com"
+}
+
+# eventually this should be a per project
 resource "google_project_iam_member" "containerpolicy" {
   project = var.project
   role    = "roles/container.developer"

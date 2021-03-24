@@ -1,13 +1,10 @@
-
-* kubectl create namespace argocd
-* kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-* kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-
 # argo workflows
 
 * kubectl create namespace argo-events
-* kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-workflows/stable/manifests/quick-start-postgres.yaml
-* kubectl create clusterrolebinding daniel-cluster-admin-binding --clusterrole=cluster-admin --user=danstahl1138@gmail.com
+* kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-workflows/stable/manifests/namespace-install.yaml
+* kubectl patch svc argo-server -n argo-events -p '{"spec": {"type": "LoadBalancer"}}' #todo!  auth!
+* kubectl get svc argo-server -n argo-events
+* kubectl create clusterrolebinding daniel-cluster-admin-binding --clusterrole=cluster-admin --user=danstahl1138@gmail.com # is this needed in gke?
 * kubectl -n argo-events port-forward deployment/argo-server 2746:2746
 
 * curl -sLO https://github.com/argoproj/argo/releases/download/v3.0.0-rc8/argo-linux-amd64.gz
@@ -18,25 +15,25 @@
 
 * sudo mv ./argo-linux-amd64 /usr/local/bin/argo
 
-* argo submit -n argo --watch https://raw.githubusercontent.com/argoproj/argo-workflows/master/examples/hello-world.yaml
-
 
 # argo events
 * kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/manifests/install.yaml
 * kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/eventbus/native.yaml
 
+TODO!!! Add security to this endpoint and expose it via load balancer rather than through portforward
+* kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/event-sources/webhook.yaml
 * kubectl -n argo-events apply -f argo/workflow.yml
 
 
 # docker
 
-* sudo docker build . -f ./argo/Dockerfile -t us.gcr.io/$PROJECT_NAME/scalacompile -t us.gcr.io/$PROJECT_NAME/scalacompile:v0.1.0
-* sudo docker push us.gcr.io/$PROJECT_NAME/scalacompile:v0.1.0
+* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us.gcr.io/$PROJECT_NAME/scalacompile -t us.gcr.io/$PROJECT_NAME/scalacompile:v0.2.0
+* sudo docker push us.gcr.io/$PROJECT_NAME/scalacompile:v0.2.0
 
-* sudo docker build . -f ./argo/DockerInDocker.Dockerfile -t us.gcr.io/$PROJECT_NAME/dockerindocker -t us.gcr.io/$PROJECT_NAME/dockerindocker:v0.1.0
+* sudo docker build . -f ./argo/dockerindocker.Dockerfile -t us.gcr.io/$PROJECT_NAME/dockerindocker -t us.gcr.io/$PROJECT_NAME/dockerindocker:v0.1.0
 * sudo docker push us.gcr.io/$PROJECT_NAME/dockerindocker:v0.1.0
 
-* sudo docker build . -f ./argo/Spark.Dockerfile -t us.gcr.io/$PROJECT_NAME/sparkbase -t us.gcr.io/$PROJECT_NAME/sparkbase:v0.1.0 
+* sudo docker build . -f ./argo/sparkbase.Dockerfile -t us.gcr.io/$PROJECT_NAME/sparkbase -t us.gcr.io/$PROJECT_NAME/sparkbase:v0.1.0 
 * sudo docker push us.gcr.io/$PROJECT_NAME/sparkbase:v0.1.0
 
 # deploy workflow

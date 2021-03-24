@@ -3,3 +3,5 @@ COPY src src
 COPY build.sbt build.sbt
 COPY project/assembly.sbt project/assembly.sbt
 COPY project/build.properties project/build.properties
+# force download of sbt
+RUN sbt version 
