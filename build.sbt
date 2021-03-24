@@ -1,4 +1,4 @@
-name := "kafka_and_file_connect"
+name := "streamstate"
 
 scalaVersion := "2.12.12"
 
@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
 )
 
 assemblyJarName in assembly := name.value + ".jar"
-
+target in assembly := baseDirectory.value
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
   case x                             => MergeStrategy.last

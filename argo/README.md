@@ -17,21 +17,21 @@
 
 
 # argo events
-* kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/manifests/install.yaml
-* kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/eventbus/native.yaml
+* kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/manifests/namespace-install.yaml
+* kubectl apply -n argo-events -f argo/eventbus.yml
 
 TODO!!! Add security to this endpoint and expose it via load balancer rather than through portforward
-* kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/event-sources/webhook.yaml
+* kubectl apply -n argo-events -f argo/eventsource.yml
 * kubectl -n argo-events apply -f argo/workflow.yml
 
 
 # docker
 
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us.gcr.io/$PROJECT_NAME/scalacompile -t us.gcr.io/$PROJECT_NAME/scalacompile:v0.2.0
-* sudo docker push us.gcr.io/$PROJECT_NAME/scalacompile:v0.2.0
+* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us.gcr.io/$PROJECT_NAME/scalacompile -t us.gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
+* sudo docker push us.gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
 
-* sudo docker build . -f ./argo/dockerindocker.Dockerfile -t us.gcr.io/$PROJECT_NAME/dockerindocker -t us.gcr.io/$PROJECT_NAME/dockerindocker:v0.1.0
-* sudo docker push us.gcr.io/$PROJECT_NAME/dockerindocker:v0.1.0
+* sudo docker build . -f ./argo/dockerindocker.Dockerfile -t us.gcr.io/$PROJECT_NAME/dockerindocker -t us.gcr.io/$PROJECT_NAME/dockerindocker:v0.5.0
+* sudo docker push us.gcr.io/$PROJECT_NAME/dockerindocker:v0.5.0
 
 * sudo docker build . -f ./argo/sparkbase.Dockerfile -t us.gcr.io/$PROJECT_NAME/sparkbase -t us.gcr.io/$PROJECT_NAME/sparkbase:v0.1.0 
 * sudo docker push us.gcr.io/$PROJECT_NAME/sparkbase:v0.1.0
