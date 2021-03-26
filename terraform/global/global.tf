@@ -43,8 +43,8 @@ resource "google_project_service" "registry" {
 # destroying this does NOT destroy the bucket behind the scenes
 # this will be a global repo for all organizations to access, though they won't explicitly know this
 resource "google_container_registry" "registry" {
-  project    = var.project
-  location   = "US" # todo, make this NOT US
+  project = var.project
+  #location   = "US" # todo, make this NOT US
   depends_on = [google_project_service.registry]
 }
 

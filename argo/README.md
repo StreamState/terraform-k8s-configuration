@@ -27,14 +27,12 @@ TODO!!! Add security to this endpoint and expose it via load balancer rather tha
 
 # docker
 
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us.gcr.io/$PROJECT_NAME/scalacompile -t us.gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
-* sudo docker push us.gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
+todo! make this part of CI/CD pipeline for the entire project (streamstate) level
+* sudo docker build . -f ./argo/scalacompile.Dockerfile -t gcr.io/$PROJECT_NAME/scalacompile -t gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
+* sudo docker push gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
 
-* sudo docker build . -f ./argo/dockerindocker.Dockerfile -t us.gcr.io/$PROJECT_NAME/dockerindocker -t us.gcr.io/$PROJECT_NAME/dockerindocker:v0.5.0
-* sudo docker push us.gcr.io/$PROJECT_NAME/dockerindocker:v0.5.0
-
-* sudo docker build . -f ./argo/sparkbase.Dockerfile -t us.gcr.io/$PROJECT_NAME/sparkbase -t us.gcr.io/$PROJECT_NAME/sparkbase:v0.1.0 
-* sudo docker push us.gcr.io/$PROJECT_NAME/sparkbase:v0.1.0
+* sudo docker build . -f ./argo/sparkbase.Dockerfile -t gcr.io/$PROJECT_NAME/sparkbase -t gcr.io/$PROJECT_NAME/sparkbase:v0.1.0 
+* sudo docker push gcr.io/$PROJECT_NAME/sparkbase:v0.1.0
 
 # deploy workflow
 
