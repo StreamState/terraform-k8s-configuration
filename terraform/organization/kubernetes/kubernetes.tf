@@ -48,12 +48,17 @@ resource "google_storage_bucket_iam_member" "viewer" {
   member = "serviceAccount:${google_service_account.docker-read.email}"
 }
 
-resource "google_storage_bucket_iam_member" "writer" {
-  bucket = "artifacts.${var.project}.appspot.com"
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.docker-write.email}"
-}
+#resource "google_storage_bucket_iam_member" "writer" {
+#  bucket = "artifacts.${var.project}.appspot.com"
+#  role   = "roles/storage.objectAdmin"
+#  member = "serviceAccount:${google_service_account.docker-write.email}"
+#}
 
+resource "google_project_iam_member" "writer" {
+  project = var.project
+  role    = "roles/storage.objectAdmin"
+  member  = "serviceAccount:${google_service_account.docker-write.email}"
+}
 
 
 ####### END DELETE
@@ -149,7 +154,7 @@ resource "kubernetes_service_account" "docker-cfg-write-events" {
     name      = "docker-cfg-write"
     namespace = kubernetes_namespace.argoevents.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = "${google_service_account.docker-write.account_id}@${var.project}.iam.gserviceaccount.com"
+      "iam.gke.io/gcp-service-account" = google_service_account.docker-write.email
     }
   }
   depends_on = [kubernetes_namespace.argoevents]
@@ -177,7 +182,7 @@ resource "kubernetes_service_account" "docker-cfg-read-events" {
     name      = "docker-cfg-read"
     namespace = kubernetes_namespace.argoevents.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = "${google_service_account.docker-read.account_id}@${var.project}.iam.gserviceaccount.com"
+      "iam.gke.io/gcp-service-account" = google_service_account.docker-read.email
     }
   }
   depends_on = [kubernetes_namespace.argoevents]
@@ -203,7 +208,7 @@ resource "kubernetes_service_account" "docker-cfg-read" {
     name      = "docker-cfg-read"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = "${google_service_account.docker-read.account_id}@${var.project}.iam.gserviceaccount.com"
+      "iam.gke.io/gcp-service-account" = google_service_account.docker-read.email
     }
   }
   depends_on = [kubernetes_namespace.mainnamespace]
@@ -231,7 +236,7 @@ resource "kubernetes_service_account" "spark-service" {
     name      = "spark"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = "${google_service_account.spark-gcs.account_id}@${var.project}.iam.gserviceaccount.com"
+      "iam.gke.io/gcp-service-account" = google_service_account.spark-gcs.email
     }
   }
   depends_on = [kubernetes_namespace.mainnamespace]
@@ -337,20 +342,23 @@ resource "helm_release" "spark" {
 ##################
 # Install Argo
 ##################
-resource "google_service_account_key" "mykey" {
-  service_account_id = google_service_account.docker-write.name
-}
 
-resource "kubernetes_secret" "google-application-credentials" {
-  metadata {
-    name      = "docker-creds"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
-  }
-  data = {
-    ".dockerconfigjson" = base64decode(google_service_account_key.mykey.private_key)
-  }
-  type = "kubernetes.io/dockerconfigjson"
-}
+#### DELETE
+#resource "google_service_account_key" "mykey" {
+#  service_account_id = google_service_account.docker-write.name
+#}
+
+#resource "kubernetes_secret" "google-application-credentials" {
+#  metadata {
+#    name      = "docker-creds"
+#    namespace = kubernetes_namespace.argoevents.metadata.0.name
+#  }
+#  data = {
+#    ".dockerconfigjson" = base64decode(google_service_account_key.mykey.private_key)
+#  }
+#  type = "kubernetes.io/dockerconfigjson"
+#}
+### END DELETE
 
 data "kubectl_file_documents" "argoworkflow" {
   content = file("../../argo/argoinstall.yml")
