@@ -86,12 +86,13 @@ spec:
               kind: Workflow
               metadata:
                 generateName: spark-streaming-ci-  # Name of this Workflow
+                #name: spark-streaming-ci
               spec:
                 serviceAccountName: argo-events-sa # TODO! create different service account than from line 7 and give minimum permissions
                 arguments:
                   parameters:
                     - name: scalacode
-                entrypoint: main      
+                entrypoint: main     
                 volumeClaimTemplates:
                 - metadata:
                     name: work
@@ -126,8 +127,7 @@ spec:
                     - mountPath: /work # hope this persists across containers/steps...
                       name: work
                     image: ${registry}/${project}/scalacompile:v0.5.0
-                    imagePullSecrets: 
-                    - ${dockersecretread}
+                    
                     command: [sh, -c]
                     args: ["echo {{inputs.parameters.scalacode}} | base64 --decode > src/main/scala/custom.scala; sbt assembly; cp streamstate.jar /work/streamstate.jar; ls -la /work;"]
                     #workingDir: /work
@@ -139,28 +139,31 @@ spec:
                     parameters:
                       # Name of the image to push
                       - name: image
-                        value: ${registry}/${project}/scalaapp:v0.1.0 # TODO!  specify tag version
-                      - name: dockerfile 
-                        value: RlJPTSB1cy5nY3IuaW8vc3RyZWFtc3RhdGV0ZXN0L3NwYXJrYmFzZTp2MC4xLjAgCkNPUFkgc3RyZWFtc3RhdGUuamFyIC9vcHQvc3Bhcmsvd29yay1kaXIvc3RyZWFtc3RhdGUuamFyCkVOVFJZUE9JTlQgWyIvb3B0L2VudHJ5cG9pbnQuc2giXQ==
-                  volumes:
-                    - name: docker-config
-                      secret:
-                        secretName: ${dockersecretwrite}
+                        value: ${registry}/${project}/${organization}/scalaapp:v0.1.0 # TODO!  specify tag version
+                      - name: dockerfileline1 
+                        value: FROM gcr.io/streamstatetest/sparkbase:v0.1.0
+                      - name: dockerfileline2 
+                        value: COPY streamstate.jar /opt/spark/work-dir/streamstate.jar
+                      - name: dockerfileline3
+                        value: ENTRYPOINT ["/opt/entrypoint.sh"]
                   container:
                     image: docker:19.03.13 
                     command: [sh, -c]
                     workingDir: /work
-                    args: ["ls -la /work; cat /.docker/config.json; echo {{inputs.parameters.dockerfile}} | base64 -d > Final.Dockerfile; until docker ps; do sleep 3; done; cd /work && docker build . -f Final.Dockerfile -t {{inputs.parameters.image}} && docker push {{inputs.parameters.image}}; "]
+                    args: [
+                      "ls -la /work; cat /.docker/config.json; \
+                      echo {{inputs.parameters.dockerfileline1}} > Final.Dockerfile; \
+                      echo {{inputs.parameters.dockerfileline2}} >> Final.Dockerfile; \
+                      echo {{inputs.parameters.dockerfileline3}} >> Final.Dockerfile; \
+                      until docker ps; do sleep 3; done; \
+                      cd /work && docker build . -f Final.Dockerfile -t {{inputs.parameters.image}} && docker push {{inputs.parameters.image}}; "
+                    ]
                     volumeMounts:
                     - mountPath: /work # hope this persists across containers/steps...
                       name: work
-                    - name: docker-config
-                      mountPath: /.docker
                     env:
                     - name: DOCKER_HOST
-                      value: 127.0.0.1 # or tcp://localhost:2375 ?
-                    - name: DOCKER_CONFIG
-                      value: /.docker
+                      value: 127.0.0.1
                   sidecars:
                   - name: dind
                     image: docker:19.03.13-dind
