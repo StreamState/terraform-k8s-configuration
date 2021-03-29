@@ -28,7 +28,7 @@ resource "google_project_service" "iam" {
 }
 resource "google_project_service" "registry" {
   project    = var.project
-  service    = "containerregistry.googleapis.com"
+  service    = "containerregistry.googleapis.com" # artifactregistry.googleapis.com
   depends_on = [google_project_service.resource_manager]
 }
 
@@ -45,3 +45,13 @@ resource "google_project_service" "container_cluster" {
   service    = "container.googleapis.com"
   depends_on = [google_project_service.resource_manager]
 }
+
+#resource "google_artifact_registry_repository" "orgrepo" {
+#  provider      = google-beta
+#  project       = var.project
+#  location      = "us-central1"
+#  repository_id = var.project
+#  description   = "organization specific docker repo"
+#  format        = "DOCKER"
+# depends_on = [google_project_service.registry]
+#}

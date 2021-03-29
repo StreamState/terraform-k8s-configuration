@@ -25,15 +25,17 @@ resource "google_service_account" "spark-gcs" {
 }
 
 
-####### START DELETE...at least for read only
-# This is for writing to gcr registry
-# needed for argo to deploy container to gcr
+
 resource "google_service_account" "docker-write" {
   project      = var.project
   account_id   = "docker-write-${var.organization}"
   display_name = "docker-write-${var.organization}"
 }
 
+
+####### START DELETE...at least for read only
+# This is for writing to gcr registry
+# needed for argo to deploy container to gcr
 # This is for reading from gcr registry
 # needed for argo containers AND for spark jobs
 resource "google_service_account" "docker-read" {
@@ -47,6 +49,7 @@ resource "google_storage_bucket_iam_member" "viewer" {
   role   = "roles/storage.objectViewer"
   member = "serviceAccount:${google_service_account.docker-read.email}"
 }
+####### END DELETE
 
 #resource "google_storage_bucket_iam_member" "writer" {
 #  bucket = "artifacts.${var.project}.appspot.com"
@@ -56,12 +59,32 @@ resource "google_storage_bucket_iam_member" "viewer" {
 
 resource "google_project_iam_member" "writer" {
   project = var.project
-  role    = "roles/storage.objectAdmin"
+  role    = "roles/cloudbuild.builds.builder" #"roles/storage.objectAdmin"
   member  = "serviceAccount:${google_service_account.docker-write.email}"
 }
 
 
-####### END DELETE
+
+
+#resource "google_artifact_registry_repository" "orgrepo" {
+#  provider = google-beta
+
+#  location      = "us-central1"
+#  repository_id = var.organization
+#  description   = "organization specific docker repo"
+#  format        = "DOCKER"
+#}
+
+#resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
+#  provider = google-beta
+
+#  location   = google_artifact_registry_repository.orgrepo.location
+#  repository = google_artifact_registry_repository.orgrepo.name
+#  role       = "roles/artifactregistry.writer"
+#  member     = "serviceAccount:${google_service_account.docker-write.email}"
+#}
+
+
 
 resource "google_storage_bucket" "sparkstorage" {
   project                     = var.project
@@ -167,7 +190,7 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_service_account.docker-cfg-write-events.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.argoevents.metadata.0.name}/${kubernetes_service_account.docker-cfg-write-events.metadata.0.name}]",
   ]
   depends_on = [
     kubernetes_service_account.docker-cfg-write-events
@@ -194,7 +217,7 @@ resource "google_service_account_iam_binding" "bind_docker_read_argo" {
   service_account_id = google_service_account.docker-read.name
   role               = "roles/iam.workloadIdentityUser"
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_service_account.docker-cfg-read-events.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.argoevents.metadata.0.name}/${kubernetes_service_account.docker-cfg-read-events.metadata.0.name}]",
   ]
   depends_on = [
     kubernetes_service_account.docker-cfg-read-events
@@ -221,7 +244,7 @@ resource "google_service_account_iam_binding" "bind_docker_read" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_service_account.docker-cfg-read.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.docker-cfg-read.metadata.0.name}]",
   ]
   depends_on = [
     kubernetes_service_account.docker-cfg-read
@@ -249,7 +272,7 @@ resource "google_service_account_iam_binding" "bind_spark_svc" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_service_account.spark-service.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.spark-service.metadata.0.name}]",
   ]
   depends_on = [
     kubernetes_service_account.spark-service
@@ -343,22 +366,6 @@ resource "helm_release" "spark" {
 # Install Argo
 ##################
 
-#### DELETE
-#resource "google_service_account_key" "mykey" {
-#  service_account_id = google_service_account.docker-write.name
-#}
-
-#resource "kubernetes_secret" "google-application-credentials" {
-#  metadata {
-#    name      = "docker-creds"
-#    namespace = kubernetes_namespace.argoevents.metadata.0.name
-#  }
-#  data = {
-#    ".dockerconfigjson" = base64decode(google_service_account_key.mykey.private_key)
-#  }
-#  type = "kubernetes.io/dockerconfigjson"
-#}
-### END DELETE
 
 data "kubectl_file_documents" "argoworkflow" {
   content = file("../../argo/argoinstall.yml")
@@ -393,9 +400,9 @@ data "kubectl_file_documents" "argoeventworkflow" {
 ## The docker containers needed for this are built as part of the CI/CD pipeline that
 ## includes provisioning global TF, so the images will be available
 ## question: which images?  The latest?  Or specific tags?
-#resource "kubectl_manifest" "argoeventworkflow" {
-#  count              = 3 #length(data.kubectl_file_documents.argoeventworkflow.documents)
-#  yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
-#  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-#  depends_on         = [kubectl_manifest.argoevents]
-#}
+resource "kubectl_manifest" "argoeventworkflow" {
+  count              = 3 #length(data.kubectl_file_documents.argoeventworkflow.documents)
+  yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
+  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on         = [kubectl_manifest.argoevents]
+}
