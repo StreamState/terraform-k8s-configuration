@@ -2,7 +2,7 @@ apiVersion: "sparkoperator.k8s.io/v1beta2"
 kind: SparkApplication
 metadata:
   name: replayfromfile
-  namespace: default # todo, adjust per tenant
+  #namespace: default # todo, adjust per tenant
 spec:
   sparkConf:
     spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
@@ -10,7 +10,9 @@ spec:
     spark.jars.ivy: "/tmp/ivy"
   type: Scala
   mode: cluster
-  image: us.gcr.io/streamstatetest/streamstate:v0.1.0
+  image: us.gcr.io/${project}/streamstate:v0.1.0
+  imagePullSecrets: 
+    - docker-cfg-read
   imagePullPolicy: Always
   arguments:
     - mytestapp
@@ -20,8 +22,8 @@ spec:
     - cluster1
 
   hadoopConf:
-    "fs.gs.project.id": "streamstatetest" 
-    "fs.gs.system.bucket": "streamstate-sparkstorage"  # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
+    "fs.gs.project.id": "${project}" 
+    "fs.gs.system.bucket": "streamstate-sparkstorage-${organization}"  # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
     "google.cloud.auth.service.account.enable": "true"
     "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json"
     "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
@@ -38,7 +40,7 @@ spec:
       secretType: GCPServiceAccount
     envFrom:
       - secretRef:
-          name: "spark-secret-basic" # pass in from spark-secret-basic credentials
+          name: "cassandra-secret" # pass in from cassandra_secret credentials
     serviceAccount: spark # defined in spark-rbac.yml, NOT based on gcp service accounts at all
   executor:
     instances: 1
@@ -59,12 +61,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: spark
-  namespace: default
+  #namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  namespace: default
+  #namespace: default
   name: spark-role
 rules:
 - apiGroups: [""]
@@ -78,7 +80,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: spark-role-binding
-  namespace: default
+  #namespace: default
 subjects:
 - kind: ServiceAccount
   name: spark

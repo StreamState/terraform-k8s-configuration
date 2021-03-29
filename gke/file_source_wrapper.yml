@@ -2,7 +2,7 @@ apiVersion: "sparkoperator.k8s.io/v1beta2"
 kind: SparkApplication
 metadata:
   name: examplegcp
-  namespace: default # todo, adjust per tenant
+  #namespace: default # todo, adjust per tenant
 spec:
   sparkConf:
     spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
@@ -10,7 +10,9 @@ spec:
     spark.jars.ivy: "/tmp/ivy"
   type: Scala
   mode: cluster
-  image: us.gcr.io/streamstatetest/streamstate:v0.1.0
+  image: ${registry}/${project}/streamstate:v0.1.0
+  imagePullSecrets: 
+    - docker-cfg-read
   imagePullPolicy: Always
   arguments:
     - mytestapp
@@ -18,8 +20,8 @@ spec:
     - 2d
     - /tmp/checkpoint # checkpoint, where does this store data? ephemerally? can I directly calls gs:// or do I need to mount gs inside this container?
   hadoopConf:
-    "fs.gs.project.id": "streamstatetest" 
-    "fs.gs.system.bucket": "streamstate-sparkstorage"  # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
+    "fs.gs.project.id": "${project}" 
+    "fs.gs.system.bucket": "streamstate-sparkstorage-${organization}" # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
     "google.cloud.auth.service.account.enable": "true"
     "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json"
     "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
@@ -36,7 +38,7 @@ spec:
       secretType: GCPServiceAccount
     envFrom:
       - secretRef:
-          name: "spark-secret-basic" # pass in from spark-secret-basic credentials
+          name: "cassandra-secret" # pass in from spark-secret-basic credentials
     serviceAccount: spark # defined in spark-rbac.yml, NOT based on gcp service accounts at all
   executor:
     instances: 1
@@ -46,9 +48,6 @@ spec:
     - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
       path: "/mnt/secrets"
       secretType: GCPServiceAccount
-    envFrom:
-      - secretRef:
-          name: "spark-secret-basic"
 ---
 apiVersion: v1
 kind: ServiceAccount

@@ -12,3 +12,4 @@ admin.json
 terraform.tfstate*
 account_id
 key.json
+kubeconfig

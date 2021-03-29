@@ -18,7 +18,7 @@ spec:
   clusterName: cluster1
   serverType: cassandra
   serverVersion: 3.11.7
-  superuserSecretName: spark-secret-basic # created from spark secret
+  superuserSecretName: ${secret} 
   managementApiAuth:
     insecure: {}
   size: 1

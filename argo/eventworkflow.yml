@@ -1,0 +1,165 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventBus
+metadata:
+  name: default
+spec:
+  nats:
+    native:
+      # Optional, defaults to 3. If it is < 3, set it to 3, that is the minimal requirement.
+      replicas: 3
+      # Optional, authen strategy, "none" or "token", defaults to "none"
+      #auth: token
+#      containerTemplate:
+#        resources:
+#          requests:
+#            cpu: "10m"
+#      metricsContainerTemplate:
+#        resources:
+#          requests:
+#            cpu: "10m"
+#      antiAffinity: false
+#      persistence:
+#        storageClassName: standard
+#        accessMode: ReadWriteOnce
+#        volumeSize: 10Gi
+---
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: webhook
+spec:
+  service:
+    ports:
+      - port: 12000
+        targetPort: 12000
+  webhook:
+    # event-source can run multiple HTTP servers. Simply define a unique port to start a new HTTP server
+    example:
+      # port to run HTTP server on
+      port: "12000"
+      # endpoint to listen to
+      endpoint: /example
+      # HTTP request method to allow. In this case, only POST requests are accepted
+      method: POST
+
+#    example-foo:
+#      port: "12000"
+#      endpoint: /example2
+#      method: POST
+
+# Uncomment to use secure webhook
+#    example-secure:
+#      port: "13000"
+#      endpoint: "/secure"
+#      method: "POST"
+#      # k8s secret that contains the cert
+#      serverCertSecret:
+#        name: my-secret
+#        key: cert-key
+#      # k8s secret that contains the private key
+#      serverKeySecret:
+#        name: my-secret
+#        key: pk-key
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: webhook
+spec:
+  template:
+    serviceAccountName: argo-events-sa # TODO! create own service account with minimum permissions
+  dependencies:
+    - name: createsparkcontainerdeployment
+      eventSourceName: webhook
+      eventName: createsparkcontainer
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        k8s:
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: spark-streaming-ci-  # Name of this Workflow
+                #name: spark-streaming-ci
+              spec:
+                serviceAccountName: argo-events-sa # TODO! create different service account than from line 7 and give minimum permissions
+                arguments:
+                  parameters:
+                    - name: scalacode
+                entrypoint: main     
+                volumeClaimTemplates:
+                - metadata:
+                    name: work
+                  spec:
+                    accessModes: [ "ReadWriteOnce" ]
+                    resources:
+                      requests:
+                        storage: 64Mi
+                templates:
+                - name: main
+                  inputs:
+                    parameters:
+                      - name: scalacode
+                  dag:
+                    tasks:
+                    - name: A
+                      template: build-jar
+                      arguments:
+                        parameters: 
+                         - name: scalacode
+                           value: "{{inputs.parameters.scalacode}}"
+                    - name: B
+                      dependencies: [A]
+                      template: build-docker-image
+
+                - name: build-jar     
+                  inputs:
+                    parameters:
+                      - name: scalacode
+                      - name: dockerfileline1 
+                        value: FROM gcr.io/streamstatetest/sparkbase:v0.1.0
+                      - name: dockerfileline2 
+                        value: COPY streamstate.jar /opt/spark/work-dir/streamstate.jar
+                      - name: dockerfileline3
+                        value: ENTRYPOINT ["/opt/entrypoint.sh"]
+                  container:
+                    volumeMounts:
+                    - mountPath: /work #this persists across steps
+                      name: work
+                    image: gcr.io/streamstatetest/scalacompile:v0.5.0
+                    command: [sh, -c]
+                    args: [
+                      "echo {{inputs.parameters.scalacode}} | base64 --decode > src/main/scala/custom.scala;\
+                      sbt assembly; cp streamstate.jar /work/streamstate.jar; ls -la /work;\
+                      echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
+                      echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile;\
+                      echo {{inputs.parameters.dockerfileline3}} >> /work/Final.Dockerfile;"
+                    ]
+                    #workingDir: /work
+                  archiveLocation: # maybe delete this...
+                    archiveLogs: false
+
+                - name: build-docker-image
+                  inputs:
+                    parameters:
+                      # Name of the image to push
+                      - name: image
+                        value: gcr.io/streamstatetest/testorg/scalaapp:v0.1.0 # TODO!  specify tag version
+                  serviceAccountName: docker-cfg-write # or does this need to be at the top level (ie, where argo-events-sa is)
+                  container:
+                    image: gcr.io/kaniko-project/executor:latest
+                    args:
+                    - "--dockerfile=/work/Final.Dockerfile"
+                    - "--context=dir:///work"
+                    - "--destination={{inputs.parameters.image}}"
+                    workingDir: /work
+                    volumeMounts:
+                    - mountPath: /work 
+                      name: work
+      
