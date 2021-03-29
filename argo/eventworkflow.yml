@@ -60,7 +60,7 @@ spec:
                     parameters:
                       - name: scalacode
                       - name: dockerfileline1 
-                        value: FROM gcr.io/streamstatetest/sparkbase:v0.1.0
+                        value: FROM ${registryprefix}/${project}/${project}/sparkbase:v0.1.0
                       - name: dockerfileline2 
                         value: COPY streamstate.jar /opt/spark/work-dir/streamstate.jar
                       - name: dockerfileline3
@@ -69,7 +69,7 @@ spec:
                     volumeMounts:
                     - mountPath: /work #this persists across steps
                       name: work
-                    image: gcr.io/streamstatetest/scalacompile:v0.5.0
+                    image: ${registryprefix}/${project}/${project}/scalacompile:v0.5.0
                     command: [sh, -c]
                     args: [
                       "echo {{inputs.parameters.scalacode}} | base64 --decode > src/main/scala/custom.scala;\
