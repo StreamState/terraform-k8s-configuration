@@ -29,13 +29,15 @@ spec:
       - name: B
         dependencies: [A]
         template: build-docker-image
+        continueOn:
+          failed: true #false positive error on this...
 
   - name: build-jar     
     inputs:
       parameters:
         - name: scalacode
         - name: dockerfileline1 
-          value: FROM gcr.io/streamstatetest/sparkbase:v0.1.0
+          value: FROM us-central1-docker.pkg.dev/streamstatetest/streamstatetest/sparkbase:v0.1.0
         - name: dockerfileline2 
           value: COPY streamstate.jar /opt/spark/work-dir/streamstate.jar
         - name: dockerfileline3
@@ -44,7 +46,7 @@ spec:
       volumeMounts:
       - mountPath: /work #this persists across steps
         name: work
-      image: gcr.io/streamstatetest/scalacompile:v0.5.0
+      image: us-central1-docker.pkg.dev/streamstatetest/streamstatetest/scalacompile:v0.5.0
       command: [sh, -c]
       args: [
         "echo {{inputs.parameters.scalacode}} | base64 --decode > src/main/scala/custom.scala;\
@@ -64,7 +66,7 @@ spec:
         - name: image
           # next step in debugging...try without testorg and see if that works
           # that didn't work...still doesnt have permission
-          value: gcr.io/streamstatetest/scalaapp:v0.1.0 # TODO!  specify tag version
+          value: us-central1-docker.pkg.dev/streamstatetest/testorg/scalaapp:v0.1.0 # TODO!  specify tag version
     serviceAccountName: docker-cfg-write # or does this need to be at the top level (ie, where argo-events-sa is)
     container:
       image: gcr.io/kaniko-project/executor:latest

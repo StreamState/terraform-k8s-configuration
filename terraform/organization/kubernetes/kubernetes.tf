@@ -8,6 +8,23 @@ terraform {
   }
 }
 
+# organization specific artifact repo
+resource "google_artifact_registry_repository" "orgrepo" {
+  provider      = google-beta
+  project       = var.project
+  location      = "us-central1"
+  repository_id = var.organization
+  description   = "organization specific docker repo"
+  format        = "DOCKER"
+}
+# organization specific data bucket
+resource "google_storage_bucket" "sparkstorage" {
+  project                     = var.project
+  name                        = "streamstate-sparkstorage-${var.organization}"
+  location                    = "US"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+}
 ##################
 # Service accounts in google, to be mapped to kuberenetes secrets
 ##################
@@ -18,13 +35,6 @@ terraform {
 # Remember...I want all gcp resources defined through TF
 # this is the service acccount for spark jobs and 
 # can write to spark storage
-resource "google_service_account" "spark-gcs" {
-  project      = var.project
-  account_id   = "spark-gcs-${var.organization}"
-  display_name = "Spark Service account ${var.organization}"
-}
-
-
 
 resource "google_service_account" "docker-write" {
   project      = var.project
@@ -32,75 +42,37 @@ resource "google_service_account" "docker-write" {
   display_name = "docker-write-${var.organization}"
 }
 
+resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
+  provider   = google-beta
+  project    = var.project
+  location   = google_artifact_registry_repository.orgrepo.location
+  repository = google_artifact_registry_repository.orgrepo.name
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.docker-write.email}"
+}
+resource "google_artifact_registry_repository_iam_member" "read" {
+  provider   = google-beta
+  project    = var.project
+  location   = "us-central1"
+  repository = var.project # see ../../global/global.tf
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.docker-write.email}"
+}
 
-####### START DELETE...at least for read only
-# This is for writing to gcr registry
-# needed for argo to deploy container to gcr
-# This is for reading from gcr registry
-# needed for argo containers AND for spark jobs
-resource "google_service_account" "docker-read" {
+resource "google_service_account" "spark-gcs" {
   project      = var.project
-  account_id   = "docker-read-${var.organization}"
-  display_name = "docker-read-${var.organization}"
+  account_id   = "spark-gcs-${var.organization}"
+  display_name = "Spark Service account ${var.organization}"
 }
 
-resource "google_storage_bucket_iam_member" "viewer" {
-  bucket = "artifacts.${var.project}.appspot.com"
-  role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${google_service_account.docker-read.email}"
-}
-####### END DELETE
-
-#resource "google_storage_bucket_iam_member" "writer" {
-#  bucket = "artifacts.${var.project}.appspot.com"
-#  role   = "roles/storage.objectAdmin"
-#  member = "serviceAccount:${google_service_account.docker-write.email}"
-#}
-
-resource "google_project_iam_member" "writer" {
-  project = var.project
-  role    = "roles/cloudbuild.builds.builder" #"roles/storage.objectAdmin"
-  member  = "serviceAccount:${google_service_account.docker-write.email}"
-}
-
-
-
-
-#resource "google_artifact_registry_repository" "orgrepo" {
-#  provider = google-beta
-
-#  location      = "us-central1"
-#  repository_id = var.organization
-#  description   = "organization specific docker repo"
-#  format        = "DOCKER"
-#}
-
-#resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
-#  provider = google-beta
-
-#  location   = google_artifact_registry_repository.orgrepo.location
-#  repository = google_artifact_registry_repository.orgrepo.name
-#  role       = "roles/artifactregistry.writer"
-#  member     = "serviceAccount:${google_service_account.docker-write.email}"
-#}
-
-
-
-resource "google_storage_bucket" "sparkstorage" {
-  project                     = var.project
-  name                        = "streamstate-sparkstorage-${var.organization}"
-  location                    = "US"
-  force_destroy               = true
-  uniform_bucket_level_access = true
-}
-
+#write access to gcs
 resource "google_storage_bucket_iam_member" "sparkadmin" {
   bucket = google_storage_bucket.sparkstorage.name
   role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
-# eventually this should be a per project
+#needed for interacting with kubernetes cluster
 resource "google_project_iam_member" "containerpolicy" {
   project = var.project
   role    = "roles/container.developer"
@@ -194,60 +166,6 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
   ]
   depends_on = [
     kubernetes_service_account.docker-cfg-write-events
-  ]
-}
-
-
-# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
-# this works with google service account binding to connect kubernetes and google accounts
-resource "kubernetes_service_account" "docker-cfg-read-events" {
-  metadata {
-    name      = "docker-cfg-read"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
-    annotations = {
-      "iam.gke.io/gcp-service-account" = google_service_account.docker-read.email
-    }
-  }
-  depends_on = [kubernetes_namespace.argoevents]
-}
-
-# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
-# link service account and kubernetes service account
-resource "google_service_account_iam_binding" "bind_docker_read_argo" {
-  service_account_id = google_service_account.docker-read.name
-  role               = "roles/iam.workloadIdentityUser"
-  members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.argoevents.metadata.0.name}/${kubernetes_service_account.docker-cfg-read-events.metadata.0.name}]",
-  ]
-  depends_on = [
-    kubernetes_service_account.docker-cfg-read-events
-  ]
-}
-
-# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
-# this works with google service account binding to connect kubernetes and google accounts
-resource "kubernetes_service_account" "docker-cfg-read" {
-  metadata {
-    name      = "docker-cfg-read"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-    annotations = {
-      "iam.gke.io/gcp-service-account" = google_service_account.docker-read.email
-    }
-  }
-  depends_on = [kubernetes_namespace.mainnamespace]
-}
-
-# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
-# link service account and kubernetes service account
-resource "google_service_account_iam_binding" "bind_docker_read" {
-  service_account_id = google_service_account.docker-read.name
-  role               = "roles/iam.workloadIdentityUser"
-
-  members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.docker-cfg-read.metadata.0.name}]",
-  ]
-  depends_on = [
-    kubernetes_service_account.docker-cfg-read
   ]
 }
 
@@ -358,7 +276,10 @@ resource "helm_release" "spark" {
   create_namespace = true
   repository       = "https://googlecloudplatform.github.io/spark-on-k8s-operator"
   chart            = "spark-operator"
-
+  set {
+    name  = "webhook.enable"
+    value = true
+  }
 }
 
 
@@ -388,21 +309,31 @@ resource "kubectl_manifest" "argoevents" {
   depends_on         = [kubectl_manifest.argoworkflow]
 }
 
+data "kubectl_file_documents" "argoeventswebhook" {
+  content = file("../../argo/webhookinstall.yml")
+}
+
+resource "kubectl_manifest" "argoeventswebhook" {
+  count              = length(data.kubectl_file_documents.argoeventswebhook.documents)
+  yaml_body          = element(data.kubectl_file_documents.argoeventswebhook.documents, count.index)
+  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on         = [kubectl_manifest.argoevents]
+}
+
 data "kubectl_file_documents" "argoeventworkflow" {
   content = templatefile("../../argo/eventworkflow.yml", {
     project           = var.project,
     dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
-    dockersecretread  = kubernetes_service_account.docker-cfg-read-events.metadata.0.name,
-    registry          = var.registry
-    organization      = var.organization
+    registry          = google_artifact_registry_repository.orgrepo.name
+    registryprefix    = var.registryprefix
   })
 }
 ## The docker containers needed for this are built as part of the CI/CD pipeline that
 ## includes provisioning global TF, so the images will be available
 ## question: which images?  The latest?  Or specific tags?
 resource "kubectl_manifest" "argoeventworkflow" {
-  count              = 3 #length(data.kubectl_file_documents.argoeventworkflow.documents)
+  count              = 1 #length(data.kubectl_file_documents.argoeventworkflow.documents)
   yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on         = [kubectl_manifest.argoevents]
+  depends_on         = [kubectl_manifest.argoeventswebhook]
 }

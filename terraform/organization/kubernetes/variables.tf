@@ -21,7 +21,7 @@ variable "project" {
 variable "organization" {
   type = string
 }
-variable "registry" {
+variable "registryprefix" {
   type = string
 }
 
