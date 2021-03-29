@@ -3,6 +3,25 @@
 * terraform state rm 'module.kubernetes-config'
 * kubectl --kubeconfig terraform/organization/kubeconfig -n argo-events get pods
 
+# install gcloud and kubectl for gcloud
+
+* https://cloud.google.com/kubernetes-engine/docs/quickstart#standard
+* gcloud components install kubectl
+
+See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terraform
+
+
+* cd terraform
+* export PROJECT_NAME=streamstatetest
+* export ORGANIZATION_NAME=testorg
+* export TF_CREDS=~/.config/gcloud/${USER}-terraform-admin.json
+* export BILLING_ACCOUNT=$(cat account_id) # this needs to be created, found via `gcloud alpha billing accounts list`
+* gcloud projects create ${PROJECT_NAME}  --set-as-default
+* gcloud iam service-accounts create terraform --display-name "Terraform admin account"
+* gcloud iam service-accounts keys create ${TF_CREDS} --iam-account terraform@${PROJECT_NAME}.iam.gserviceaccount.com
+* gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member serviceAccount:terraform@${PROJECT_NAME}.iam.gserviceaccount.com --role roles/owner
+* gcloud beta billing projects link $PROJECT_NAME --billing-account=$BILLING_ACCOUNT
+* export GOOGLE_APPLICATION_CREDENTIALS=${TF_CREDS}
 
 # Cassandra
 
@@ -25,6 +44,7 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 # setup for deploy
 
 todo! make this part of CI/CD pipeline for the entire project (streamstate) level
+* cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://gcr.io
 * sudo docker build . -f ./argo/scalacompile.Dockerfile -t gcr.io/$PROJECT_NAME/scalacompile -t gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
 * sudo docker push gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
 
@@ -41,6 +61,15 @@ To find webui url:
 
 * kubectl -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
 * curl -X POST -d "{\"code\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/example
+
+
+# upload json to bucket
+
+* echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./mytest.json
+* gsutil cp ./mytest.json gs://streamstate-sparkstorage/
+* kubectl logs examplegcp-driver
+* kubectl port-forward examplegcp-driver 4040:4040 # to view spark-ui, go to localhost:4040
+
 
 # python consume cassandra
 

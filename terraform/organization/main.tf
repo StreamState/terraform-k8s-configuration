@@ -7,9 +7,9 @@ variable "namespace" {
 variable "project" {
   type = string
 }
-variable "registry" {
-  type    = string # eg gcr.io
-  default = "gcr.io"
+variable "registryprefix" {
+  type    = string                       # eg gcr.io
+  default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
 }
 # this is likely a per-organization bucket
 # TODO probably need to subsitute prefix at runtime
@@ -56,7 +56,7 @@ module "kubernetes-config" {
   cluster_ca_cert  = module.gke-cluster.cluster_ca_cert
   organization     = var.organization
   project          = var.project
-  registry         = var.registry
+  registryprefix   = var.registryprefix
   namespace        = var.namespace
 }
 

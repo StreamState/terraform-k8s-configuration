@@ -1,3 +1,4 @@
+### CONSIDER SPLITTING THESE BACK OUT...maybe that will fix the event issues
 apiVersion: argoproj.io/v1alpha1
 kind: EventBus
 metadata:
@@ -150,8 +151,8 @@ spec:
                     parameters:
                       # Name of the image to push
                       - name: image
-                        value: gcr.io/streamstatetest/testorg/scalaapp:v0.1.0 # TODO!  specify tag version
-                  serviceAccountName: docker-cfg-write # or does this need to be at the top level (ie, where argo-events-sa is)
+                        value: ${registryprefix}/${registry}/scalaapp:v0.1.0 # TODO!  specify tag version
+                  serviceAccountName: ${dockersecretwrite}
                   container:
                     image: gcr.io/kaniko-project/executor:latest
                     args:
