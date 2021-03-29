@@ -8,7 +8,7 @@ spec:
   dependencies:
     - name: createsparkcontainerdeployment
       eventSourceName: webhook
-      eventName: createsparkcontainer
+      eventName: runcontainer
   triggers:
     - template:
         name: webhook-workflow-trigger
@@ -23,9 +23,7 @@ spec:
               kind: Workflow
               metadata:
                 generateName: spark-streaming-ci-  # Name of this Workflow
-                #name: spark-streaming-ci
               spec:
-                serviceAccountName: argo-events-sa # TODO! create different service account than from line 7 and give minimum permissions
                 arguments:
                   parameters:
                     - name: scalacode
@@ -99,4 +97,7 @@ spec:
                     volumeMounts:
                     - mountPath: /work 
                       name: work
-      
+          parameters:
+            - src:
+                dependencyName: createsparkcontainerdeployment
+              dest: spec.arguments.parameters.0.value
