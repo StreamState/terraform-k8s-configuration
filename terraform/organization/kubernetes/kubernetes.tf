@@ -42,21 +42,22 @@ resource "google_service_account" "docker-write" {
   display_name = "docker-write-${var.organization}"
 }
 
-
-# unfortunately this provides a lot of permissions
-resource "google_project_iam_member" "writer" {
-  project = var.project
-  role    = "roles/cloudbuild.builds.builder" #"roles/storage.objectAdmin"
-  member  = "serviceAccount:${google_service_account.docker-write.email}"
+resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
+  provider   = google-beta
+  project    = var.project
+  location   = google_artifact_registry_repository.orgrepo.location
+  repository = google_artifact_registry_repository.orgrepo.name
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.docker-write.email}"
 }
-#resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
-#  provider   = google-beta
-#  project    = var.project
-#  location   = google_artifact_registry_repository.orgrepo.location
-#  repository = google_artifact_registry_repository.orgrepo.name
-#  role       = "roles/artifactregistry.writer"
-#  member     = "serviceAccount:${google_service_account.docker-write.email}"
-#}
+resource "google_artifact_registry_repository_iam_member" "read" {
+  provider   = google-beta
+  project    = var.project
+  location   = "us-central1"
+  repository = var.project # see ../../global/global.tf
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.docker-write.email}"
+}
 
 resource "google_service_account" "spark-gcs" {
   project      = var.project

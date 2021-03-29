@@ -45,18 +45,13 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 # setup for deploy
 
 todo! make this part of CI/CD pipeline for the entire project (streamstate) level
-* cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://gcr.io
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t gcr.io/$PROJECT_NAME/scalacompile -t gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
-* sudo docker push gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
-
 * cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
 * sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
 
 
-
-* sudo docker build . -f ./argo/sparkbase.Dockerfile -t gcr.io/$PROJECT_NAME/sparkbase -t gcr.io/$PROJECT_NAME/sparkbase:v0.1.0 
-* sudo docker push gcr.io/$PROJECT_NAME/sparkbase:v0.1.0
+* sudo docker build . -f ./argo/sparkbase.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0 
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0
 
 # argo helps
 
@@ -67,7 +62,7 @@ To find webui url:
 * argo --kubeconfig terraform/organization/kubeconfig -n argo-events submit ./argo/test.yml
 
 gcloud artifacts repositories add-iam-policy-binding streamstatetest \
---location us \
+--location us-central1 \
 --member=serviceAccount:build-robot@streamstatetest.iam.gserviceaccount.com \
 --role=roles/artifactregistry.writer
 

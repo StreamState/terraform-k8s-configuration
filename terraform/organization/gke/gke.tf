@@ -52,14 +52,11 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   }
 }
 
-#resource "google_storage_bucket_iam_member" "viewer" {
-#  bucket = "artifacts.${var.project}.appspot.com"
-#  role   = "roles/storage.objectViewer"
-#  member = "serviceAccount:${google_service_account.cluster.email}"
-#}
-
-resource "google_storage_bucket_iam_member" "writer" {
-  bucket = "artifacts.${var.project}.appspot.com"
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.cluster.email}"
+resource "google_artifact_registry_repository_iam_member" "read" {
+  provider   = google-beta
+  project    = var.project
+  location   = "us-central1"
+  repository = var.project # see ../../global/global.tf
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.cluster.email}"
 }
