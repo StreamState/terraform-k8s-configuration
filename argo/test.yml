@@ -29,6 +29,8 @@ spec:
       - name: B
         dependencies: [A]
         template: build-docker-image
+        continueOn:
+          failed: true #false positive error on this...
 
   - name: build-jar     
     inputs:
@@ -64,7 +66,7 @@ spec:
         - name: image
           # next step in debugging...try without testorg and see if that works
           # that didn't work...still doesnt have permission
-          value: us-central1-docker.pkg.dev/testorg/scalaapp:v0.1.0 # TODO!  specify tag version
+          value: us-central1-docker.pkg.dev/streamstatetest/testorg/scalaapp:v0.1.0 # TODO!  specify tag version
     serviceAccountName: docker-cfg-write # or does this need to be at the top level (ie, where argo-events-sa is)
     container:
       image: gcr.io/kaniko-project/executor:latest

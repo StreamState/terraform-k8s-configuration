@@ -11,7 +11,7 @@
 See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terraform
 
 
-* cd terraform
+* cd terraform/organization
 * export PROJECT_NAME=streamstatetest
 * export ORGANIZATION_NAME=testorg
 * export TF_CREDS=~/.config/gcloud/${USER}-terraform-admin.json
@@ -22,6 +22,7 @@ See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terr
 * gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member serviceAccount:terraform@${PROJECT_NAME}.iam.gserviceaccount.com --role roles/owner
 * gcloud beta billing projects link $PROJECT_NAME --billing-account=$BILLING_ACCOUNT
 * export GOOGLE_APPLICATION_CREDENTIALS=${TF_CREDS}
+* terraform apply -var-file="testing.tfvars"
 
 # Cassandra
 
@@ -48,6 +49,12 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 * sudo docker build . -f ./argo/scalacompile.Dockerfile -t gcr.io/$PROJECT_NAME/scalacompile -t gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
 * sudo docker push gcr.io/$PROJECT_NAME/scalacompile:v0.5.0
 
+* cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
+* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
+
+
+
 * sudo docker build . -f ./argo/sparkbase.Dockerfile -t gcr.io/$PROJECT_NAME/sparkbase -t gcr.io/$PROJECT_NAME/sparkbase:v0.1.0 
 * sudo docker push gcr.io/$PROJECT_NAME/sparkbase:v0.1.0
 
@@ -57,9 +64,18 @@ To find webui url:
 * kubectl --kubeconfig terraform/organization/kubeconfig -n argo-events get svc
 * go to [webuiurl]:2746 in your favorite browser
 
+* argo --kubeconfig terraform/organization/kubeconfig -n argo-events submit ./argo/test.yml
+
+gcloud artifacts repositories add-iam-policy-binding streamstatetest \
+--location us \
+--member=serviceAccount:build-robot@streamstatetest.iam.gserviceaccount.com \
+--role=roles/artifactregistry.writer
+
+gcloud projects add-iam-policy-binding 
+
 # deploy workflow
 
-* kubectl -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
+* kubectl --kubeconfig terraform/organization/kubeconfig -n argo-events port-forward $(kubectl --kubeconfig terraform/organization/kubeconfig -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
 * curl -X POST -d "{\"code\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/example
 
 
