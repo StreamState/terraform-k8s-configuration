@@ -23,6 +23,7 @@ See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terr
 * gcloud beta billing projects link $PROJECT_NAME --billing-account=$BILLING_ACCOUNT
 * export GOOGLE_APPLICATION_CREDENTIALS=${TF_CREDS}
 * terraform apply -var-file="testing.tfvars"
+* (direct connection with kubectl): gcloud container clusters get-credentials streamstatecluster-testorg --region=us-central1
 
 # Cassandra
 

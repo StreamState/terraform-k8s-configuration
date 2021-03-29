@@ -50,14 +50,15 @@ resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
   role       = "roles/artifactregistry.writer"
   member     = "serviceAccount:${google_service_account.docker-write.email}"
 }
-resource "google_artifact_registry_repository_iam_member" "read" {
-  provider   = google-beta
-  project    = var.project
-  location   = "us-central1"
-  repository = var.project # see ../../global/global.tf
-  role       = "roles/artifactregistry.reader"
-  member     = "serviceAccount:${google_service_account.docker-write.email}"
-}
+### DELETE this should not be necessary, as writer has read access as well
+#resource "google_artifact_registry_repository_iam_member" "read" {
+#  provider   = google-beta
+#  project    = var.project
+#  location   = "us-central1"
+#  repository = var.project # see ../../global/global.tf
+#  role       = "roles/artifactregistry.reader"
+#  member     = "serviceAccount:${google_service_account.docker-write.email}"
+#}
 
 resource "google_service_account" "spark-gcs" {
   project      = var.project
