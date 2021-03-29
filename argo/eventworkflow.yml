@@ -27,6 +27,7 @@ spec:
                 arguments:
                   parameters:
                     - name: scalacode
+                      value: hello world # this should be overridden
                 entrypoint: main     
                 volumeClaimTemplates:
                 - metadata:
@@ -100,4 +101,5 @@ spec:
           parameters:
             - src:
                 dependencyName: createsparkcontainerdeployment
+                dataKey: body.scalacode
               dest: spec.arguments.parameters.0.value

@@ -24,13 +24,16 @@ See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terr
 * export GOOGLE_APPLICATION_CREDENTIALS=${TF_CREDS}
 * terraform apply -var-file="testing.tfvars"
 * (direct connection with kubectl): gcloud container clusters get-credentials streamstatecluster-testorg --region=us-central1
+* (connection through terraform kubeconfig): kubectl --kubeconfig terraform/organization/kubeconfig [etc]
 
 # Cassandra
 
 https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnectWithinK8sCluster.html
 
 * kubectl get secrets/cassandra-secret -n mainspark --template={{.data.password}} | base64 -d
-* kubectl --kubeconfig terraform/organization/kubeconfig exec -n mainspark -i -t -c cassandra cluster1-dc1-default-sts-0 -- /opt/cassandra/bin/cqlsh -u cluster1-superuser -p $(kubectl --kubeconfig terraform/organization/kubeconfig get secrets/cassandra-secret -n mainspark --template={{.data.password}} | base64 -d)
+* kubectl exec -n mainspark -i -t -c cassandra cluster1-dc1-default-sts-0 -- /opt/cassandra/bin/cqlsh -u $(kubectl get secrets/cassandra-secret -n mainspark --template={{.data.username}} | base64 -d) -p $(kubectl get secrets/cassandra-secret -n mainspark --template={{.data.password}} | base64 -d)
+
+
 * CREATE KEYSPACE IF NOT EXISTS cycling WITH replication = { 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' };
 * CREATE TABLE IF NOT EXISTS cycling.cyclist_semi_pro (
    first_name text, 
@@ -57,10 +60,10 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 # argo helps
 
 To find webui url:
-* kubectl --kubeconfig terraform/organization/kubeconfig -n argo-events get svc
+* kubectl -n argo-events get svc
 * go to [webuiurl]:2746 in your favorite browser
 
-* argo --kubeconfig terraform/organization/kubeconfig -n argo-events submit ./argo/test.yml
+* argo -n argo-events submit ./argo/test.yml
 
 gcloud artifacts repositories add-iam-policy-binding streamstatetest \
 --location us-central1 \
@@ -71,8 +74,8 @@ gcloud projects add-iam-policy-binding
 
 # deploy workflow
 
-* kubectl --kubeconfig terraform/organization/kubeconfig -n argo-events port-forward $(kubectl --kubeconfig terraform/organization/kubeconfig -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
-* curl -X POST -d "{\"code\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/example
+* kubectl  -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
+* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/runcontainer
 
 
 # upload json to bucket
