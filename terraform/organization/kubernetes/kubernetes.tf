@@ -8,6 +8,23 @@ terraform {
   }
 }
 
+# organization specific artifact repo
+resource "google_artifact_registry_repository" "orgrepo" {
+  provider      = google-beta
+  project       = var.project
+  location      = "us-central1"
+  repository_id = var.organization
+  description   = "organization specific docker repo"
+  format        = "DOCKER"
+}
+# organization specific data bucket
+resource "google_storage_bucket" "sparkstorage" {
+  project                     = var.project
+  name                        = "streamstate-sparkstorage-${var.organization}"
+  location                    = "US"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+}
 ##################
 # Service accounts in google, to be mapped to kuberenetes secrets
 ##################
@@ -18,11 +35,6 @@ terraform {
 # Remember...I want all gcp resources defined through TF
 # this is the service acccount for spark jobs and 
 # can write to spark storage
-resource "google_service_account" "spark-gcs" {
-  project      = var.project
-  account_id   = "spark-gcs-${var.organization}"
-  display_name = "Spark Service account ${var.organization}"
-}
 
 resource "google_service_account" "docker-write" {
   project      = var.project
@@ -30,15 +42,6 @@ resource "google_service_account" "docker-write" {
   display_name = "docker-write-${var.organization}"
 }
 
-
-resource "google_artifact_registry_repository" "orgrepo" {
-  provider      = google-beta
-  project       = var.project
-  location      = "us-central1"
-  repository_id = var.organization
-  description   = "organization specific docker repo"
-  format        = "DOCKER"
-}
 
 # unfortunately this provides a lot of permissions
 resource "google_project_iam_member" "writer" {
@@ -55,12 +58,10 @@ resource "google_project_iam_member" "writer" {
 #  member     = "serviceAccount:${google_service_account.docker-write.email}"
 #}
 
-resource "google_storage_bucket" "sparkstorage" {
-  project                     = var.project
-  name                        = "streamstate-sparkstorage-${var.organization}"
-  location                    = "US"
-  force_destroy               = true
-  uniform_bucket_level_access = true
+resource "google_service_account" "spark-gcs" {
+  project      = var.project
+  account_id   = "spark-gcs-${var.organization}"
+  display_name = "Spark Service account ${var.organization}"
 }
 
 #write access to gcs
