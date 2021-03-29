@@ -40,14 +40,20 @@ resource "google_artifact_registry_repository" "orgrepo" {
   format        = "DOCKER"
 }
 
-resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
-  provider   = google-beta
-  project    = var.project
-  location   = google_artifact_registry_repository.orgrepo.location
-  repository = google_artifact_registry_repository.orgrepo.name
-  role       = "roles/artifactregistry.writer"
-  member     = "serviceAccount:${google_service_account.docker-write.email}"
+# unfortunately this provides a lot of permissions
+resource "google_project_iam_member" "writer" {
+  project = var.project
+  role    = "roles/cloudbuild.builds.builder" #"roles/storage.objectAdmin"
+  member  = "serviceAccount:${google_service_account.docker-write.email}"
 }
+#resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
+#  provider   = google-beta
+#  project    = var.project
+#  location   = google_artifact_registry_repository.orgrepo.location
+#  repository = google_artifact_registry_repository.orgrepo.name
+#  role       = "roles/artifactregistry.writer"
+#  member     = "serviceAccount:${google_service_account.docker-write.email}"
+#}
 
 resource "google_storage_bucket" "sparkstorage" {
   project                     = var.project
@@ -301,21 +307,31 @@ resource "kubectl_manifest" "argoevents" {
   depends_on         = [kubectl_manifest.argoworkflow]
 }
 
+data "kubectl_file_documents" "argoeventswebhook" {
+  content = file("../../argo/webhookinstall.yml")
+}
+
+resource "kubectl_manifest" "argoeventswebhook" {
+  count              = length(data.kubectl_file_documents.argoeventswebhook.documents)
+  yaml_body          = element(data.kubectl_file_documents.argoeventswebhook.documents, count.index)
+  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on         = [kubectl_manifest.argoevents]
+}
+
 data "kubectl_file_documents" "argoeventworkflow" {
   content = templatefile("../../argo/eventworkflow.yml", {
     project           = var.project,
     dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
     registry          = google_artifact_registry_repository.orgrepo.name
     registryprefix    = var.registryprefix
-    # organization      = var.organization
   })
 }
 ## The docker containers needed for this are built as part of the CI/CD pipeline that
 ## includes provisioning global TF, so the images will be available
 ## question: which images?  The latest?  Or specific tags?
 resource "kubectl_manifest" "argoeventworkflow" {
-  count              = 3 #length(data.kubectl_file_documents.argoeventworkflow.documents)
+  count              = 1 #length(data.kubectl_file_documents.argoeventworkflow.documents)
   yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on         = [kubectl_manifest.argoevents]
+  depends_on         = [kubectl_manifest.argoeventswebhook]
 }
