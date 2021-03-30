@@ -74,12 +74,6 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
-#needed for interacting with kubernetes cluster
-#resource "google_project_iam_member" "containerpolicy" {
-#  project = var.project
-#  role    = "roles/container.developer"
-#  member  = "serviceAccount:${google_service_account.spark-gcs.email}"
-#}
 
 # for cluster service account to be able to pull from org repo
 resource "google_artifact_registry_repository_iam_member" "clusterread" {
@@ -229,20 +223,6 @@ resource "kubernetes_service_account" "spark" {
   }
   depends_on = [kubernetes_namespace.argoevents]
 }
-
-# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
-# link service account and kubernetes service account
-#resource "google_service_account_iam_binding" "bind_spark_gcs" {
-#  service_account_id = google_service_account.spark-gcs.name
-#  role               = "roles/iam.workloadIdentityUser"
-
-#  members = [
-#    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.spark.metadata.0.name}]",
-#  ]
-#  depends_on = [
-#    kubernetes_service_account.spark
-#  ]
-#}
 
 ## need to create explicit account for spark rather than workload identity
 resource "google_service_account_key" "sparkkey" {
