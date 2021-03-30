@@ -65,12 +65,6 @@ To find webui url:
 
 * argo -n argo-events submit ./argo/test.yml
 
-gcloud artifacts repositories add-iam-policy-binding streamstatetest \
---location us-central1 \
---member=serviceAccount:build-robot@streamstatetest.iam.gserviceaccount.com \
---role=roles/artifactregistry.writer
-
-gcloud projects add-iam-policy-binding 
 
 # deploy workflow
 
@@ -80,8 +74,9 @@ gcloud projects add-iam-policy-binding
 
 # upload json to bucket
 
+* kubectl apply -f gke/replay_from_file.yml
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./mytest.json
-* gsutil cp ./mytest.json gs://streamstate-sparkstorage/
+* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/
 * kubectl logs examplegcp-driver
 * kubectl port-forward examplegcp-driver 4040:4040 # to view spark-ui, go to localhost:4040
 
