@@ -58,6 +58,7 @@ module "kubernetes-config" {
   project          = var.project
   registryprefix   = var.registryprefix
   namespace        = var.namespace
+  cluster_email    = module.gke-cluster.cluster_email
 }
 
 

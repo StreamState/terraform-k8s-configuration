@@ -42,6 +42,7 @@ resource "google_service_account" "docker-write" {
   display_name = "docker-write-${var.organization}"
 }
 
+#write access to organization artifactory
 resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
   provider   = google-beta
   project    = var.project
@@ -50,15 +51,15 @@ resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
   role       = "roles/artifactregistry.writer"
   member     = "serviceAccount:${google_service_account.docker-write.email}"
 }
-### DELETE this should not be necessary, as writer has read access as well
-#resource "google_artifact_registry_repository_iam_member" "read" {
-#  provider   = google-beta
-#  project    = var.project
-#  location   = "us-central1"
-#  repository = var.project # see ../../global/global.tf
-#  role       = "roles/artifactregistry.reader"
-#  member     = "serviceAccount:${google_service_account.docker-write.email}"
-#}
+# read access to project wide artifactory
+resource "google_artifact_registry_repository_iam_member" "read" {
+  provider   = google-beta
+  project    = var.project
+  location   = "us-central1"
+  repository = var.project # see ../../global/global.tf#  
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.docker-write.email}"
+}
 
 resource "google_service_account" "spark-gcs" {
   project      = var.project
@@ -73,11 +74,15 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
-#needed for interacting with kubernetes cluster
-resource "google_project_iam_member" "containerpolicy" {
-  project = var.project
-  role    = "roles/container.developer"
-  member  = "serviceAccount:${google_service_account.spark-gcs.email}"
+
+# for cluster service account to be able to pull from org repo
+resource "google_artifact_registry_repository_iam_member" "clusterread" {
+  provider   = google-beta
+  project    = var.project
+  location   = google_artifact_registry_repository.orgrepo.location
+  repository = google_artifact_registry_repository.orgrepo.name
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${var.cluster_email}"
 }
 
 
@@ -170,34 +175,102 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
   ]
 }
 
+# use this for running steps in argo
+resource "kubernetes_role" "argorules" {
+  metadata {
+    name      = "argoroles"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["pods"]
+    verbs      = ["get", "list", "watch", "patch"]
+  }
+  rule {
+    api_groups = ["argoproj.io"]
+    resources  = ["workflows"]
+    verbs      = ["get", "list"]
+  }
+  depends_on = [kubernetes_namespace.argoevents]
+}
 
-# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
-# this works with google service account binding to connect kubernetes and google accounts
-resource "kubernetes_service_account" "spark-service" {
+resource "kubernetes_role_binding" "dockerwrite" {
+  metadata {
+    name      = "dockerwriteargopermissions-role-binding"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.argorules.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+}
+
+
+
+resource "kubernetes_service_account" "spark" {
   metadata {
     name      = "spark"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-    annotations = {
-      "iam.gke.io/gcp-service-account" = google_service_account.spark-gcs.email
-    }
+    #annotations = {
+    #  "iam.gke.io/gcp-service-account" = google_service_account.spark-gcs.email
+    #}
+  }
+  depends_on = [kubernetes_namespace.argoevents]
+}
+
+## need to create explicit account for spark rather than workload identity
+resource "google_service_account_key" "sparkkey" {
+  service_account_id = google_service_account.spark-gcs.name
+}
+
+resource "kubernetes_secret" "google-application-credentials" {
+  metadata {
+    name      = "spark-secret"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+  data = {
+    "key.json" = base64decode(google_service_account_key.sparkkey.private_key)
+  }
+}
+
+## needed for operating spark resources
+# was hoping I didnt't have to need this due to "cluster" role for spark-gcs
+# do I need the cluster role for spark-gcs??
+resource "kubernetes_role" "sparkrules" {
+  metadata {
+    name      = "sparkrules"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["pods"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
-# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
-# link service account and kubernetes service account
-resource "google_service_account_iam_binding" "bind_spark_svc" {
-  service_account_id = google_service_account.spark-gcs.name
-  role               = "roles/iam.workloadIdentityUser"
-
-  members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.spark-service.metadata.0.name}]",
-  ]
-  depends_on = [
-    kubernetes_service_account.spark-service
-  ]
+resource "kubernetes_role_binding" "sparkrules" {
+  metadata {
+    name      = "sparkrules-role-binding"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.sparkrules.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.spark.metadata.0.name
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
 }
-
 
 
 ##################
@@ -206,7 +279,7 @@ resource "google_service_account_iam_binding" "bind_spark_svc" {
 
 
 resource "random_password" "cassandra_password" {
-  length  = 16
+  length  = 32
   special = true
 }
 
@@ -239,6 +312,30 @@ resource "kubernetes_service_account" "cassandra_svc" {
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
+resource "kubernetes_service_account" "argoevents-runsa" {
+  metadata {
+    name      = "argoevents-runsa"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+  depends_on = [kubernetes_namespace.argoevents]
+}
+
+resource "kubernetes_role_binding" "argoevents-runrb" {
+  metadata {
+    name      = "argoevents-runsa-role-binding"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.argorules.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+}
 
 ##################
 # Install Cassandra

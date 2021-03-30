@@ -28,3 +28,6 @@ variable "registryprefix" {
 variable "namespace" {
   type = string
 }
+variable "cluster_email" {
+  type = string
+}

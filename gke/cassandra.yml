@@ -13,7 +13,7 @@ apiVersion: cassandra.datastax.com/v1beta1
 kind: CassandraDatacenter
 metadata:
   name: dc1
-  namespace: default
+  #namespace: default
 spec:
   clusterName: cluster1
   serverType: cassandra
@@ -43,7 +43,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cassandra-loadbalancer
-  namespace: default
+  #namespace: default
   labels:
     cassandra.datastax.com/cluster: cluster1
     cassandra.datastax.com/datacenter: dc1

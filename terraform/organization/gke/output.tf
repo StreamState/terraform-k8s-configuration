@@ -18,3 +18,6 @@ output "cluster_name" {
   value = google_container_cluster.primary.name
 }
 
+output "cluster_email" {
+  value = google_service_account.cluster.email
+}
