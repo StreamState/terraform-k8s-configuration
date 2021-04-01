@@ -11,8 +11,8 @@ app = FastAPI()
 apiclient = setup_connection()
 
 files = [
-    "../sparkstreaming/spark-streaming-file-persist-template.yaml",
-    "../sparkstreaming/spark-streaming-job-template.yaml",
+    "spec-templates/spark-streaming-file-persist-template.yaml",
+    "spec-templates/sparkstreaming/spark-streaming-job-template.yaml",
 ]
 
 [persist_template, stateful_template] = load_all_ymls(files)

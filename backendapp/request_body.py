@@ -11,11 +11,14 @@ class Job(BaseModel):
     topics: List[str]
     brokers: List[str]
     namespace: str
-    cassandraIp: str
-    cassandraPort: str
+    output_topic: str
+    project: str
+    organization: str
+    registry: str
+    cassandra_cluster_name: str
 
 
 class Table(BaseModel):
     namespace: str
     app_name: str
-    db_schema: Dict[str, Union[Dict[str, str], List[str]]]
+    db_schema: Dict[str, Union[Dict[str, str], List[str]]]  # or use avro?

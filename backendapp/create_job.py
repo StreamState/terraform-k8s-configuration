@@ -23,8 +23,10 @@ files = [
 
 
 def load_all_ymls(paths: List[str]) -> List[dict]:
-    return [yaml_load(ymlFile) for ymlFile in files]
+    return [yaml_load(ymlFile) for ymlFile in paths]
 
+def construct_image(registry: str, project:str, organization:str, image:str)->str:
+    return f"{registry}/{project}/{organization}/{image}
 
 def create_all_spark_jobs(
     apiclient: ApiClient, file_persist: dict, spark_job: dict, pay_load: Job
@@ -35,10 +37,13 @@ def create_all_spark_jobs(
         file_persist_local = file_persist.copy()
         file_persist_local = spark_persist_job_spec(
             file_persist_local,
-            "streamstate:latest",
+            construct_image(payload.registry, payload.project, payload.organization, "streamstate:v0.1.0"),
             pay_load.brokers,
             topic,
+            "test-group-id",
+            "2s", 
             pay_load.namespace,
+            pay_load.organization
         )
         # this can throw, so make sure that we catch that when calling this function
         try:
@@ -54,12 +59,13 @@ def create_all_spark_jobs(
     name = "-".join(pay_load.topics)
     spark_job = spark_state_job_spec(
         spark_job,
-        "streamstate:latest",
+        construct_image(payload.registry, payload.project, payload.organization, "streamstate:v0.1.0"),
         pay_load.brokers,
         pay_load.topics,
+        pay_load.output_topic,
+        "test-group-id",
         pay_load.namespace,
-        pay_load.cassandraIp,
-        pay_load.cassandraPassword,
+        pay_load.cassandra_cluster_name
     )
     # this can throw, so make sure that we catch that when calling this function
     try:
