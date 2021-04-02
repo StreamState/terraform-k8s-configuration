@@ -7,30 +7,29 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      bb: web
+      app: restbackend
   template:
     metadata:
       labels:
-        bb: web
+        app: restbackend
     spec:
       containers:
       - name: managek8s-site
-        image: us.gcr.io/streamstatetest/streamstaterest:v0.2.0
+        image: us-central1-docker.pkg.dev/streamstatetest/streamstatetest/rest:v0.1.0
         envFrom:
         - secretRef:
-            name: "spark-secret-basic" # pass in from spark-secret credentials
-        #imagePullPolicy: Never # ensure going to  local docker registry and not docker.io
----
+            name: "cassandra-secret" 
+---        
 apiVersion: v1
 kind: Service
 metadata:
-  name: bb-entrypoint
-  namespace: default
+  name: restbackendservice
+  #namespace: default
 spec:
   type: NodePort
   selector:
-    bb: web
+    app: restbackend
   ports:
-  - port: 8000
+  - port: 80
     targetPort: 8000
-    nodePort: 30001
+    protocol: TCP

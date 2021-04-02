@@ -119,9 +119,13 @@ def create_schema(
     apply_table(session, org_name, app_name, schema)
 
 
-def list_keyspaces(session: Session, org_name: str):
+def list_keyspaces(session: Session, org_name: str) -> dict:
     tables = session.execute(
         f"SELECT * FROM system_schema.tables WHERE keyspace_name = '{org_name}';"
     )
-    for table in tables:
-        print(table)
+    return {"tables": tables}
+
+
+def get_data_from_table(session: Session, orgname: str, table_name: str) -> dict:
+    fields = session.execute(f"SELECT * FROM {orgname}.{table_name};")
+    return {"fields": fields}

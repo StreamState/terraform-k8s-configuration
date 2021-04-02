@@ -9,7 +9,7 @@ spec:
   mode: cluster
   imagePullPolicy: Always
     
-  mainClass: sparkwrappers.KafkaSourceWrapper
+  # mainClass: sparkwrappers.KafkaSourceWrapper
   mainApplicationFile: "local:///opt/spark/work-dir/sparkstreaming.jar"
   sparkVersion: "3.0.1"
   hadoopConf:

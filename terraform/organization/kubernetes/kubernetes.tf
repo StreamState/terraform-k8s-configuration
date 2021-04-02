@@ -217,9 +217,6 @@ resource "kubernetes_service_account" "spark" {
   metadata {
     name      = "spark"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-    #annotations = {
-    #  "iam.gke.io/gcp-service-account" = google_service_account.spark-gcs.email
-    #}
   }
   depends_on = [kubernetes_namespace.argoevents]
 }
@@ -229,7 +226,7 @@ resource "google_service_account_key" "sparkkey" {
   service_account_id = google_service_account.spark-gcs.name
 }
 
-resource "kubernetes_secret" "google-application-credentials" {
+resource "kubernetes_secret" "spark-gcs-to-kubernetes" {
   metadata {
     name      = "spark-secret"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
@@ -240,8 +237,6 @@ resource "kubernetes_secret" "google-application-credentials" {
 }
 
 ## needed for operating spark resources
-# was hoping I didnt't have to need this due to "cluster" role for spark-gcs
-# do I need the cluster role for spark-gcs??
 resource "kubernetes_role" "sparkrules" {
   metadata {
     name      = "sparkrules"
@@ -434,4 +429,28 @@ resource "kubectl_manifest" "argoeventworkflow" {
   yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
+}
+
+data "kubectl_file_documents" "ingress" {
+  content = templatefile("../../gke/ingress.yml", {
+    organization = var.organization
+  })
+}
+
+resource "kubectl_manifest" "ingress" {
+  count     = 1 #length(data.kubectl_file_documents.argoeventworkflow.documents)
+  yaml_body = element(data.kubectl_file_documents.ingress.documents, count.index)
+  # override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  # depends_on = [kubectl_manifest.argoeventswebhook]
+}
+
+data "kubectl_file_documents" "restapi" {
+  content = file("../../gke/restapi.yml")
+}
+
+resource "kubectl_manifest" "restapi" {
+  count              = length(data.kubectl_file_documents.restapi.documents)
+  yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
+  override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  #depends_on         = [kubectl_manifest.argoevents]
 }

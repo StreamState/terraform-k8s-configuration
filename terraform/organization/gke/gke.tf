@@ -4,6 +4,12 @@ provider "google" {
   #zone    = "us-central1-c"
 }
 
+resource "google_compute_address" "ip_address" {
+  name   = "ipaddress-${var.organization}"
+  region = "global"
+}
+
+
 # this is the default cluster service account, this shouldn't be used for much
 # we should create custom service accounts with minimal permissions
 resource "google_service_account" "cluster" {

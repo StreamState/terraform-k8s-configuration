@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: kubernetesingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: ipaddress-${organization}
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: restbackendservice
+          servicePort: 80
+      - path: /build/*
+        backend:
+          serviceName: argoeventsservice
+          servicePort: 80
+      #- path: /v2/*
+      #  backend:
+      #    serviceName: restbackend
+      #    servicePort: 8080
+
+
+

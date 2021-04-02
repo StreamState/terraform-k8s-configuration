@@ -88,19 +88,17 @@ To find webui url:
 * pip3 install -r ./pythonexample/requirements.txt
 * python3 pythonexample/connect_cassandra.py
 
-# Kubectl service 
+# Backend service service 
 
-This is needed for the back end app.  There are two choices here: leverage argo cd and its rest API to kick off "builds"/workflows or use a live knative app to convert json to deploy applications.  
+The backend for provisioning new jobs
 
-For now, I am going to use a knative app.  In the future it is likely more maintainable to use Argo.
+## python rest app
 
-Needed functionality:
-* Authentication and secrets storage, multi-tenant
-* Deploy applications in unique namespaces for each tenant
-* Host spark ui for jobs within a namespace
-* RBAC for specific jobs
+* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.1.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.1.0
+* [do something here with ingress]
 
-## Knative
+## Knative: put on hold, for now...just use normal deploy/pod for now
 
 Initial KNative app will be stateless: simply take a json payload (including kafka secrets, and maybe cassandra secrets, though kafka will be outside the cluster and cassandra is within cluster) and create the required applications.  There will be one spark streaming application per topic (to persist) and one spark streaming application for doing stateful transformations on the kafka topics.   
 
