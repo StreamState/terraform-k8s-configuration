@@ -21,6 +21,11 @@ resource "google_project_service" "resource_manager" {
   service = "cloudresourcemanager.googleapis.com"
 }
 
+resource "google_project_service" "apigateway" {
+  project = var.project
+  service = "apigateway.googleapis.com"
+}
+
 resource "google_project_service" "iam" {
   project    = var.project
   service    = "iam.googleapis.com"

@@ -431,16 +431,29 @@ resource "kubectl_manifest" "argoeventworkflow" {
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
 
-data "kubectl_file_documents" "ingress" {
-  content = templatefile("../../gke/ingress.yml", {
-    organization = var.organization
-  })
-}
+# data "kubectl_file_documents" "ingressmain" {
+#   content = templatefile("../../gke/ingressmainspark.yml", {
+#     organization = var.organization
+#   })
+# }
 
-resource "kubectl_manifest" "ingress" {
-  count     = 1
-  yaml_body = element(data.kubectl_file_documents.ingress.documents, count.index)
-}
+# resource "kubectl_manifest" "ingressmain" {
+#   count              = 1
+#   yaml_body          = element(data.kubectl_file_documents.ingressmain.documents, count.index)
+#   override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+# }
+
+# data "kubectl_file_documents" "ingressargo" {
+#   content = templatefile("../../gke/ingressargo.yml", {
+#     organization = var.organization
+#   })
+# }
+
+# resource "kubectl_manifest" "ingressargo" {
+#   count              = 1
+#   yaml_body          = element(data.kubectl_file_documents.ingressargo.documents, count.index)
+#   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+# }
 
 data "kubectl_file_documents" "restapi" {
   content = file("../../gke/restapi.yml")

@@ -1,3 +1,4 @@
+# consider making argo in the same namespace as spark and cassandra...
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
@@ -9,14 +10,13 @@ spec:
   rules:
   - http:
       paths:
-      - path: /*
-        backend:
-          serviceName: restbackendservice
-          servicePort: 80
       - path: /build/*
         backend:
           serviceName: argoeventsservice
           servicePort: 80
-
+      #- path: /cassandra/* # shouldn't be needed, I dont think...
+      #  backend:
+      #    serviceName: cassandraservice
+      #    servicePort: 9042
 
 

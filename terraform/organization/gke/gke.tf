@@ -5,7 +5,8 @@ provider "google" {
 }
 
 resource "google_compute_global_address" "ip_address" {
-  name = "ipaddress-${var.organization}"
+  name    = "ipaddress-${var.organization}"
+  project = var.project
 }
 
 

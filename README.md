@@ -74,6 +74,9 @@ To find webui url:
 * curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/runcontainer
 
 
+* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://[ipaddress from ingress]/build/container 
+
+
 # upload json to bucket
 
 * kubectl apply -f gke/replay_from_file.yml
