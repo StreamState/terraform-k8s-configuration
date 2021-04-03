@@ -425,7 +425,7 @@ data "kubectl_file_documents" "argoeventworkflow" {
 ## includes provisioning global TF, so the images will be available
 ## question: which images?  The latest?  Or specific tags?
 resource "kubectl_manifest" "argoeventworkflow" {
-  count              = 1 #length(data.kubectl_file_documents.argoeventworkflow.documents)
+  count              = 1
   yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
@@ -438,10 +438,8 @@ data "kubectl_file_documents" "ingress" {
 }
 
 resource "kubectl_manifest" "ingress" {
-  count     = 1 #length(data.kubectl_file_documents.argoeventworkflow.documents)
+  count     = 1
   yaml_body = element(data.kubectl_file_documents.ingress.documents, count.index)
-  # override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  # depends_on = [kubectl_manifest.argoeventswebhook]
 }
 
 data "kubectl_file_documents" "restapi" {

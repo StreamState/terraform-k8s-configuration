@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   name: kubernetesingress
   annotations:
+    # static IP
     kubernetes.io/ingress.global-static-ip-name: ipaddress-${organization}
 spec:
   rules:
@@ -16,10 +17,6 @@ spec:
         backend:
           serviceName: argoeventsservice
           servicePort: 80
-      #- path: /v2/*
-      #  backend:
-      #    serviceName: restbackend
-      #    servicePort: 8080
 
 
 

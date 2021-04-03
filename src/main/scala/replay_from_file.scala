@@ -43,6 +43,7 @@ object ReplayHistoryFromFile {
         |  <filelocations> is a comma seperated locations for the filestore
         |  <maxFileAge> is how far back the history should go
         |  <checkpoint> file output for streaming checkpoint
+        |  <cassandraTable> cassandra table to write to (schema.table_version)
         |  <cassandraCluster> cassandra cluster name
         """.stripMargin)
       System.exit(1)
@@ -57,6 +58,7 @@ object ReplayHistoryFromFile {
       fileLocations,
       maxFileAge,
       checkpoint,
+      cassandraTable,
       cassandraCluster
     ) = args
 
@@ -71,7 +73,7 @@ object ReplayHistoryFromFile {
       sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_HOST").getOrElse("")
     val cassandraPort =
       sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_PORT").getOrElse("")
-
+    val Array(cassandraKeyspace, cassandraTableName) = cassandraTable.split(".")
     SparkCassandra
       .applyCassandra(
         cassandraIp,
@@ -99,8 +101,8 @@ object ReplayHistoryFromFile {
         println(batchDF.show(10)) //TODO!  make this log somewhere for debugging
         batchDF.write // Use Cassandra batch data source to write streaming out
           .format("org.apache.spark.sql.cassandra")
-          .option("keyspace", "cycling")
-          .option("table", "cyclist_semi_pro")
+          .option("keyspace", cassandraKeyspace)
+          .option("table", cassandraTableName)
           .option("cluster", cassandraCluster)
           .mode(
             "APPEND"

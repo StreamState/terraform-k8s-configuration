@@ -8,7 +8,7 @@ from create_body import (
 )
 from kubernetes.client.api_client import ApiClient
 from typing import List
-from request_body import Job
+from request_body import Job, create_table_name
 
 
 def yaml_load(path: str) -> dict:
@@ -54,6 +54,9 @@ def create_replay_job(
         pay_load.namespace,
         pay_load.project,
         pay_load.organization,
+        create_table_name(
+            pay_load.organization, pay_load.avro_schema["name"], pay_load.version
+        ),
         pay_load.cassandra_cluster_name,
     )
     try:
@@ -120,6 +123,9 @@ def create_all_spark_jobs(
         pay_load.namespace,
         pay_load.project,
         pay_load.organization,
+        create_table_name(
+            pay_load.organization, pay_load.avro_schema["name"], pay_load.version
+        ),
         pay_load.cassandra_cluster_name,
     )
     # this can throw, so make sure that we catch that when calling this function

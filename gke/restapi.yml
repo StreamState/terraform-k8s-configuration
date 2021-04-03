@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: managek8s
-  namespace: default
+  #namespace: default
 spec:
   replicas: 1
   selector:

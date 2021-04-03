@@ -15,10 +15,17 @@ class Job(BaseModel):
     project: str
     organization: str
     registry: str
+    avro_schema: dict
+    version: int
     cassandra_cluster_name: str
 
 
 class Table(BaseModel):
-    namespace: str
-    app_name: str
-    db_schema: Dict[str, Union[Dict[str, str], List[str]]]  # or use avro?
+    organization: str
+    # app_name: str
+    avro_schema: dict
+    primary_keys: List[str]
+
+
+def create_table_name(org_name: str, app_name: str, version: int) -> str:
+    return f"{org_name}.{app_name}_{version}"

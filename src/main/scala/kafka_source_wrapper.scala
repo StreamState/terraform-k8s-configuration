@@ -57,6 +57,7 @@ object KafkaSourceWrapper {
         |  <groupId> is a consumer group name to consume from topics
         |  <topics> is a list of one or more kafka topics to consume from
         |  <checkpoint> file output for streaming checkpoint
+        |  <cassandraTable> cassandra table to write to (schema.table_version)
         |  <cassandraCluster> cassandra cluster name
         """.stripMargin)
       System.exit(1)
@@ -71,6 +72,7 @@ object KafkaSourceWrapper {
       groupId,
       topics,
       checkpoint,
+      cassandraTable,
       cassandraCluster
     ) = args
     val spark = SparkSession.builder
@@ -82,6 +84,7 @@ object KafkaSourceWrapper {
       sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_HOST").getOrElse("")
     val cassandraPort =
       sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_PORT").getOrElse("")
+    val Array(cassandraKeyspace, cassandraTableName) = cassandraTable.split(".")
     SparkCassandra
       .applyCassandra(
         cassandraIp,
@@ -122,8 +125,8 @@ object KafkaSourceWrapper {
         //write to cassandra
         batchDF.write // Use Cassandra batch data source to write streaming out
           .format("org.apache.spark.sql.cassandra")
-          .option("keyspace", "cycling")
-          .option("table", "cyclist_semi_pro")
+          .option("keyspace", cassandraKeyspace)
+          .option("table", cassandraTableName)
           .option("cluster", cassandraCluster)
           .mode(
             "APPEND"

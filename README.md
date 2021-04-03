@@ -28,6 +28,8 @@ See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terr
 
 # Cassandra
 
+This is relevant if you really need to work directly with Cassandra; however the REST API client should be the primary way of interacting with Cassandra.
+
 https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnectWithinK8sCluster.html
 
 * kubectl get secrets/cassandra-secret -n mainspark --template={{.data.password}} | base64 -d
@@ -97,6 +99,16 @@ The backend for provisioning new jobs
 * sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.1.0
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.1.0
 * [do something here with ingress]
+
+After everything is provisioned, run the following:
+
+* curl [ipaddress from ingress]
+* curl [ipaddress from ingress]/database/create  -X POST 
+* export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"text"}]}'
+* curl [ipaddress from ingress]/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":\"$AVRO_SCHEMA\", \"primary_keys\":[\"last_name\"] }"
+
+* curl [ipaddress from ingress]/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":\"$AVRO_SCHEMA\", \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"avro_schema\":\"$AVRO_SCHEMA\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
+
 
 ## Knative: put on hold, for now...just use normal deploy/pod for now
 

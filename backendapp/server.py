@@ -9,6 +9,7 @@ from provision_cassandra import (
     create_schema,
     list_keyspaces,
     get_data_from_table,
+    create_tracking_table,
 )
 import os
 
@@ -46,21 +47,11 @@ def create_replay(job: Job):
     return {"exceptions": result}  # if any exceptions, will be listed here
 
 
-@app.post("/database/table/new")
-def create_table(table: Table):
-    # this requires the load balances to be set up, once it does apparently
-    # gke injects these env variables in each container that is created
-    cassandraIp = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_HOST")
-    cassandraPort = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_PORT")
+# TODO!  Dont have this in python, needs to be provisioned once for all orgs
+@app.post("/database/create")
+def create_track_table():
     try:
-        session = get_cassandra_session(
-            cassandraIp,
-            cassandraPort,
-            os.getenv("username"),
-            os.getenv("password"),
-        )
-        create_schema(session, table.namespace, table.app_name)
-        return {"exceptions": []}  # if any exceptions, will be listed here
+        create_tracking_table()
     except Exception as e:
         return {"exceptions": [str(e)]}  # if any exceptions, will be listed here
 
@@ -78,8 +69,13 @@ def update_table(table: Table):
             os.getenv("username"),
             os.getenv("password"),
         )
-        # update_schema(session, table.namespace, table.app_name)
-        return {"version": "v1"}  # TODO!  return actual new version
+        version = create_schema(
+            session,
+            table.organization,
+            table.primary_keys,
+            table.avro_schema,
+        )
+        return {"version": version}
     except Exception as e:
         return {"exceptions": [str(e)]}  # if any exceptions, will be listed here
 
@@ -105,9 +101,9 @@ def list_tables(orgname: str):
 
 
 @app.get(
-    "/database/table/get/{orgname}/{tablename}"
+    "/database/table/get/{orgname}/{appname}/{version}"
 )  # TODO, get individual records by time window or by id
-def get_data(orgname: str, tablename: str):
+def get_data(orgname: str, appname: str, version: int):
     # this requires the load balances to be set up, once it does apparently
     # gke injects these env variables in each container
     cassandraIp = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_HOST")
@@ -119,7 +115,7 @@ def get_data(orgname: str, tablename: str):
             os.getenv("username"),
             os.getenv("password"),
         )
-        return get_data_from_table(session, orgname, tablename)
+        return get_data_from_table(session, orgname, appname, version)
         # return {"exceptions": []}  # if any exceptions, will be listed here
     except Exception as e:
         return {"exceptions": [str(e)]}  # if any exceptions, will be listed here

@@ -93,6 +93,7 @@ def spark_replay_file_spec(
     namespace: str,
     project: str,
     organization: str,
+    cassandra_table_name: str,
     cassandra_cluster_name: str,
 ) -> dict:
     name = "replay" + "-".join(folders_to_watch)
@@ -113,6 +114,7 @@ def spark_replay_file_spec(
         ",".join(f"gs://{bucket}/{folder}/" for folder in folders_to_watch),
         max_file_age,
         "/tmp/checkpoint",
+        cassandra_table_name,
         cassandra_cluster_name,
     ]
     return default_body
@@ -128,6 +130,7 @@ def spark_state_job_spec(
     namespace: str,
     project: str,
     organization: str,
+    cassandra_table_name: str,
     cassandra_cluster_name: str,
 ) -> dict:
     name = "-".join(topics)
@@ -144,6 +147,7 @@ def spark_state_job_spec(
         group_id,
         ",".join(topics),
         "/tmp/checkpoint",
+        cassandra_table_name,
         cassandra_cluster_name,
     ]
     return default_body

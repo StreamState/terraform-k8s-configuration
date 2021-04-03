@@ -4,9 +4,8 @@ provider "google" {
   #zone    = "us-central1-c"
 }
 
-resource "google_compute_address" "ip_address" {
-  name   = "ipaddress-${var.organization}"
-  region = "global"
+resource "google_compute_global_address" "ip_address" {
+  name = "ipaddress-${var.organization}"
 }
 
 
@@ -66,3 +65,4 @@ resource "google_artifact_registry_repository_iam_member" "read" {
   role       = "roles/artifactregistry.reader"
   member     = "serviceAccount:${google_service_account.cluster.email}"
 }
+
