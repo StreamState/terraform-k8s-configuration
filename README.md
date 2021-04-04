@@ -52,8 +52,8 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 
 todo! make this part of CI/CD pipeline for the entire project (streamstate) level
 * cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
+* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.7.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.7.0
 
 
 * sudo docker build . -f ./argo/sparkbase.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0 
@@ -65,16 +65,15 @@ To find webui url:
 * kubectl -n argo-events get svc
 * go to [webuiurl]:2746 in your favorite browser
 
-* argo -n argo-events submit ./argo/test.yml
 
 
 # deploy workflow
 
 * kubectl  -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
-* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/runcontainer
+* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/build/container
 
 
-* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://[ipaddress from ingress]/build/container 
+* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://[ipaddress from load balancer]:12000/build/container 
 
 
 # upload json to bucket
@@ -99,19 +98,21 @@ The backend for provisioning new jobs
 
 ## python rest app
 
-* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.1.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.1.0
+* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.10.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.10.0
 * [do something here with ingress]
 
 After everything is provisioned, run the following:
 
-* curl [ipaddress from ingress]
-* curl [ipaddress from ingress]/database/create  -X POST 
-* export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"text"}]}'
-* curl [ipaddress from ingress]/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":\"$AVRO_SCHEMA\", \"primary_keys\":[\"last_name\"] }"
+* curl [ipaddress from ingress]:8000
+* curl [ipaddress from ingress]:8000/database/create  -X POST 
+* export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"string"}]}'
+* curl [ipaddress from ingress]:8000/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"primary_keys\":[\"last_name\"] }"
 
-* curl [ipaddress from ingress]/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":\"$AVRO_SCHEMA\", \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"avro_schema\":\"$AVRO_SCHEMA\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
+* curl [ipaddress from ingress]:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
 
+
+curl 146.148.62.1:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
 
 ## Knative: put on hold, for now...just use normal deploy/pod for now
 

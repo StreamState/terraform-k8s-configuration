@@ -247,6 +247,11 @@ resource "kubernetes_role" "sparkrules" {
     resources  = ["pods"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
+  rule {
+    api_groups = [""]
+    resources  = ["services"] # needed to create sparkoperator
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
@@ -455,6 +460,7 @@ resource "kubectl_manifest" "argoeventworkflow" {
 #   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
 # }
 
+# todo, pass cassandra secret instead of hardcoding the reference
 data "kubectl_file_documents" "restapi" {
   content = file("../../gke/restapi.yml")
 }

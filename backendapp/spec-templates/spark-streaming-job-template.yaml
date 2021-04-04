@@ -32,6 +32,11 @@ spec:
     envFrom:
       - secretRef:
           name: "cassandra-secret" # pass in from cassandra_secret credentials
+    env:
+      - name: CASSANDRA_LOADBALANCER_SERVICE_HOST
+        value: cluster1-dc1-service # todo!  this could possibly change if multiple cassandra racks/nodes/clusters
+      - name: CASSANDRA_LOADBALANCER_SERVICE_PORT
+        value: "9042"
   executor:
     instances: 1
     cores: 1

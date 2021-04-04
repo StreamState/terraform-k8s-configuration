@@ -7,4 +7,5 @@ RUN pip3 install avro_validator==1.0.9
 COPY sparkstreaming sparkstreaming
 COPY backendapp backendapp
 WORKDIR /backendapp
-CMD uvicorn server:app --reload
+#CMD uvicorn server:app --reload
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0",  "--port", "8000"]

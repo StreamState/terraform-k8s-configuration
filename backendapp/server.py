@@ -17,7 +17,7 @@ app = FastAPI()
 apiclient = setup_connection()
 
 files = [
-    "spec-templates/sparkstreaming/spark-streaming-job-template.yaml",
+    "spec-templates/spark-streaming-job-template.yaml",
 ]
 
 [stateful_template] = load_all_ymls(files)
@@ -51,7 +51,16 @@ def create_replay(job: Job):
 @app.post("/database/create")
 def create_track_table():
     try:
-        create_tracking_table()
+        cassandraIp = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_HOST")
+        cassandraPort = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_PORT")
+        session = get_cassandra_session(
+            cassandraIp,
+            cassandraPort,
+            os.getenv("username"),
+            os.getenv("password"),
+        )
+        create_tracking_table(session)
+        return {"exceptions": []}
     except Exception as e:
         return {"exceptions": [str(e)]}  # if any exceptions, will be listed here
 

@@ -13,35 +13,31 @@ spec:
       labels:
         app: restbackend
     spec:
+      serviceAccountName: spark
       containers:
       - name: managek8s-site
-        image: us-central1-docker.pkg.dev/streamstatetest/streamstatetest/rest:v0.1.0
+        image: us-central1-docker.pkg.dev/streamstatetest/streamstatetest/rest:v0.10.0
         envFrom:
         - secretRef:
             name: "cassandra-secret" 
         env:
         - name: CASSANDRA_LOADBALANCER_SERVICE_HOST
-          value: dc1.mainspark.CassandraDatacenter.us-central1
+          value: cluster1-dc1-service  # todo!  this could possibly change if multiple cassandra racks/nodes/clusters
         - name: CASSANDRA_LOADBALANCER_SERVICE_PORT
-          value: 9042
+          value: "9042"
 ---
 apiVersion: v1
 kind: Service
 metadata:
- name: restapiloadbalancer
- labels:
-   cassandra.datastax.com/cluster: cluster1
-   cassandra.datastax.com/datacenter: dc1
-   cassandra.datastax.com/rack: default
+  name: restapiloadbalancer
 spec:
- type: LoadBalancer
- ports:
- - port: 8000
-   protocol: TCP
- selector:
-   cassandra.datastax.com/cluster: cluster1
-   cassandra.datastax.com/datacenter: dc1
-   cassandra.datastax.com/rack: default
+  type: LoadBalancer
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  selector:
+    app: restbackend
 
 # ---        
 # apiVersion: v1

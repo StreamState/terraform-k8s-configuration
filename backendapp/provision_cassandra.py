@@ -24,13 +24,12 @@ def get_cassandra_session(ip: str, port: int, user: str, password: str) -> Sessi
 def _get_existing_schema(
     session: Session, org_name: str, app_name: str
 ) -> Tuple[str, int]:
-    # admin_track.track_schema (avroschema string, organization string, version string);
     rows = session.execute(
         f"""
         SELECT avroschema, version FROM admin_track.track_schema_current 
         WHERE organization = '{org_name}' and appname='{app_name}';
     """
-    )
+    ).current_rows
     if len(rows) == 0:
         return "", 0
     else:
@@ -45,6 +44,18 @@ def _parse_schema(schema: dict) -> Tuple[RecordType, str]:
     return schema_avro.parse(), schema_json
 
 
+def _convert_type(avro_type: str) -> str:
+    avro_type_conversion = {
+        "boolean": "boolean",
+        "int": "int",
+        "long": "bigint",
+        "float": "float",  # safe side
+        "double": "double",
+        "string": "text",
+    }
+    return avro_type_conversion[avro_type]
+
+
 def apply_table(
     session: Session,
     org_name: str,
@@ -53,7 +64,9 @@ def apply_table(
     primary_keys: List[str],
     fields: List[Dict[str, str]],
 ):
-    field_list = ",".join([field["name"] + " " + field["type"] for field in fields])
+    field_list = ",".join(
+        [field["name"] + " " + _convert_type(field["type"]) for field in fields]
+    )
     primary_key_str = ",".join(primary_keys)
     table_name = create_table_name(org_name, app_name, version)
     sql = f"""
@@ -65,23 +78,23 @@ def apply_table(
 
 # TODO: probably should NOT be in python (maybe provision from terraform?  or rest of github action?)
 # one table for ALL organizations
-def create_tracking_table():
+def create_tracking_table(session: Session):
     sql = """
         CREATE KEYSPACE IF NOT EXISTS admin_track WITH 
         replication = { 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' };
     """
     session.execute(sql)
     sql = """
-        CREATE TABLE admin_track.track_schema_history 
-        (avroschema string, organization string, appname string,
+        CREATE TABLE IF NOT EXISTS  admin_track.track_schema_history 
+        (avroschema text, organization text, appname text,
          version int, PRIMARY KEY(organization, appname, version)
         );
     """
     session.execute(sql)
     sql = """
-        CREATE TABLE admin_track.track_schema_current
-        (avroschema string, organization string, 
-        appname string, version int, PRIMARY KEY(organization, appname));
+        CREATE TABLE IF NOT EXISTS admin_track.track_schema_current
+        (avroschema text, organization text, 
+        appname text, version int, PRIMARY KEY(organization, appname));
     """
     session.execute(sql)
 
@@ -90,7 +103,7 @@ def insert_tracking_table(
     session: Session, org_name: str, app_name: str, avro_schema: str, version: int
 ):
     sql = f"""
-        INSERT INTO admin_track.track_schema_history 
+        INSERT INTO admin_track.track_schema_history (avroschema, organization, appname, version)
         VALUES ('{avro_schema}', '{org_name}', '{app_name}', {version});
     """
     session.execute(sql)
