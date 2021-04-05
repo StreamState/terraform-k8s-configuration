@@ -456,7 +456,7 @@ data "kubectl_file_documents" "argoeventworkflow" {
     dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
     registry          = google_artifact_registry_repository.orgrepo.name
     registryprefix    = var.registryprefix
-    runserviceaccount= kubernetes_service_account.argoevents-runsa.metadata.0.name
+    runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
   })
 }
 ## The docker containers needed for this are built as part of the CI/CD pipeline that
@@ -495,7 +495,7 @@ resource "kubectl_manifest" "argoeventworkflow" {
 
 data "kubectl_file_documents" "restapi" {
   content = templatefile("../../gke/restapi.yml", {
-    launchspark=kubernetes_service_account.launchsparkoperator.metadata.0.name,
+    launchspark     = kubernetes_service_account.launchsparkoperator.metadata.0.name,
     cassandrasecret = kubernetes_secret.cassandra_svc.metadata.0.name
   })
 }
