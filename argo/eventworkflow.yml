@@ -24,7 +24,7 @@ spec:
               metadata:
                 generateName: spark-streaming-ci-  # Name of this Workflow
               spec:
-                serviceAccountName: argoevents-runsa
+                serviceAccountName: ${runserviceaccount}  ## argoevents-runsa
                 arguments:
                   parameters:
                     - name: scalacode

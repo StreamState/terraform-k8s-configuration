@@ -13,13 +13,13 @@ spec:
       labels:
         app: restbackend
     spec:
-      serviceAccountName: spark
+      serviceAccountName: ${launchspark}
       containers:
       - name: managek8s-site
         image: us-central1-docker.pkg.dev/streamstatetest/streamstatetest/rest:v0.10.0
         envFrom:
         - secretRef:
-            name: "cassandra-secret" 
+            name: ${cassandrasecret} 
         env:
         - name: CASSANDRA_LOADBALANCER_SERVICE_HOST
           value: cluster1-dc1-service  # todo!  this could possibly change if multiple cassandra racks/nodes/clusters

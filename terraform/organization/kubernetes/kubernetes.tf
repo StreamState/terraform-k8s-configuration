@@ -247,11 +247,6 @@ resource "kubernetes_role" "sparkrules" {
     resources  = ["pods"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
-  rule {
-    api_groups = [""]
-    resources  = ["services"] # needed to create sparkoperator
-    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
-  }
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
@@ -334,6 +329,43 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.argoevents-runsa.metadata.0.name
     namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+}
+
+resource "kubernetes_service_account" "launchsparkoperator" {
+  metadata {
+    name      = "launchspark"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+  depends_on = [kubernetes_namespace.mainnamespace]
+}
+
+resource "kubernetes_role" "launchsparkoperator" {
+  metadata {
+    name      = "launchsparkoperator-role"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+  rule {
+    api_groups = ["sparkoperator.k8s.io"]
+    resources  = ["pods"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+  depends_on = [kubernetes_namespace.mainnamespace]
+}
+resource "kubernetes_role_binding" "launchsparkoperator" {
+  metadata {
+    name      = "launchspark-role-binding"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_role.argorules.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.launchsparkoperator.metadata.0.name
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
 }
 
@@ -424,6 +456,7 @@ data "kubectl_file_documents" "argoeventworkflow" {
     dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
     registry          = google_artifact_registry_repository.orgrepo.name
     registryprefix    = var.registryprefix
+    runserviceaccount= kubernetes_service_account.argoevents-runsa.metadata.0.name
   })
 }
 ## The docker containers needed for this are built as part of the CI/CD pipeline that
@@ -460,13 +493,15 @@ resource "kubectl_manifest" "argoeventworkflow" {
 #   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
 # }
 
-# todo, pass cassandra secret instead of hardcoding the reference
 data "kubectl_file_documents" "restapi" {
-  content = file("../../gke/restapi.yml")
+  content = templatefile("../../gke/restapi.yml", {
+    launchspark=kubernetes_service_account.launchsparkoperator.metadata.0.name,
+    cassandrasecret = kubernetes_secret.cassandra_svc.metadata.0.name
+  })
 }
 
 resource "kubectl_manifest" "restapi" {
-  count              = length(data.kubectl_file_documents.restapi.documents)
+  count              = 2 # length(data.kubectl_file_documents.restapi.documents)
   yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
   override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   #depends_on         = [kubectl_manifest.argoevents]
