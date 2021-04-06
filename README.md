@@ -26,6 +26,14 @@ See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terr
 * (direct connection with kubectl): gcloud container clusters get-credentials streamstatecluster-testorg --region=us-central1
 * (connection through terraform kubeconfig): kubectl --kubeconfig terraform/organization/kubeconfig [etc]
 
+To shut down:
+
+* terraform destroy -var-file="testing.tfvars"
+
+If anything hangs, you can delete the kubernetes or application modules:
+
+* terraform state rm 'module.kubernetes-config'
+
 # Cassandra
 
 This is relevant if you really need to work directly with Cassandra; however the REST API client should be the primary way of interacting with Cassandra.
@@ -52,8 +60,8 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 
 todo! make this part of CI/CD pipeline for the entire project (streamstate) level
 * cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.7.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.7.0
+* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
 
 
 * sudo docker build . -f ./argo/sparkbase.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0 

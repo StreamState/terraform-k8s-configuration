@@ -67,7 +67,7 @@ spec:
                     volumeMounts:
                     - mountPath: /work #this persists across steps
                       name: work
-                    image: ${registryprefix}/${project}/${project}/scalacompile:v0.5.0
+                    image: ${registryprefix}/${project}/${project}/scalacompile:v0.8.0
                     command: [sh, -c]
                     args: [
                       "echo {{inputs.parameters.scalacode}} | base64 --decode > src/main/scala/custom.scala;\
