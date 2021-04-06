@@ -81,7 +81,7 @@ def spark_persist_job_spec(
     return default_body
 
 
-## todo, add kafka output
+## TODO, add kafka output
 def spark_replay_file_spec(
     default_body: dict,
     image: str,
@@ -105,7 +105,7 @@ def spark_replay_file_spec(
     default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
     default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
     default_body["spec"]["image"] = image
-    default_body["spec"]["mainClass"] = "sparkwrappers.PersistKafkaSourceWrapper"
+    default_body["spec"]["mainClass"] = "sparkwrappers.ReplayHistoryFromFile"
     default_body["spec"]["arguments"] = [
         name,
         # ",".join(brokers),

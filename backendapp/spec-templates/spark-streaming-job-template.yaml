@@ -10,7 +10,7 @@ spec:
   imagePullPolicy: Always
     
   # mainClass: sparkwrappers.KafkaSourceWrapper
-  mainApplicationFile: "local:///opt/spark/work-dir/sparkstreaming.jar"
+  mainApplicationFile: "local:///opt/spark/work-dir/streamstate.jar"
   sparkVersion: "3.0.1"
   hadoopConf:
     # "fs.gs.project.id": streamstatetest

@@ -74,8 +74,6 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
-
-# for cluster service account to be able to pull from org repo
 resource "google_artifact_registry_repository_iam_member" "clusterread" {
   provider   = google-beta
   project    = var.project
@@ -268,6 +266,8 @@ resource "kubernetes_role_binding" "sparkrules" {
 }
 
 
+
+
 ##################
 # Standalone kubernetes service accounts and secrets
 ##################
@@ -332,6 +332,7 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   }
 }
 
+
 resource "kubernetes_service_account" "launchsparkoperator" {
   metadata {
     name      = "launchspark"
@@ -339,28 +340,25 @@ resource "kubernetes_service_account" "launchsparkoperator" {
   }
   depends_on = [kubernetes_namespace.mainnamespace]
 }
-
-resource "kubernetes_role" "launchsparkoperator" {
+resource "kubernetes_cluster_role" "launchsparkoperator" {
   metadata {
-    name      = "launchsparkoperator-role"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    name = "launchsparkoperator-role"
   }
   rule {
     api_groups = ["sparkoperator.k8s.io"]
-    resources  = ["pods"]
+    resources  = ["sparkapplications"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
   depends_on = [kubernetes_namespace.mainnamespace]
 }
-resource "kubernetes_role_binding" "launchsparkoperator" {
+resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   metadata {
-    name      = "launchspark-role-binding"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    name = "launchspark-role-binding"
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "ClusterRole"
-    name      = kubernetes_role.argorules.metadata.0.name
+    name      = kubernetes_cluster_role.launchsparkoperator.metadata.0.name
   }
   subject {
     kind      = "ServiceAccount"
@@ -493,6 +491,9 @@ resource "kubectl_manifest" "argoeventworkflow" {
 #   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
 # }
 
+
+
+
 data "kubectl_file_documents" "restapi" {
   content = templatefile("../../gke/restapi.yml", {
     launchspark     = kubernetes_service_account.launchsparkoperator.metadata.0.name,
@@ -504,5 +505,4 @@ resource "kubectl_manifest" "restapi" {
   count              = 2 # length(data.kubectl_file_documents.restapi.documents)
   yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
   override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  #depends_on         = [kubectl_manifest.argoevents]
 }

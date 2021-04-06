@@ -73,7 +73,7 @@ object ReplayHistoryFromFile {
       sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_HOST").getOrElse("")
     val cassandraPort =
       sys.env.get("CASSANDRA_LOADBALANCER_SERVICE_PORT").getOrElse("")
-    val Array(cassandraKeyspace, cassandraTableName) = cassandraTable.split(".")
+    val Array(cassandraKeyspace, cassandraTableName) = cassandraTable.split("\\.")
     SparkCassandra
       .applyCassandra(
         cassandraIp,

@@ -98,8 +98,8 @@ The backend for provisioning new jobs
 
 ## python rest app
 
-* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.10.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.10.0
+* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.14.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.14.0
 * [do something here with ingress]
 
 After everything is provisioned, run the following:
@@ -112,7 +112,7 @@ After everything is provisioned, run the following:
 * curl [ipaddress from ingress]:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
 
 
-curl 146.148.62.1:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
+curl 35.225.145.45:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
 
 ## Knative: put on hold, for now...just use normal deploy/pod for now
 
