@@ -28,7 +28,10 @@ kind: EventSource
 metadata:
   name: webhook
 spec:
-  service:
+  selector:
+    matchLabels:
+      app: argobackend
+  service:  # TODO, get more robust service
     ports:
       - port: 12000
         targetPort: 12000
@@ -38,16 +41,19 @@ spec:
       # port to run HTTP server on
       port: "12000"
       # endpoint to listen to
-      endpoint: /runcontainer
+      endpoint: /build/container
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
     example:
       # port to run HTTP server on
       port: "12000"
       # endpoint to listen to
-      endpoint: /example
+      endpoint: /build/example
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
+      #authSecret:
+      #  name: my-webhook-token
+      #  key: my-token
 #    example-foo:
 #      port: "12000"
 #      endpoint: /example2
@@ -66,3 +72,18 @@ spec:
 #      serverKeySecret:
 #        name: my-secret
 #        key: pk-key
+
+# ---        
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: argoeventsservice
+#   #namespace: default
+# spec:
+#   type: NodePort
+#   selector:
+#     app: argobackend
+#   ports:
+#   - port: 80
+#     targetPort: 12000
+#     protocol: TCP

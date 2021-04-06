@@ -2,6 +2,7 @@ from typing import List
 from kubernetes.client import V1Role, V1ServiceAccount, V1RoleBinding
 
 
+# shouldn't be needed
 def spark_service_account_spec(namespace: str) -> dict:
     return V1ServiceAccount(
         api_version="v1",
@@ -10,6 +11,7 @@ def spark_service_account_spec(namespace: str) -> dict:
     )
 
 
+# shouldn't be needed
 def spark_role_spec(namespace: str) -> dict:
     return V1Role(
         api_version="rbac.authorization.k8s.io/v1",
@@ -26,6 +28,7 @@ def spark_role_spec(namespace: str) -> dict:
     )
 
 
+# shouldn't be needed
 def spark_role_binding_spec(namespace: str) -> dict:
     return V1RoleBinding(
         api_version="rbac.authorization.k8s.io/v1",
@@ -47,20 +50,72 @@ def spark_role_binding_spec(namespace: str) -> dict:
 
 
 def spark_persist_job_spec(
-    default_body: dict, image: str, brokers: List[str], topic: str, namespace: str
+    default_body: dict,
+    image: str,
+    brokers: List[str],
+    topic: str,
+    group_id: str,
+    processing_interval: str,
+    namespace: str,
+    project: str,
+    organization: str,
 ) -> dict:
     default_body["metadata"] = {
         "name": f"{topic}-persist",
         "namespace": namespace,
     }
+    bucket = f"streamstate-sparkstorage-{organization}"
+    default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
+    default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
     default_body["spec"]["image"] = image
+    default_body["spec"]["mainClass"] = "PersistKafkaSourceWrapper"
     default_body["spec"]["arguments"] = [
         f"{topic}-persist",
         ",".join(brokers),
-        "test-1",
+        group_id,
         topic,
-        "/tmp/sink",
+        f"gs://{bucket}",
         "/tmp/checkpoint",
+        processing_interval,
+    ]
+    return default_body
+
+
+## TODO, add kafka output
+def spark_replay_file_spec(
+    default_body: dict,
+    image: str,
+    brokers: List[str],
+    folders_to_watch: List[str],  # probably the same name as kafka topics
+    output_topic: str,
+    group_id: str,
+    max_file_age: str,
+    namespace: str,
+    project: str,
+    organization: str,
+    cassandra_table_name: str,
+    cassandra_cluster_name: str,
+) -> dict:
+    name = "replay" + "-".join(folders_to_watch)
+    default_body["metadata"] = {
+        "name": name,
+        "namespace": namespace,
+    }
+    bucket = f"streamstate-sparkstorage-{organization}"
+    default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
+    default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
+    default_body["spec"]["image"] = image
+    default_body["spec"]["mainClass"] = "sparkwrappers.ReplayHistoryFromFile"
+    default_body["spec"]["arguments"] = [
+        name,
+        # ",".join(brokers),
+        # group_id,
+        # output_topic,
+        ",".join(f"gs://{bucket}/{folder}/" for folder in folders_to_watch),
+        max_file_age,
+        "/tmp/checkpoint",
+        cassandra_table_name,
+        cassandra_cluster_name,
     ]
     return default_body
 
@@ -70,21 +125,29 @@ def spark_state_job_spec(
     image: str,
     brokers: List[str],
     topics: List[str],
+    output_topic: str,
+    group_id: str,
     namespace: str,
-    cassandraIp: str,
-    cassandraPassword: str,
+    project: str,
+    organization: str,
+    cassandra_table_name: str,
+    cassandra_cluster_name: str,
 ) -> dict:
     name = "-".join(topics)
     default_body["metadata"] = {"name": f"{name}-application", "namespace": namespace}
+    bucket = f"streamstate-sparkstorage-{organization}"
+    default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
+    default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
     default_body["spec"]["image"] = image
+    default_body["spec"]["mainClass"] = "sparkwrappers.KafkaSourceWrapper"
     default_body["spec"]["arguments"] = [
         f"{name}-application",
         ",".join(brokers),
-        "test-1",
+        output_topic,
+        group_id,
         ",".join(topics),
-        "/tmp/sink",
         "/tmp/checkpoint",
-        cassandraIp,
-        cassandraPassword,
+        cassandra_table_name,
+        cassandra_cluster_name,
     ]
     return default_body

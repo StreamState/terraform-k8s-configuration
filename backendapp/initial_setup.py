@@ -10,23 +10,26 @@ from kubernetes.client import RbacAuthorizationV1Api
 from kubernetes.client.api_client import ApiClient
 from typing import List
 
-
+# this should already be created through terraform
 def create_namespace(api: CoreV1Api, namespace: str):
     api.create_namespace(
         client.V1Namespace(metadata=client.V1ObjectMeta(name=namespace))
     )
 
 
+# this should already be created through terraform
 def create_service_account(api: CoreV1Api, namespace: str):
     api.create_namespaced_service_account(
         namespace, spark_service_account_spec(namespace)
     )
 
 
+# this should already be created through terraform
 def create_cluster_role(api: RbacAuthorizationV1Api, namespace: str):
     api.create_namespaced_role(namespace, spark_role_spec(namespace))
 
 
+# this should already be created through terraform
 def create_cluster_role_binding(api: RbacAuthorizationV1Api, namespace: str):
     api.create_namespaced_role_binding(namespace, spark_role_binding_spec(namespace))
 

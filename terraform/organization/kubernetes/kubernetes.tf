@@ -74,8 +74,6 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
-
-# for cluster service account to be able to pull from org repo
 resource "google_artifact_registry_repository_iam_member" "clusterread" {
   provider   = google-beta
   project    = var.project
@@ -217,9 +215,6 @@ resource "kubernetes_service_account" "spark" {
   metadata {
     name      = "spark"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-    #annotations = {
-    #  "iam.gke.io/gcp-service-account" = google_service_account.spark-gcs.email
-    #}
   }
   depends_on = [kubernetes_namespace.argoevents]
 }
@@ -229,7 +224,7 @@ resource "google_service_account_key" "sparkkey" {
   service_account_id = google_service_account.spark-gcs.name
 }
 
-resource "kubernetes_secret" "google-application-credentials" {
+resource "kubernetes_secret" "spark-gcs-to-kubernetes" {
   metadata {
     name      = "spark-secret"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
@@ -240,8 +235,6 @@ resource "kubernetes_secret" "google-application-credentials" {
 }
 
 ## needed for operating spark resources
-# was hoping I didnt't have to need this due to "cluster" role for spark-gcs
-# do I need the cluster role for spark-gcs??
 resource "kubernetes_role" "sparkrules" {
   metadata {
     name      = "sparkrules"
@@ -271,6 +264,8 @@ resource "kubernetes_role_binding" "sparkrules" {
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
 }
+
+
 
 
 ##################
@@ -337,6 +332,41 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   }
 }
 
+
+resource "kubernetes_service_account" "launchsparkoperator" {
+  metadata {
+    name      = "launchspark"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+  depends_on = [kubernetes_namespace.mainnamespace]
+}
+resource "kubernetes_cluster_role" "launchsparkoperator" {
+  metadata {
+    name = "launchsparkoperator-role"
+  }
+  rule {
+    api_groups = ["sparkoperator.k8s.io"]
+    resources  = ["sparkapplications"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+  depends_on = [kubernetes_namespace.mainnamespace]
+}
+resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
+  metadata {
+    name = "launchspark-role-binding"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.launchsparkoperator.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.launchsparkoperator.metadata.0.name
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+}
+
 ##################
 # Install Cassandra
 ##################
@@ -352,6 +382,7 @@ resource "helm_release" "cassandra" {
     name  = "clusterWideInstall"
     value = true
   }
+  depends_on = [local_file.kubeconfig]
 }
 
 data "kubectl_file_documents" "cassandra" {
@@ -378,6 +409,7 @@ resource "helm_release" "spark" {
     name  = "webhook.enable"
     value = true
   }
+  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order
 }
 
 
@@ -424,14 +456,55 @@ data "kubectl_file_documents" "argoeventworkflow" {
     dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
     registry          = google_artifact_registry_repository.orgrepo.name
     registryprefix    = var.registryprefix
+    runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
   })
 }
 ## The docker containers needed for this are built as part of the CI/CD pipeline that
 ## includes provisioning global TF, so the images will be available
 ## question: which images?  The latest?  Or specific tags?
 resource "kubectl_manifest" "argoeventworkflow" {
-  count              = 1 #length(data.kubectl_file_documents.argoeventworkflow.documents)
+  count              = 1
   yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
+}
+
+# data "kubectl_file_documents" "ingressmain" {
+#   content = templatefile("../../gke/ingressmainspark.yml", {
+#     organization = var.organization
+#   })
+# }
+
+# resource "kubectl_manifest" "ingressmain" {
+#   count              = 1
+#   yaml_body          = element(data.kubectl_file_documents.ingressmain.documents, count.index)
+#   override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+# }
+
+# data "kubectl_file_documents" "ingressargo" {
+#   content = templatefile("../../gke/ingressargo.yml", {
+#     organization = var.organization
+#   })
+# }
+
+# resource "kubectl_manifest" "ingressargo" {
+#   count              = 1
+#   yaml_body          = element(data.kubectl_file_documents.ingressargo.documents, count.index)
+#   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+# }
+
+
+
+
+data "kubectl_file_documents" "restapi" {
+  content = templatefile("../../gke/restapi.yml", {
+    launchspark     = kubernetes_service_account.launchsparkoperator.metadata.0.name,
+    cassandrasecret = kubernetes_secret.cassandra_svc.metadata.0.name
+  })
+}
+
+resource "kubectl_manifest" "restapi" {
+  count              = 2 # length(data.kubectl_file_documents.restapi.documents)
+  yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
+  override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
 }

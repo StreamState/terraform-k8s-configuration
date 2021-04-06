@@ -1,3 +1,3 @@
-organization="testorg"
-namespace="mainspark"
-project="streamstatetest"
+organization = "testorg"
+namespace    = "mainspark"
+project      = "streamstatetest"

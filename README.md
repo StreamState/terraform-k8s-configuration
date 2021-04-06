@@ -26,7 +26,17 @@ See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terr
 * (direct connection with kubectl): gcloud container clusters get-credentials streamstatecluster-testorg --region=us-central1
 * (connection through terraform kubeconfig): kubectl --kubeconfig terraform/organization/kubeconfig [etc]
 
+To shut down:
+
+* terraform destroy -var-file="testing.tfvars"
+
+If anything hangs, you can delete the kubernetes or application modules:
+
+* terraform state rm 'module.kubernetes-config'
+
 # Cassandra
+
+This is relevant if you really need to work directly with Cassandra; however the REST API client should be the primary way of interacting with Cassandra.
 
 https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnectWithinK8sCluster.html
 
@@ -50,8 +60,8 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 
 todo! make this part of CI/CD pipeline for the entire project (streamstate) level
 * cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.5.0
+* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
 
 
 * sudo docker build . -f ./argo/sparkbase.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0 
@@ -63,21 +73,26 @@ To find webui url:
 * kubectl -n argo-events get svc
 * go to [webuiurl]:2746 in your favorite browser
 
-* argo -n argo-events submit ./argo/test.yml
 
 
 # deploy workflow
 
 * kubectl  -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
-* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/runcontainer
+* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/build/container
+
+
+* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://[ipaddress from load balancer]:12000/build/container 
 
 
 # upload json to bucket
 
 * kubectl apply -f gke/replay_from_file.yml
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./mytest.json
-* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/
-* kubectl logs examplegcp-driver
+
+You may have to create a subfolder first (eg, /test)
+
+* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/test
+* kubectl logs replaytest-driver
 * kubectl port-forward examplegcp-driver 4040:4040 # to view spark-ui, go to localhost:4040
 
 
@@ -88,19 +103,30 @@ To find webui url:
 * pip3 install -r ./pythonexample/requirements.txt
 * python3 pythonexample/connect_cassandra.py
 
-# Kubectl service 
+# Backend service service 
 
-This is needed for the back end app.  There are two choices here: leverage argo cd and its rest API to kick off "builds"/workflows or use a live knative app to convert json to deploy applications.  
+The backend for provisioning new jobs
 
-For now, I am going to use a knative app.  In the future it is likely more maintainable to use Argo.
+## python rest app
 
-Needed functionality:
-* Authentication and secrets storage, multi-tenant
-* Deploy applications in unique namespaces for each tenant
-* Host spark ui for jobs within a namespace
-* RBAC for specific jobs
+* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.14.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.14.0
+* [do something here with ingress]
 
-## Knative
+After everything is provisioned, run the following:
+
+* curl [ipaddress from ingress]:8000
+* curl [ipaddress from ingress]:8000/database/create  -X POST 
+* export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"string"}]}'
+
+* curl [ipaddress from ingress]:8000/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"primary_keys\":[\"last_name\"] }"
+
+* curl [ipaddress from ingress]:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
+
+
+
+
+## Knative: put on hold, for now...just use normal deploy/pod for now
 
 Initial KNative app will be stateless: simply take a json payload (including kafka secrets, and maybe cassandra secrets, though kafka will be outside the cluster and cassandra is within cluster) and create the required applications.  There will be one spark streaming application per topic (to persist) and one spark streaming application for doing stateful transformations on the kafka topics.   
 
