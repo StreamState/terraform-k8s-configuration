@@ -382,6 +382,7 @@ resource "helm_release" "cassandra" {
     name  = "clusterWideInstall"
     value = true
   }
+  depends_on = [local_file.kubeconfig]
 }
 
 data "kubectl_file_documents" "cassandra" {
@@ -408,6 +409,7 @@ resource "helm_release" "spark" {
     name  = "webhook.enable"
     value = true
   }
+  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order
 }
 
 

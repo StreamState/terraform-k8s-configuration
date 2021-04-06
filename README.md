@@ -88,8 +88,11 @@ To find webui url:
 
 * kubectl apply -f gke/replay_from_file.yml
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./mytest.json
-* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/
-* kubectl logs examplegcp-driver
+
+You may have to create a subfolder first (eg, /test)
+
+* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/test
+* kubectl logs replaytest-driver
 * kubectl port-forward examplegcp-driver 4040:4040 # to view spark-ui, go to localhost:4040
 
 
@@ -115,12 +118,13 @@ After everything is provisioned, run the following:
 * curl [ipaddress from ingress]:8000
 * curl [ipaddress from ingress]:8000/database/create  -X POST 
 * export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"string"}]}'
+
 * curl [ipaddress from ingress]:8000/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"primary_keys\":[\"last_name\"] }"
 
 * curl [ipaddress from ingress]:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
 
 
-curl 35.225.145.45:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
+
 
 ## Knative: put on hold, for now...just use normal deploy/pod for now
 
