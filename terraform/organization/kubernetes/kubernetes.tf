@@ -133,12 +133,14 @@ resource "kubernetes_namespace" "mainnamespace" {
   metadata {
     name = var.namespace
   }
+  depends_on = [local_file.kubeconfig]
 }
 
 resource "kubernetes_namespace" "argoevents" {
   metadata {
     name = "argo-events"
   }
+  depends_on = [local_file.kubeconfig]
 }
 
 ##################
@@ -263,6 +265,7 @@ resource "kubernetes_role_binding" "sparkrules" {
     name      = kubernetes_service_account.spark.metadata.0.name
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
+  depends_on = [kubernetes_namespace.mainnamespace]
 }
 
 
@@ -330,6 +333,7 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
     name      = kubernetes_service_account.argoevents-runsa.metadata.0.name
     namespace = kubernetes_namespace.argoevents.metadata.0.name
   }
+  depends_on = [kubernetes_namespace.argoevents]
 }
 
 
@@ -365,6 +369,7 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
     name      = kubernetes_service_account.launchsparkoperator.metadata.0.name
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
+  depends_on = [kubernetes_namespace.mainnamespace]
 }
 
 ##################
@@ -507,4 +512,5 @@ resource "kubectl_manifest" "restapi" {
   count              = 2 # length(data.kubectl_file_documents.restapi.documents)
   yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
   override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  depends_on         = [kubernetes_namespace.mainnamespace]
 }
