@@ -30,7 +30,7 @@ To shut down:
 
 * terraform destroy -var-file="testing.tfvars"
 
-If anything hangs, you can delete the kubernetes or application modules:
+If anything hangs, you can delete the kubernetes module:
 
 * terraform state rm 'module.kubernetes-config'
 
