@@ -178,3 +178,7 @@ Curl the URL to test
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
 
+# spark history
+
+* helm repo add stable https://kubernetes-charts.storage.googleapis.com
+* helm install stable/spark-history-server --namespace spark-history-server

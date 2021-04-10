@@ -5,6 +5,11 @@ spec:
     spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
     spark.jars.repositories: "https://packages.confluent.io/maven"
     spark.jars.ivy: "/tmp/ivy"
+    spark.eventLog.enabled : "true"
+    #spark.eventLog.dir: "gs://spark-hs/" # todo, this should be per-organization
+    spark.kubernetes.driver.secrets.history-secrets: "/mnt/secrets"
+    spark.kubernetes.executor.secrets.history-secrets: "/mnt/secrets"
+    spark.hadoop.google.cloud.auth.service.account.json.keyfile: "/mnt/secrets/key.json"
   type: Scala
   mode: cluster
   imagePullPolicy: Always
@@ -19,6 +24,7 @@ spec:
     "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json"
     "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
     "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+    
   restartPolicy:
     type: Never
   driver:

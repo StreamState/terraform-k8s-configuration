@@ -25,6 +25,16 @@ resource "google_storage_bucket" "sparkstorage" {
   force_destroy               = true
   uniform_bucket_level_access = true
 }
+
+# organization specific history server
+resource "google_storage_bucket" "sparkhistory" {
+  project                     = var.project
+  name                        = "streamstate-historyserver-${var.organization}"
+  location                    = "US"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+}
+
 ##################
 # Service accounts in google, to be mapped to kuberenetes secrets
 ##################
@@ -70,6 +80,12 @@ resource "google_service_account" "spark-gcs" {
 #write access to gcs
 resource "google_storage_bucket_iam_member" "sparkadmin" {
   bucket = google_storage_bucket.sparkstorage.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.spark-gcs.email}"
+}
+
+resource "google_storage_bucket_iam_member" "sparkhistoryadmin" {
+  bucket = google_storage_bucket.sparkhistory.name
   role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
@@ -414,9 +430,20 @@ resource "helm_release" "spark" {
     name  = "webhook.enable"
     value = true
   }
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order
+  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
+##################
+# Install Spark History Server
+##################
+resource "helm_release" "spark" {
+  name             = "spark-history-server"
+  namespace        = "spark-history-server"
+  create_namespace = true
+  repository       = "https://kubernetes-charts.storage.googleapis.com"
+  chart            = "spark-history-server"
+  depends_on       = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+}
 
 ##################
 # Install Argo
