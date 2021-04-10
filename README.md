@@ -161,3 +161,23 @@ Curl the URL to test
 * spark-submit --master local[*] --class dhstest.FileSourceWrapper target/scala-2.12/kafka_and_file_connect.jar myapp ./tmp_file 0 Append /tmp
 * sudo docker exec -it $(sudo -S docker ps -q  --filter ancestor=spsbt) /bin/bash
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./tmp_file/mytest.json
+
+
+# prometheus
+
+* helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+* helm repo update
+* kubectl create namespace monitoring
+* helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring
+* helm show values prometheus-community/kube-prometheus-stack
+* kubectl port-forward svc/prometheus-operated 9090:9090
+* kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
+
+Or, possibly better yet:
+
+* helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+* helm repo add kube-state-metrics https://kubernetes.github.io/kube-state-metrics
+* helm repo update
+* helm install prometheus prometheus-community/prometheus
+* kubectl port-forward svc/prometheus-operated 9090:9090
+
