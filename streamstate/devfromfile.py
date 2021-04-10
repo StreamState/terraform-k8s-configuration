@@ -60,7 +60,6 @@ def dev_from_file(
 
 
 if __name__ == "__main__":
-    # app_name = sys.argv[0]
     [app_name, file_locations, max_file_age, checkpoint] = sys.argv
     fields = [
         {"name": "first_name", "type": "string"},

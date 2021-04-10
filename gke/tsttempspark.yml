@@ -1,41 +1,46 @@
 apiVersion: "sparkoperator.k8s.io/v1beta2"
 kind: SparkApplication
+metadata:
+  name: devfromfile
 spec:
   sparkConf:
     spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
     spark.jars.repositories: "https://packages.confluent.io/maven"
     spark.jars.ivy: "/tmp/ivy"
     spark.eventLog.enabled: "true"
-    #spark.eventLog.dir: "gs://spark-hs/" # todo, this should be per-organization
-    spark.kubernetes.driver.secrets.spark-secret: "/mnt/secrets1" #spark-secret is the Secret name as defined when creating a kubernetes secret, generated from spark-gcs
+    spark.eventLog.dir: "gs://streamstate-historyserver-testorg/" # todo, this should be per-organization
+    spark.kubernetes.driver.secrets.spark-secret: "/mnt/secrets1" 
     spark.kubernetes.executor.secrets.spark-secret: "/mnt/secrets1"
     spark.hadoop.google.cloud.auth.service.account.json.keyfile: "/mnt/secrets1/key.json"
-  type: Scala
-  mode: cluster
-  imagePullPolicy: Always
-    
-  # mainClass: sparkwrappers.KafkaSourceWrapper
-  mainApplicationFile: "local:///opt/spark/work-dir/streamstate.jar"
-  sparkVersion: "3.0.1"
   hadoopConf:
-    # "fs.gs.project.id": streamstatetest
-    # "fs.gs.system.bucket": "streamstate-sparkstorage-testorg"  # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
+    "fs.gs.project.id": streamstatetest
+    "fs.gs.system.bucket": "streamstate-sparkstorage-testorg"  # ah, this uses gcs connector...still not sure if I need to directly mount it or if it automatically uses
     "google.cloud.auth.service.account.enable": "true" 
     "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json"
     "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
     "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
-    
+  type: Scala
+  mode: cluster
+  image: us-central1-docker.pkg.dev/streamstatetest/testorg/scalaapp:v0.1.0
+  imagePullPolicy: Always
+  mainClass: sparkwrappers.ReplayHistoryFromFile
+  mainApplicationFile: "local:///opt/spark/work-dir/streamstate.jar"
+  sparkVersion: "3.0.1"
+  arguments:
+    - replaytest
+    - gs://streamstate-sparkstorage-testorg/test/
+    - 2d
+    - /tmp/checkpoint
+    - testorg.testapp_1
+    - cluster1 
   restartPolicy:
     type: Never
   driver:
     coreRequest: 200m
     memory: "512m"
-    serviceAccount: spark # this maps to spark-gcs 
-    metadata:
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/path: "/metrics"
-        prometheus.io/port: "8090"
+    labels:
+      version: 3.0.1
+    serviceAccount: spark
     secrets:
     - name: "spark-secret" # Secret name as defined when creating a kubernetes secret, generated from spark-gcs
       path: "/mnt/secrets"
@@ -48,9 +53,15 @@ spec:
         value: cluster1-dc1-service # todo!  this could possibly change if multiple cassandra racks/nodes/clusters
       - name: CASSANDRA_LOADBALANCER_SERVICE_PORT
         value: "9042"
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8090"
+
   executor:
-    instances: 1
     cores: 1
+    instances: 1
     memory: "512m"
     secrets:
     - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
@@ -59,6 +70,8 @@ spec:
   monitoring: 
     exposeDriverMetrics: true
     exposeExecutorMetrics: true
+    metricsPropertiesFile: /etc/metrics/conf/metrics.properties
     prometheus:
       jmxExporterJar: "/prometheus/jmx_prometheus_javaagent-0.11.0.jar"
+      configFile: /etc/metrics/conf/prometheus.yaml
       port: 8090

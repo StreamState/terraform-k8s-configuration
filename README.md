@@ -109,11 +109,12 @@ The backend for provisioning new jobs
 
 ## python rest app
 
-* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.14.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.14.0
+* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.15.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.15.0
 * [do something here with ingress]
 
 After everything is provisioned, run the following:
+
 
 * curl [ipaddress from ingress]:8000
 * curl [ipaddress from ingress]:8000/database/create  -X POST 
@@ -176,9 +177,3 @@ Curl the URL to test
 * kubectl apply -f prometheustest/service.yml
 * kubectl apply -f prometheustest/pysparkjob.yml
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
-
-
-# spark history
-
-* helm repo add stable https://kubernetes-charts.storage.googleapis.com
-* helm install stable/spark-history-server --namespace spark-history-server

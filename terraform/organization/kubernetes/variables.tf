@@ -28,6 +28,25 @@ variable "registryprefix" {
 variable "namespace" {
   type = string
 }
-variable "cluster_email" {
+
+variable "docker_write_svc_email" {
+  type = string
+}
+variable "docker_write_svc_name" {
+  type = string
+}
+variable "spark_gcs_svc_name" {
+  type = string
+}
+variable "spark_history_svc_email" {
+  type = string
+}
+variable "spark_history_svc_name" {
+  type = string
+}
+variable "org_registry" {
+  type = string
+}
+variable "spark_history_bucket_url" {
   type = string
 }

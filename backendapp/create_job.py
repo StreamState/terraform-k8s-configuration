@@ -20,11 +20,6 @@ def yaml_load(path: str) -> dict:
         return spec
 
 
-files = [
-    "../sparkstreaming/spark-streaming-job-template.yaml",
-]
-
-
 def load_all_ymls(paths: List[str]) -> List[dict]:
     return [yaml_load(ymlFile) for ymlFile in paths]
 
@@ -140,23 +135,3 @@ def create_all_spark_jobs(
     except Exception as e:
         exceptions.append(str(e))
     return exceptions
-
-
-if __name__ == "__main__":
-    config.load_incluster_config()
-    apiclient = ApiClient()
-    [spark_job] = load_all_ymls(files)
-    create_all_spark_jobs(
-        apiclient,
-        # file_persist,
-        spark_job,
-        Job(
-            topics=["topic1"],
-            brokers=["broker1"],
-            namespace="mainspark",
-            cassandra_cluster_name="cluster1",
-            project="streamstatetest",
-            organization="testorg",
-            registry="us-central1-docker.pkg.dev",
-        ),
-    )
