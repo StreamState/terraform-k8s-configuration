@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: example-app
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      sparkoperator.k8s.io/app-name: devfromfile
+  endpoints:
+  - port: web
