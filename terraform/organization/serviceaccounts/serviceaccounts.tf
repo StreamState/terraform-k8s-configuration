@@ -90,6 +90,7 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
 #  member = "serviceAccount:${google_service_account.spark-gcs.email}"
 #}
 
+# this seems WAY too permissive
 resource "google_project_iam_member" "sparkhistoryadmin" {
   project = var.project
   role    = "roles/storage.admin"
