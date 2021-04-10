@@ -173,11 +173,4 @@ Curl the URL to test
 * kubectl port-forward svc/prometheus-operated 9090:9090
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
-Or, possibly better yet:
-
-* helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-* helm repo add kube-state-metrics https://kubernetes.github.io/kube-state-metrics
-* helm repo update
-* helm install prometheus prometheus-community/prometheus
-* kubectl port-forward svc/prometheus-operated 9090:9090
 
