@@ -171,6 +171,10 @@ Curl the URL to test
 * helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring
 * helm show values prometheus-community/kube-prometheus-stack
 * kubectl port-forward svc/prometheus-operated 9090:9090
+* kubectl apply -f prometheustest/prometheus.yml
+* kubectl apply -f prometheustest/servicemonitor.yml
+* kubectl apply -f prometheustest/service.yml
+* kubectl apply -f prometheustest/pysparkjob.yml
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
 
