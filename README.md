@@ -109,8 +109,8 @@ The backend for provisioning new jobs
 
 ## python rest app
 
-* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.15.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.15.0
+* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.16.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.16.0
 * [do something here with ingress]
 
 After everything is provisioned, run the following:

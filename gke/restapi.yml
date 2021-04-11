@@ -16,7 +16,7 @@ spec:
       serviceAccountName: ${launchspark}
       containers:
       - name: managek8s-site
-        image: us-central1-docker.pkg.dev/streamstatetest/streamstatetest/rest:v0.15.0
+        image: us-central1-docker.pkg.dev/streamstatetest/streamstatetest/rest:v0.16.0
         envFrom:
         - secretRef:
             name: ${cassandrasecret} 
