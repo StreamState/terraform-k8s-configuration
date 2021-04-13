@@ -10,14 +10,16 @@ from streamstate.generic_wrapper import (
     set_cassandra,
     write_cassandra,
     write_kafka,
+    write_parquet,
 )
+from streamstate.structs import OutputStruct, FileStruct, CassandraStruct, KafkaStruct
+
 from streamstate.process import Process
 import json
 import os
-from streamstate.structs import OutputStruct, FileStruct, CassandraStruct, KafkaStruct
 
 
-def kafka_source_wrapper(
+def replay_from_file(
     app_name: str,
     schema: List[Tuple[str, dict]],
     output: OutputStruct,
@@ -27,11 +29,12 @@ def kafka_source_wrapper(
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     set_cassandra(cassandra, spark)
-    df = kafka_wrapper(app_name, kafka.brokers, Process.process, schema, spark)
+    df = file_wrapper(app_name, files.max_file_age, Process.process, schema, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
-        write_kafka(batch_df, kafka, output)
+        # todo, uncomment this
+        # write_kafka(batch_df, kafka, output)
         write_cassandra(batch_df, cassandra)
 
     write_wrapper(df, output, dual_write)
@@ -50,6 +53,7 @@ def kafka_source_wrapper(
 #         },
 #     )
 # ]
+
 if __name__ == "__main__":
     [
         app_name,
@@ -59,6 +63,7 @@ if __name__ == "__main__":
         kafka_struct,
         schema,
     ] = sys.argv
+
     output_info = OutputStruct.Schema().load(json.loads(output_struct))
     file_info = FileStruct.Schema().load(json.loads(file_struct))
     raw_cassandra = json.loads(cassandra_struct)
@@ -71,6 +76,9 @@ if __name__ == "__main__":
     raw_cassandra["cassandra_password"] = os.getenv("username", "")
     cassandra_info = CassandraStruct.Schema().load(raw_cassandra)
     kafka_info = KafkaStruct.Schema().load(json.loads(kafka_struct))
-    kafka_source_wrapper(
+    # cassandra_ip = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_HOST", "")
+    # cassandra_port = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_PORT", "")
+
+    replay_from_file(
         app_name, json.loads(schema), output_info, file_info, cassandra_info, kafka_info
     )

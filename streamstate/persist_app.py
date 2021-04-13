@@ -14,19 +14,18 @@ from streamstate.generic_wrapper import (
 )
 from streamstate.process import Process
 import json
+from streamstate.structs import OutputStruct, KafkaStruct
 
 
 def persist_topic(
     app_name: str,
-    brokers: str,
-    output_folder: str,
-    input: Tuple[str, dict],
-    checkpoint: str,
-    mode: str,
+    schema: Tuple[str, dict],
+    kafka: KafkaStruct,
+    output: OutputStruct,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    df = kafka_wrapper(app_name, brokers, lambda dfs: dfs[0], [input], spark)
-    write_wrapper(df, checkpoint, mode, lambda df: write_parquet(df, output_folder))
+    df = kafka_wrapper(app_name, kafka.brokers, lambda dfs: dfs[0], [schema], spark)
+    write_wrapper(df, output, lambda df: write_parquet(df, output.output_name))
 
 
 # examples
@@ -43,7 +42,12 @@ def persist_topic(
 #     )
 # ]
 if __name__ == "__main__":
-    [app_name, brokers, output_folder, checkpoint, mode, schema] = sys.argv
+    [app_name, output_struct, kafka_struct, schema] = sys.argv
+    output_info = OutputStruct.Schema().load(json.loads(output_struct))
+    kafka_info = KafkaStruct.Schema().load(json.loads(kafka_struct))
     persist_topic(
-        app_name, brokers, output_folder, json.loads(schema), checkpoint, mode
+        app_name,
+        json.loads(schema),
+        kafka_info,
+        output_info,
     )

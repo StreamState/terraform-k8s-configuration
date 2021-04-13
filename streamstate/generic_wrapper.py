@@ -7,6 +7,7 @@ import shutil
 from streamstate.utils import map_avro_to_spark_schema
 import os
 import json
+from streamstate.structs import OutputStruct, FileStruct, CassandraStruct, KafkaStruct
 
 
 def process(dfs: List[DataFrame]) -> DataFrame:
@@ -103,16 +104,17 @@ def kafka_wrapper(
 
 
 def set_cassandra(
-    cassandra_ip: str,
-    cassandra_port: str,
-    cassandra_user: str,
-    cassandra_password: str,
+    # cassandra_ip: str,
+    # cassandra_port: str,
+    # cassandra_user: str,
+    # cassandra_password: str,
+    cassandra: CassandraStruct,
     spark: SparkSession,
 ):
-    spark.conf.set("spark.cassandra.connection.host", cassandra_ip)
-    spark.conf.set("spark.cassandra.connection.rpc.port", cassandra_port)
-    spark.conf.set("spark.cassandra.auth.username", cassandra_user)
-    spark.conf.set("spark.cassandra.auth.password", cassandra_password)
+    spark.conf.set("spark.cassandra.connection.host", cassandra.cassandra_ip)
+    spark.conf.set("spark.cassandra.connection.rpc.port", cassandra.cassandra_port)
+    spark.conf.set("spark.cassandra.auth.username", cassandra.cassandra_user)
+    spark.conf.set("spark.cassandra.auth.password", cassandra.cassandra_password)
 
 
 def file_wrapper(
@@ -132,10 +134,10 @@ def file_wrapper(
     return process(dfs)
 
 
-def write_kafka(batch_df: DataFrame, brokers: str, output_topic: str):
-    batch_df.write.format("kafka").option("kafka.bootstrap.servers", brokers).option(
-        "topic", output_topic
-    ).save()
+def write_kafka(batch_df: DataFrame, kafka: KafkaStruct, output: OutputStruct):
+    batch_df.write.format("kafka").option(
+        "kafka.bootstrap.servers", kafka.brokers
+    ).option("topic", output.output_name).save()
 
 
 def write_parquet(batch_df: DataFrame, output_folder: str):
@@ -143,16 +145,11 @@ def write_parquet(batch_df: DataFrame, output_folder: str):
 
 
 # make sure to call set_cassandra before this
-def write_cassandra(
-    batch_df: DataFrame,
-    cassandra_key_space: str,
-    cassandra_table_name: str,
-    cassandra_cluster_name: str,
-):
+def write_cassandra(batch_df: DataFrame, cassandra: CassandraStruct):
     batch_df.write.format("org.apache.spark.sql.cassandra").option(
-        "keyspace", cassandra_key_space
-    ).option("table", cassandra_table_name).option(
-        "cluster", cassandra_cluster_name
+        "keyspace", cassandra.cassandra_key_space
+    ).option("table", cassandra.cassandra_table_name).option(
+        "cluster", cassandra.cassandra_cluster
     ).mode(
         "APPEND"
     ).save()
@@ -170,13 +167,12 @@ def write_console(
 
 def write_wrapper(
     result: DataFrame,
-    checkpoint: str,
-    mode: str,
+    output: OutputStruct,
     write_fn: Callable[[DataFrame], None],
-    processing_time: str = "0",
+    # processing_time: str = "0",
 ):
-    result.writeStream.outputMode(mode).option("truncate", "false").trigger(
-        processingTime=processing_time
-    ).option("checkpointLocation", checkpoint).foreachBatch(
+    result.writeStream.outputMode(output.mode).option("truncate", "false").trigger(
+        processingTime=output.processing_time
+    ).option("checkpointLocation", output.checkpoint_location).foreachBatch(
         lambda df, id: write_fn(df)
     ).start().awaitTermination()
