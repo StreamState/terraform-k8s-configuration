@@ -9,7 +9,8 @@ from pyspark.sql.types import (
     FloatType,
     DataType,
 )
-from typing import List, Dict
+from typing import List, Dict, Tuple, Callable, NamedTuple
+from pyspark.sql import DataFrame
 
 
 def _convert_type(avro_type: str) -> DataType:
@@ -31,3 +32,34 @@ def map_avro_to_spark_schema(fields: List[Dict[str, str]]) -> StructType:
             for field in fields
         ]
     )
+
+
+from abc import ABC, abstractmethod
+
+##from collections import namedtuple
+
+# MyStruct = namedtuple("Process", "field1 field2 field3")
+
+
+# class Process(NamedTuple):
+#    mode: str
+#    schema: List[Tuple[str, dict]]  # topic/location and avro schema
+#    process: Callable[[List[DataFrame]], DataFrame]
+
+
+class ProcessBaseClass(ABC):
+    mode: str
+    schema: List[Tuple[str, dict]]  # topic/location and avro schema
+
+    def __init__(
+        self,
+        mode: str,
+        schema: List[Tuple[str, dict]],
+    ):
+        self.mode = mode
+        self.schema = schema
+
+    @staticmethod
+    @abstractmethod
+    def process(dfs: List[DataFrame]) -> DataFrame:
+        pass
