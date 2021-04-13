@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate.utils import map_avro_to_spark_schema
+from streamstate.utils import map_avro_to_spark_schema, convert_cassandra_dict
 from streamstate.generic_wrapper import (
     file_wrapper,
     write_console,
@@ -67,14 +67,11 @@ if __name__ == "__main__":
     output_info = OutputStruct.Schema().load(json.loads(output_struct))
     file_info = FileStruct.Schema().load(json.loads(file_struct))
     raw_cassandra = json.loads(cassandra_struct)
-    [cassandra_key_space, cassandra_table_name] = raw_cassandra[
-        "cassandra_table"
-    ].split(".")
-    raw_cassandra["cassandra_key_space"] = cassandra_key_space
-    raw_cassandra["cassandra_table_name"] = cassandra_table_name
-    raw_cassandra["cassandra_user"] = os.getenv("password", "")
-    raw_cassandra["cassandra_password"] = os.getenv("username", "")
-    cassandra_info = CassandraStruct.Schema().load(raw_cassandra)
+    cassandra_info = CassandraStruct.Schema().load(
+        convert_cassandra_dict(
+            raw_cassandra, os.getenv("username", ""), os.getenv("password", "")
+        )
+    )
     kafka_info = KafkaStruct.Schema().load(json.loads(kafka_struct))
     # cassandra_ip = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_HOST", "")
     # cassandra_port = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_PORT", "")

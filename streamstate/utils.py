@@ -34,6 +34,19 @@ def map_avro_to_spark_schema(fields: List[Dict[str, str]]) -> StructType:
     )
 
 
+def convert_cassandra_dict(
+    raw_cassandra: dict, cassandra_user: str, cassandra_password: str
+) -> dict:
+    [cassandra_key_space, cassandra_table_name] = raw_cassandra[
+        "cassandra_table"
+    ].split(".")
+    raw_cassandra["cassandra_key_space"] = cassandra_key_space
+    raw_cassandra["cassandra_table_name"] = cassandra_table_name
+    raw_cassandra["cassandra_user"] = cassandra_user
+    raw_cassandra["cassandra_password"] = cassandra_password
+    return raw_cassandra
+
+
 from abc import ABC, abstractmethod
 
 ##from collections import namedtuple

@@ -13,7 +13,6 @@ spec:
   type: Scala
   mode: cluster
   imagePullPolicy: Always
-    
   # mainClass: sparkwrappers.KafkaSourceWrapper
   mainApplicationFile: "local:///opt/spark/work-dir/streamstate.jar"
   sparkVersion: "3.0.1"
@@ -52,7 +51,7 @@ spec:
       - secretRef:
           name: "cassandra-secret" # TODO pass in from cassandra_secret credentials
     env:
-      - name: CASSANDRA_LOADBALANCER_SERVICE_HOST
+      - name: CASSANDRA_LOADBALANCER_SERVICE_HOST # TODO! pass this in as part of json
         value: cluster1-dc1-service # todo!  this could possibly change if multiple cassandra racks/nodes/clusters
       - name: CASSANDRA_LOADBALANCER_SERVICE_PORT
         value: "9042"
