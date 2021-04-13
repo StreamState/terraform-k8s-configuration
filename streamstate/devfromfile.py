@@ -1,38 +1,17 @@
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.types import (
-    IntegerType,
-    StringType,
-    StructField,
-    StructType,
-    BooleanType,
-    LongType,
-    DoubleType,
-    FloatType,
-    DataType,
-)
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import sys
-
-
-def _convert_type(avro_type: str) -> DataType:
-    avro_type_conversion = {
-        "boolean": BooleanType(),
-        "int": IntegerType(),
-        "long": LongType(),
-        "float": FloatType(),
-        "double": DoubleType(),
-        "string": StringType(),
-    }
-    return avro_type_conversion[avro_type]
-
-
-def map_avro_to_spark_schema(fields: List[Dict[str, str]]) -> StructType:
-    return StructType(
-        [
-            StructField(field["name"], _convert_type(field["type"]), True)
-            for field in fields
-        ]
-    )
+from streamstate.utils import map_avro_to_spark_schema
+from streamstate.generic_wrapper import (
+    file_wrapper,
+    write_console,
+    kafka_wrapper,
+    write_wrapper,
+    set_cassandra,
+    write_cassandra,
+    write_kafka,
+    write_parquet,
+)
 
 
 def process(dfs: List[DataFrame]) -> DataFrame:
@@ -41,29 +20,67 @@ def process(dfs: List[DataFrame]) -> DataFrame:
 
 def dev_from_file(
     app_name: str,
-    file_locations: str,
     max_file_age: str,
     checkpoint: str,
-    fields: List[Dict[str, str]],  # todo...need schema per file source
+    inputs: List[Tuple[str, dict]],
+    mode: str,
 ):
-    files = file_locations.split(",")
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    schema = map_avro_to_spark_schema(fields)
-    dfs = [
-        spark.readStream.schema(schema).option("maxFileAge", max_file_age).json(fl)
-        for fl in files
-    ]
-    result = process(dfs)
-    result.writeStream.format("console").outputMode("append").option(
-        "truncate", "false"
-    ).option("checkpointLocation", checkpoint).start().awaitTermination()
+    df = file_wrapper(app_name, max_file_age, process, inputs, spark)
+    write_console(df, checkpoint, mode)
+
+
+def kafka_source_wrapper(
+    app_name: str,
+    brokers: List[str],
+    output_topic: str,
+    inputs: List[Tuple[str, dict]],
+    checkpoint: str,
+    mode: str,
+    cassandra_ip: str,  # TODO, consider wrapping these in an object/class/struct
+    cassandra_port: str,
+    cassandra_user: str,
+    cassandra_password: str,
+    cassandra_key_space: str,
+    cassandra_table_name: str,
+    cassandra_cluster_name: str,
+):
+    spark = SparkSession.builder.appName(app_name).getOrCreate()
+    set_cassandra(
+        cassandra_ip, cassandra_port, cassandra_user, cassandra_password, spark
+    )
+    broker_str = ",".join(brokers)
+    df = kafka_wrapper(app_name, broker_str, process, inputs, spark)
+
+    def dual_write(batch_df: DataFrame):
+        batch_df.persist()
+        write_kafka(batch_df, broker_str, output_topic)
+        write_cassandra(
+            batch_df, cassandra_key_space, cassandra_table_name, cassandra_cluster_name
+        )
+
+    write_wrapper(df, checkpoint, mode, dual_write)
+
+
+def persist_topic(
+    app_name: str,
+    brokers: List[str],
+    output_folder: str,
+    input: Tuple[str, dict],
+    checkpoint: str,
+    mode: str,
+):
+    spark = SparkSession.builder.appName(app_name).getOrCreate()
+    broker_str = ",".join(brokers)
+    df = kafka_wrapper(app_name, broker_str, lambda dfs: dfs[0], [input], spark)
+    write_wrapper(df, checkpoint, mode, lambda df: write_parquet(df, output_folder))
 
 
 if __name__ == "__main__":
-    # app_name = sys.argv[0]
-    [app_name, file_locations, max_file_age, checkpoint] = sys.argv
+    [app_name, file_location, max_file_age, checkpoint] = sys.argv
     fields = [
         {"name": "first_name", "type": "string"},
         {"name": "last_name", "type": "string"},
     ]
-    dev_from_file(app_name, file_locations, max_file_age, checkpoint, fields)
+    inputs = [(file_location, {"fields": fields})]
+    dev_from_file(app_name, max_file_age, checkpoint, inputs)

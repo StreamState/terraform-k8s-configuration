@@ -65,8 +65,10 @@ def spark_persist_job_spec(
         "namespace": namespace,
     }
     bucket = f"streamstate-sparkstorage-{organization}"
+    history_bucket = f"streamstate-historyserver-{organization}"
     default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
     default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
+    default_body["spec"]["sparkConf"]["spark.eventLog.dir"] = f"gs://{history_bucket}/"
     default_body["spec"]["image"] = image
     default_body["spec"]["mainClass"] = "PersistKafkaSourceWrapper"
     default_body["spec"]["arguments"] = [
@@ -102,8 +104,10 @@ def spark_replay_file_spec(
         "namespace": namespace,
     }
     bucket = f"streamstate-sparkstorage-{organization}"
+    history_bucket = f"streamstate-historyserver-{organization}"
     default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
     default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
+    default_body["spec"]["sparkConf"]["spark.eventLog.dir"] = f"gs://{history_bucket}/"
     default_body["spec"]["image"] = image
     default_body["spec"]["mainClass"] = "sparkwrappers.ReplayHistoryFromFile"
     default_body["spec"]["arguments"] = [
@@ -136,8 +140,10 @@ def spark_state_job_spec(
     name = "-".join(topics)
     default_body["metadata"] = {"name": f"{name}-application", "namespace": namespace}
     bucket = f"streamstate-sparkstorage-{organization}"
+    history_bucket = f"streamstate-historyserver-{organization}"
     default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
     default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
+    default_body["spec"]["sparkConf"]["spark.eventLog.dir"] = f"gs://{history_bucket}/"
     default_body["spec"]["image"] = image
     default_body["spec"]["mainClass"] = "sparkwrappers.KafkaSourceWrapper"
     default_body["spec"]["arguments"] = [

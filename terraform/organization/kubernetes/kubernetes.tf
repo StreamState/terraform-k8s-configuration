@@ -8,81 +8,6 @@ terraform {
   }
 }
 
-# organization specific artifact repo
-resource "google_artifact_registry_repository" "orgrepo" {
-  provider      = google-beta
-  project       = var.project
-  location      = "us-central1"
-  repository_id = var.organization
-  description   = "organization specific docker repo"
-  format        = "DOCKER"
-}
-# organization specific data bucket
-resource "google_storage_bucket" "sparkstorage" {
-  project                     = var.project
-  name                        = "streamstate-sparkstorage-${var.organization}"
-  location                    = "US"
-  force_destroy               = true
-  uniform_bucket_level_access = true
-}
-##################
-# Service accounts in google, to be mapped to kuberenetes secrets
-##################
-
-
-# it would be nice for this to be per app, but may not be feasible 
-# since may not be able to create service accounts per job.
-# Remember...I want all gcp resources defined through TF
-# this is the service acccount for spark jobs and 
-# can write to spark storage
-
-resource "google_service_account" "docker-write" {
-  project      = var.project
-  account_id   = "docker-write-${var.organization}"
-  display_name = "docker-write-${var.organization}"
-}
-
-#write access to organization artifactory
-resource "google_artifact_registry_repository_iam_member" "providereadwrite" {
-  provider   = google-beta
-  project    = var.project
-  location   = google_artifact_registry_repository.orgrepo.location
-  repository = google_artifact_registry_repository.orgrepo.name
-  role       = "roles/artifactregistry.writer"
-  member     = "serviceAccount:${google_service_account.docker-write.email}"
-}
-# read access to project wide artifactory
-resource "google_artifact_registry_repository_iam_member" "read" {
-  provider   = google-beta
-  project    = var.project
-  location   = "us-central1"
-  repository = var.project # see ../../global/global.tf#  
-  role       = "roles/artifactregistry.reader"
-  member     = "serviceAccount:${google_service_account.docker-write.email}"
-}
-
-resource "google_service_account" "spark-gcs" {
-  project      = var.project
-  account_id   = "spark-gcs-${var.organization}"
-  display_name = "Spark Service account ${var.organization}"
-}
-
-#write access to gcs
-resource "google_storage_bucket_iam_member" "sparkadmin" {
-  bucket = google_storage_bucket.sparkstorage.name
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.spark-gcs.email}"
-}
-
-resource "google_artifact_registry_repository_iam_member" "clusterread" {
-  provider   = google-beta
-  project    = var.project
-  location   = google_artifact_registry_repository.orgrepo.location
-  repository = google_artifact_registry_repository.orgrepo.name
-  role       = "roles/artifactregistry.reader"
-  member     = "serviceAccount:${var.cluster_email}"
-}
-
 
 ##################
 # Set up connection to GKE
@@ -143,6 +68,12 @@ resource "kubernetes_namespace" "argoevents" {
   depends_on = [local_file.kubeconfig]
 }
 
+resource "kubernetes_namespace" "sparkhistory" {
+  metadata {
+    name = "spark-history-server"
+  }
+  depends_on = [local_file.kubeconfig]
+}
 ##################
 # Map GCP service accounts to kubernetes service accounts
 ##################
@@ -155,7 +86,7 @@ resource "kubernetes_service_account" "docker-cfg-write-events" {
     name      = "docker-cfg-write"
     namespace = kubernetes_namespace.argoevents.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = google_service_account.docker-write.email
+      "iam.gke.io/gcp-service-account" = var.docker_write_svc_email
     }
   }
   depends_on = [kubernetes_namespace.argoevents]
@@ -164,7 +95,7 @@ resource "kubernetes_service_account" "docker-cfg-write-events" {
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
 # link service account and kubernetes service account
 resource "google_service_account_iam_binding" "bind_docker_write_argo" {
-  service_account_id = google_service_account.docker-write.name
+  service_account_id = var.docker_write_svc_name
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
@@ -174,6 +105,35 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
     kubernetes_service_account.docker-cfg-write-events
   ]
 }
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
+resource "kubernetes_service_account" "sparkhistory" {
+  metadata {
+    name      = "sparkhistory"
+    namespace = kubernetes_namespace.sparkhistory.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.spark_history_svc_email
+    }
+  }
+  depends_on = [kubernetes_namespace.sparkhistory]
+}
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "sparkhistory" {
+  service_account_id = var.spark_history_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.sparkhistory.metadata.0.name}/${kubernetes_service_account.sparkhistory.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_service_account.sparkhistory
+  ]
+}
+
+
 
 # use this for running steps in argo
 resource "kubernetes_role" "argorules" {
@@ -223,7 +183,7 @@ resource "kubernetes_service_account" "spark" {
 
 ## need to create explicit account for spark rather than workload identity
 resource "google_service_account_key" "sparkkey" {
-  service_account_id = google_service_account.spark-gcs.name
+  service_account_id = var.spark_gcs_svc_name
 }
 
 resource "kubernetes_secret" "spark-gcs-to-kubernetes" {
@@ -414,9 +374,61 @@ resource "helm_release" "spark" {
     name  = "webhook.enable"
     value = true
   }
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order
+  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
+##################
+# Install Spark History Server
+##################
+resource "helm_release" "sparkhistory" { # todo, override "loadbalancer" 
+  name      = "spark-history-server"
+  namespace = kubernetes_namespace.sparkhistory.metadata.0.name
+  #create_namespace = true
+  repository = "https://charts.helm.sh/stable"
+  chart      = "spark-history-server"
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+  set {
+    name  = "serviceAccount.name"
+    value = kubernetes_service_account.sparkhistory.metadata.0.name
+  }
+  set {
+    name  = "gcs.logDirectory"
+    value = var.spark_history_bucket_url
+  }
+  set {
+    name  = "gcs.enableGCS" # I added permission to the spark history bucket to the kubernetes cluster service account
+    value = "true"
+  }
+  set {
+    name  = "gcs.enableIAM"
+    value = "true"
+  }
+  set {
+    name  = "pvc.enablePVC"
+    value = "false"
+  }
+  set {
+    name  = "nfs.enableExampleNFS"
+    value = "false"
+  }
+  set {
+    name = "image.repository"
+    #value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkbase"
+    value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkhistory"
+  }
+  set {
+    name  = "image.tag"
+    value = "v0.2.0"
+  }
+  set {
+    name  = "image.pullPolicy"
+    value = "IfNotPresent"
+  }
+  depends_on = [kubernetes_service_account.sparkhistory]
+}
 
 ##################
 # Install Argo
@@ -459,7 +471,7 @@ data "kubectl_file_documents" "argoeventworkflow" {
   content = templatefile("../../argo/eventworkflow.yml", {
     project           = var.project,
     dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
-    registry          = google_artifact_registry_repository.orgrepo.name
+    registry          = var.org_registry
     registryprefix    = var.registryprefix
     runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
   })

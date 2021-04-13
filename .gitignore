@@ -14,3 +14,7 @@ account_id
 key.json
 kubeconfig
 .mypy_cache
+.eggs
+*.egg-info
+build
+dist

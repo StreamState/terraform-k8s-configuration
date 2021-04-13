@@ -47,18 +47,29 @@ module "gke-cluster" {
   region       = "us-central1"
 
 }
-
+module "serviceaccounts" {
+  source        = "./serviceaccounts"
+  organization  = var.organization
+  project       = var.project
+  cluster_email = module.gke-cluster.cluster_email
+}
 module "kubernetes-config" {
-  source           = "./kubernetes"
-  cluster_name     = module.gke-cluster.cluster_name
-  cluster_id       = module.gke-cluster.cluster_id # creates dependency on cluster creation
-  cluster_endpoint = module.gke-cluster.cluster_endpoint
-  cluster_ca_cert  = module.gke-cluster.cluster_ca_cert
-  organization     = var.organization
-  project          = var.project
-  registryprefix   = var.registryprefix
-  namespace        = var.namespace
-  cluster_email    = module.gke-cluster.cluster_email
+  source                   = "./kubernetes"
+  cluster_name             = module.gke-cluster.cluster_name
+  cluster_id               = module.gke-cluster.cluster_id # creates dependency on cluster creation
+  cluster_endpoint         = module.gke-cluster.cluster_endpoint
+  cluster_ca_cert          = module.gke-cluster.cluster_ca_cert
+  organization             = var.organization
+  project                  = var.project
+  registryprefix           = var.registryprefix
+  namespace                = var.namespace
+  docker_write_svc_email   = module.serviceaccounts.docker_write_svc_email
+  docker_write_svc_name    = module.serviceaccounts.docker_write_svc_name
+  spark_gcs_svc_name       = module.serviceaccounts.spark_gcs_svc_name
+  spark_history_svc_email  = module.serviceaccounts.spark_history_svc_email
+  spark_history_svc_name   = module.serviceaccounts.spark_history_svc_name
+  org_registry             = module.serviceaccounts.org_registry
+  spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
 }
 
 
