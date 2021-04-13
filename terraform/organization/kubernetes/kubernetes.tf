@@ -414,18 +414,19 @@ resource "helm_release" "sparkhistory" { # todo, override "loadbalancer"
     name  = "nfs.enableExampleNFS"
     value = "false"
   }
-  #set {
-  #  name  = "image.repository"
-  #  value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkbase"
-  #}
-  #set {
-  #  name  = "image.tag"
-  #  value = "v0.1.0"
-  #}
-  #set {
-  #  name  = "image.pullPolicy"
-  #  value = "IfNotPresent"
-  #}
+  set {
+    name = "image.repository"
+    #value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkbase"
+    value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkhistory"
+  }
+  set {
+    name  = "image.tag"
+    value = "v0.2.0"
+  }
+  set {
+    name  = "image.pullPolicy"
+    value = "IfNotPresent"
+  }
   depends_on = [kubernetes_service_account.sparkhistory]
 }
 

@@ -67,6 +67,14 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 * sudo docker build . -f ./argo/sparkbase.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0 
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0
 
+
+# setup spark history server
+
+* sudo docker build . -f ./spark-history/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory:v0.2.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory:v0.2.0
+
+Unfortunately, this requires root access, but just for spark history which has very minimal permissions
+
 # argo helps
 
 To find webui url:
@@ -88,6 +96,7 @@ To find webui url:
 
 * kubectl apply -f gke/replay_from_file.yml
 * echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./mytest.json
+
 
 You may have to create a subfolder first (eg, /test)
 
@@ -114,6 +123,12 @@ The backend for provisioning new jobs
 * [do something here with ingress]
 
 After everything is provisioned, run the following:
+34.68.82.248
+curl 34.68.82.248:8000/database/create  -X POST 
+export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"string"}]}'
+curl 34.68.82.248:8000/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"primary_keys\":[\"last_name\"] }"
+
+curl 34.68.82.248:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
 
 
 * curl [ipaddress from ingress]:8000
@@ -177,3 +192,8 @@ Curl the URL to test
 * kubectl apply -f prometheustest/service.yml
 * kubectl apply -f prometheustest/pysparkjob.yml
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
+
+# python based
+
+* pip3 install 'streamstate[test]'
+* python3 setup.py test

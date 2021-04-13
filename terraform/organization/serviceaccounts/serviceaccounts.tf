@@ -84,17 +84,10 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
-#resource "google_storage_bucket_iam_member" "sparkhistoryadmin" {
-#  bucket = google_storage_bucket.sparkhistory.name
-#  role   = "roles/storage.admin"
-#  member = "serviceAccount:${google_service_account.spark-gcs.email}"
-#}
-
-# this seems WAY too permissive
-resource "google_project_iam_member" "sparkhistoryadmin" {
-  project = var.project
-  role    = "roles/storage.admin"
-  member  = "serviceAccount:${google_service_account.spark-gcs.email}"
+resource "google_storage_bucket_iam_member" "sparkhistoryadmin" {
+  bucket = google_storage_bucket.sparkhistory.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
 # artifact read access to cluster service account to read docker containers
@@ -112,14 +105,15 @@ resource "google_project_iam_custom_role" "readbucketrole" {
   role_id     = "readbucket"
   title       = "read from bucket"
   description = "Provides minimal access to read from bucket"
-  permissions = ["storage.buckets.get", "storage.objects.list"]
-  project     = var.project
+  permissions = [
+    "storage.buckets.get", "storage.objects.list", "storage.objects.get"
+  ]
+  project = var.project
 }
 
 
 resource "google_storage_bucket_iam_member" "sparkhistoryread" {
   bucket = google_storage_bucket.sparkhistory.name
-  #role   = "roles/storage.objectViewer"
   role   = "projects/${var.project}/roles/${google_project_iam_custom_role.readbucketrole.role_id}"
   member = "serviceAccount:${google_service_account.spark-history.email}"
 }

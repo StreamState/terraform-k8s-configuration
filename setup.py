@@ -11,5 +11,5 @@ setup(
     packages=find_packages(),
     long_description=open("README.md").read(),
     setup_requires=["pytest-runner"],
-    tests_require=["pytest"],
+    # tests_require=["pytest"],
 )
