@@ -11,15 +11,24 @@ from streamstate.generic_wrapper import (
     write_cassandra,
     write_kafka,
 )
-from streamstate.process import Process
+
+## how to add this at real time??
+from streamstate.process import process
 import json
 import os
-from streamstate.structs import OutputStruct, FileStruct, CassandraStruct, KafkaStruct
+from streamstate.structs import (
+    OutputStruct,
+    FileStruct,
+    CassandraStruct,
+    KafkaStruct,
+    InputStruct,
+)
+import marshmallow_dataclass
 
 
 def kafka_source_wrapper(
     app_name: str,
-    schema: List[Tuple[str, dict]],
+    input: List[InputStruct],
     output: OutputStruct,
     files: FileStruct,
     cassandra: CassandraStruct,
@@ -27,7 +36,7 @@ def kafka_source_wrapper(
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     set_cassandra(cassandra, spark)
-    df = kafka_wrapper(app_name, kafka.brokers, Process.process, schema, spark)
+    df = kafka_wrapper(app_name, kafka.brokers, process, input, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
@@ -57,17 +66,27 @@ if __name__ == "__main__":
         file_struct,
         cassandra_struct,
         kafka_struct,
-        schema,
+        input_struct,
     ] = sys.argv
-    output_info = OutputStruct.Schema().load(json.loads(output_struct))
-    file_info = FileStruct.Schema().load(json.loads(file_struct))
+    output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
+    output_info = output_schema.load(json.loads(output_struct))
+    file_schema = marshmallow_dataclass.class_schema(FileStruct)()
+    file_info = file_schema.load(json.loads(file_struct))
     raw_cassandra = json.loads(cassandra_struct)
-    cassandra_info = CassandraStruct.Schema().load(
+    cassandra_schema = marshmallow_dataclass.class_schema(CassandraStruct)()
+    cassandra_info = cassandra_schema.load(
         convert_cassandra_dict(
             raw_cassandra, os.getenv("username", ""), os.getenv("password", "")
         )
     )
-    kafka_info = KafkaStruct.Schema().load(json.loads(kafka_struct))
+    kafka_info = marshmallow_dataclass.class_schema(KafkaStruct)().load(
+        json.loads(kafka_struct)
+    )
+
+    input_schema = marshmallow_dataclass.class_schema(InputStruct)()
+
+    input_info = [input_schema.load(v) for v in json.loads(input_struct)]
+
     kafka_source_wrapper(
-        app_name, json.loads(schema), output_info, file_info, cassandra_info, kafka_info
+        app_name, input_info, output_info, file_info, cassandra_info, kafka_info
     )

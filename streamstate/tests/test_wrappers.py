@@ -1,4 +1,5 @@
-from streamstate.generic_wrapper import kafka_wrapper, file_wrapper, helper_for_file
+from streamstate.generic_wrapper import kafka_wrapper, file_wrapper
+from streamstate.run_test import helper_for_file
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 import os
@@ -6,6 +7,7 @@ import json
 import shutil
 from typing import List, Dict, Tuple, Callable
 import pyspark.sql.functions as F
+from streamstate.structs import InputStruct, SchemaStruct
 
 # def helper_for_testing(process: Callable[[DataFrame], None], inputs: List[dict], output_mode:str):
 #    inputs.
@@ -24,10 +26,10 @@ def test_helper_for_file_succeeds(spark: SparkSession):
         "2d",
         lambda dfs: dfs[0],
         [
-            (
-                "topic1",
-                [{"field1": "somevalue"}],
-                {"fields": [{"name": "field1", "type": "string"}]},
+            InputStruct(
+                topic="topic1",
+                schema=SchemaStruct(fields=[{"name": "field1", "type": "string"}]),
+                sample=[{"field1": "somevalue"}],
             )
         ],
         spark,
@@ -66,31 +68,31 @@ def test_helper_for_file_succeeds_multiple_topics_and_rows(spark: SparkSession):
         "2d",
         process,
         [
-            (
-                "topic1",
-                [
-                    {"field1": "somevalue", "value1": "hi1"},
-                    {"field1": "somevalue1", "value1": "hi2"},
-                ],
-                {
-                    "fields": [
+            InputStruct(
+                topic="topic1",
+                schema=SchemaStruct(
+                    fields=[
                         {"name": "field1", "type": "string"},
                         {"name": "value1", "type": "string"},
                     ]
-                },
-            ),
-            (
-                "topic2",
-                [
-                    {"field1id": "somevalue", "value2": "goodbye1"},
-                    {"field1id": "somevalue1", "value2": "goodbye2"},
+                ),
+                sample=[
+                    {"field1": "somevalue", "value1": "hi1"},
+                    {"field1": "somevalue1", "value1": "hi2"},
                 ],
-                {
-                    "fields": [
+            ),
+            InputStruct(
+                topic="topic2",
+                schema=SchemaStruct(
+                    fields=[
                         {"name": "field1id", "type": "string"},
                         {"name": "value2", "type": "string"},
                     ]
-                },
+                ),
+                sample=[
+                    {"field1id": "somevalue", "value2": "goodbye1"},
+                    {"field1id": "somevalue1", "value2": "goodbye2"},
+                ],
             ),
         ],
         spark,
@@ -108,14 +110,14 @@ def test_helper_for_file_fails(spark: SparkSession):
             "2d",
             lambda dfs: dfs[0],
             [
-                (
-                    "topic1",
-                    [{"field1": "somevalue"}],
-                    {"fields": [{"name": "field1", "type": "string"}]},
+                InputStruct(
+                    topic="topic1",
+                    schema=SchemaStruct(fields=[{"name": "field1", "type": "string"}]),
+                    sample=[{"field1": "somevalue1"}],
                 )
             ],
             spark,
-            [{"field1": "somevalue2"}],  # wrong value
+            [{"field1": "somevalue"}],
         )
 
 
@@ -127,31 +129,32 @@ def test_file_wrapper(spark: SparkSession):
     except:
         print("folder doesn't exist, creating")
 
-    os.mkdir(file_dir)
     app_name = "mytest"
+    os.mkdir(app_name)
+    os.mkdir(os.path.join(app_name, file_dir))
+
+    df = file_wrapper(
+        app_name,
+        "2d",
+        lambda dfs: dfs[0],
+        [
+            InputStruct(
+                topic=file_dir,
+                schema=SchemaStruct(fields=[{"name": "field1", "type": "string"}]),
+            )
+        ],
+        spark,
+    )
+
+    file_name = "localfile.json"
+
+    data = {"field1": "somevalue"}
+    file_path = os.path.join(app_name, file_dir, file_name)
+    with open(file_path, mode="w") as test_file:
+        json.dump(data, test_file)
+
+    q = df.writeStream.format("memory").queryName(app_name).outputMode("append").start()
     try:
-        df = file_wrapper(
-            app_name,
-            "2d",
-            lambda dfs: dfs[0],
-            [(file_dir, {"fields": [{"name": "field1", "type": "string"}]})],
-            spark,
-        )
-
-        file_name = "localfile.json"
-
-        data = {"field1": "somevalue"}
-        file_path = os.path.join(file_dir, file_name)
-        with open(file_path, mode="w") as test_file:
-            json.dump(data, test_file)
-
-        q = (
-            df.writeStream.format("memory")
-            .queryName(app_name)
-            .outputMode("append")
-            .start()
-        )
-
         assert q.isActive
         q.processAllAvailable()
         df = spark.sql(f"select * from {app_name}")
@@ -159,4 +162,4 @@ def test_file_wrapper(spark: SparkSession):
         assert result[0][0] == "somevalue"
     finally:
         q.stop()
-        shutil.rmtree(file_dir)
+        shutil.rmtree(app_name)

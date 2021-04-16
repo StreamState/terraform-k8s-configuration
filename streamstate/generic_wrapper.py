@@ -4,110 +4,46 @@ import pyspark.sql.functions as F
 from typing import List, Dict, Tuple, Callable
 import sys
 import shutil
-from streamstate.utils import map_avro_to_spark_schema
-import os
+from streamstate.utils import map_avro_to_spark_schema, get_folder_location
 import json
-from streamstate.structs import OutputStruct, FileStruct, CassandraStruct, KafkaStruct
+from streamstate.structs import (
+    OutputStruct,
+    FileStruct,
+    CassandraStruct,
+    KafkaStruct,
+    InputStruct,
+)
 
 
 def process(dfs: List[DataFrame]) -> DataFrame:
     return dfs[0].select("first_name", "last_name")
 
 
-def helper_for_file(
-    app_name: str,
-    max_file_age: str,
-    process: Callable[[List[DataFrame]], DataFrame],
-    inputs: List[Tuple[str, List[dict], dict]],
-    spark: SparkSession,
-    expecteds: List[dict],
-) -> StreamingQuery:
-    """
-    This will be used for unit testing developer code
-    Major inputs:
-
-    process is the logic for manipulating streaming dataframes
-    inputs is a list of "topic" names, example records from topic, and schema for topic
-    expecteds is a list of expected output
-    """
-    file_dir = app_name
-    try:
-        shutil.rmtree(file_dir)
-        print("folder exists, deleting")
-    except:
-        print("folder doesn't exist, creating")
-    try:
-        os.mkdir(file_dir)
-        for (folder, _, _) in inputs:
-            os.mkdir(os.path.join(file_dir, folder))
-
-        df = file_wrapper(
-            app_name,
-            max_file_age,
-            process,
-            [
-                (os.path.join(file_dir, folder), schema)
-                for (folder, _, schema) in inputs
-            ],
-            spark,
-        )
-        file_name = "localfile.json"
-
-        for (folder, data, _) in inputs:
-            file_path = os.path.join(file_dir, folder, file_name)
-            with open(file_path, mode="w") as test_file:
-                json.dump(data, test_file)
-
-        q = (
-            df.writeStream.format("memory")
-            .queryName(app_name)
-            .outputMode("append")
-            .start()
-        )
-
-        assert q.isActive
-        q.processAllAvailable()
-        df = spark.sql(f"select * from {app_name}")
-        result = df.collect()
-        assert len(result) == len(expecteds)
-        for row in result:
-            dict_row = row.asDict()
-            print(dict_row)
-            assert dict_row in expecteds, f"{dict_row} is not in {expecteds}"
-    finally:
-        q.stop()
-        shutil.rmtree(file_dir)
-
-
 def kafka_wrapper(
     app_name: str,
     brokers: str,
     process: Callable[[List[DataFrame]], DataFrame],
-    inputs: List[Tuple[str, dict]],
+    inputs: List[InputStruct],
     spark: SparkSession,
 ) -> DataFrame:
     dfs = [
         spark.readStream.format("kafka")
         .option("kafka.bootstrap.servers", brokers)
-        .option("subscribe", topic)
+        .option("subscribe", input.topic)
         .load()
         .selectExpr("CAST(value AS STRING) as json")
         .select(
             F.from_json(
-                F.col("json"), schema=map_avro_to_spark_schema(schema["fields"])
+                F.col("json"), schema=map_avro_to_spark_schema(input.schema.fields)
             ).alias("data")
         )
         .select("data.*")
-        for (topic, schema) in inputs
+        for input in inputs
     ]
     return process(dfs)
 
 
 def set_cassandra(
-    # cassandra_ip: str,
-    # cassandra_port: str,
-    # cassandra_user: str,
-    # cassandra_password: str,
     cassandra: CassandraStruct,
     spark: SparkSession,
 ):
@@ -121,15 +57,14 @@ def file_wrapper(
     app_name: str,
     max_file_age: str,
     process: Callable[[List[DataFrame]], DataFrame],
-    inputs: List[Tuple[str, dict]],
+    inputs: List[InputStruct],
     spark: SparkSession,
 ) -> DataFrame:
-    # spark = SparkSession.builder.appName(app_name).getOrCreate()
     dfs = [
-        spark.readStream.schema(map_avro_to_spark_schema(schema["fields"]))
+        spark.readStream.schema(map_avro_to_spark_schema(input.schema.fields))
         .option("maxFileAge", max_file_age)
-        .json(location)
-        for (location, schema) in inputs
+        .json(get_folder_location(app_name, input.topic))
+        for input in inputs
     ]
     return process(dfs)
 

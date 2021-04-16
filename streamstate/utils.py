@@ -11,6 +11,11 @@ from pyspark.sql.types import (
 )
 from typing import List, Dict, Tuple, Callable, NamedTuple
 from pyspark.sql import DataFrame
+import os
+
+
+def get_folder_location(app_name: str, topic: str) -> str:
+    return os.path.join(app_name, topic)
 
 
 def _convert_type(avro_type: str) -> DataType:
@@ -45,34 +50,3 @@ def convert_cassandra_dict(
     raw_cassandra["cassandra_user"] = cassandra_user
     raw_cassandra["cassandra_password"] = cassandra_password
     return raw_cassandra
-
-
-from abc import ABC, abstractmethod
-
-##from collections import namedtuple
-
-# MyStruct = namedtuple("Process", "field1 field2 field3")
-
-
-# class Process(NamedTuple):
-#    mode: str
-#    schema: List[Tuple[str, dict]]  # topic/location and avro schema
-#    process: Callable[[List[DataFrame]], DataFrame]
-
-
-class ProcessBaseClass(ABC):
-    mode: str
-    schema: List[Tuple[str, dict]]  # topic/location and avro schema
-
-    def __init__(
-        self,
-        mode: str,
-        schema: List[Tuple[str, dict]],
-    ):
-        self.mode = mode
-        self.schema = schema
-
-    @staticmethod
-    @abstractmethod
-    def process(dfs: List[DataFrame]) -> DataFrame:
-        pass

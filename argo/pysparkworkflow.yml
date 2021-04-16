@@ -6,7 +6,7 @@ spec:
   template:
     serviceAccountName: argo-events-sa 
   dependencies:
-    - name: createsparkcontainerdeployment
+    - name: deploypysparkjob
       eventSourceName: webhook
       eventName: runcontainer
   triggers:
@@ -22,15 +22,19 @@ spec:
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
-                generateName: spark-streaming-ci-  # Name of this Workflow
+                generateName: streamstatepy-  # Name of this Workflow
               spec:
-                serviceAccountName: ${runserviceaccount}  ## argoevents-runsa
+                serviceAccountName: argo-events-sa #${runserviceaccount}  ## argoevents-runsa
                 arguments:
                   parameters:
-                    - name: scalacode
+                    - name: pythoncode
+                      value: hello world # this should be overridden
+                    - name: inputs
+                      value: hello world # this should be overridden
+                    - name: assertions
                       value: hello world # this should be overridden
                 entrypoint: main     
-                volumeClaimTemplates:
+                volumeClaimTemplates: # do I need this?
                 - metadata:
                     name: work
                   spec:
@@ -42,49 +46,86 @@ spec:
                 - name: main
                   inputs:
                     parameters:
-                      - name: scalacode
+                      - name: pythoncode
+                      - name: inputs
+                      - name: assertions
                   dag:
                     tasks:
-                    - name: A
-                      template: build-jar
+                    - name: runmypy
+                      template: mypy
                       arguments:
                         parameters: 
-                         - name: scalacode
-                           value: "{{inputs.parameters.scalacode}}"
-                    - name: B
-                      dependencies: [A]
-                      template: build-docker-image
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}"
+                         
+                    - name: rununittests
+                      #dependencies: [runmypy]
+                      template: unittests
+                      arguments:
+                        parameters: 
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}"
+                         - name: inputs
+                           value: "{{inputs.parameters.inputs}}"
+                         - name: assertions
+                           value: "{{inputs.parameters.assertions}}"
 
-                - name: build-jar     
+                    - name: deployjob 
+                      template: sparkjob
+                      dependencies: [runmypy, rununittests]
+
+                - name: mypy
                   inputs:
                     parameters:
-                      - name: scalacode
-                      - name: dockerfileline1 
-                        value: FROM ${registryprefix}/${project}/${project}/sparkbase:v0.1.0
-                      - name: dockerfileline2 
-                        value: COPY streamstate.jar /opt/spark/work-dir/streamstate.jar
+                      - name: pythoncode
                   container:
-                    volumeMounts:
+                    volumeMounts: # may not need this
                     - mountPath: /work #this persists across steps
                       name: work
-                    image: ${registryprefix}/${project}/${project}/scalacompile:v0.8.0
+                    image: cytopia/mypy #${registryprefix}/${project}/${project}/scalacompile:v0.8.0
                     command: [sh, -c]
                     args: [
-                      "echo {{inputs.parameters.scalacode}} | base64 --decode > src/main/scala/custom.scala;\
-                      sbt assembly; cp streamstate.jar /work/streamstate.jar; ls -la /work;\
-                      echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
-                      echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile;"
+                      "echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
+                      mypy process.py --ignore-missing-imports "
                     ]
-                    #workingDir: /work
                   archiveLocation: # maybe delete this...
                     archiveLogs: false
 
+                - name: unittests
+                  inputs:
+                    parameters:
+                      - name: pythoncode
+                      - name: inputs
+                      - name: assertions
+                  #inputs:
+                    #parameters:
+                      # Name of the image to push
+                      #- name: image
+                      #  value: ${registryprefix}/${project}/${registry}/scalaapp:v0.1.0 # TODO!  specify tag version
+                  #serviceAccountName: ${dockersecretwrite}
+                  container:
+                    image: unittestpy:v0.3.0
+                    imagePullPolicy: Never
+                    command: [sh, -c]
+                    args: [
+                      "echo $(pwd);\
+                      echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
+                      echo {{inputs.parameters.inputs}} | base64 --decode  > sampleinputs.json;\
+                      echo {{inputs.parameters.assertions}} | base64 --decode > assertedoutputs.json;\
+                      python3 streamstate/run_test.py process.py sampleinputs.json assertedoutputs.json"
+                    ]
+                    #workingDir: /work
+                    volumeMounts:
+                    - mountPath: /work 
+                      name: work
+                
+                
                 - name: build-docker-image
                   inputs:
                     parameters:
                       # Name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry}/scalaapp:v0.1.0 # TODO!  specify tag version
+                        value: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 # TODO!  specify tag version, different docker name per app
                   serviceAccountName: ${dockersecretwrite}
                   container:
                     image: gcr.io/kaniko-project/executor:latest
@@ -96,8 +137,23 @@ spec:
                     volumeMounts:
                     - mountPath: /work 
                       name: work
+
+                - name: sparkjob ### todo deploy spark job using just created docker image
+                  container:
+                    image: alpine:3.7
+                    command: [sh, -c, -x]
+                    args: ['sleep 1; echo "got here"']
+
           parameters:
             - src:
-                dependencyName: createsparkcontainerdeployment
-                dataKey: body.scalacode
+                dependencyName: deploypysparkjob
+                dataKey: body.pythoncode
               dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.inputs
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.assertions
+              dest: spec.arguments.parameters.2.value

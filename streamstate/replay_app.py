@@ -10,18 +10,23 @@ from streamstate.generic_wrapper import (
     set_cassandra,
     write_cassandra,
     write_kafka,
-    write_parquet,
 )
-from streamstate.structs import OutputStruct, FileStruct, CassandraStruct, KafkaStruct
-
-from streamstate.process import Process
+from streamstate.structs import (
+    OutputStruct,
+    FileStruct,
+    CassandraStruct,
+    KafkaStruct,
+    InputStruct,
+)
+import marshmallow_dataclass
+from streamstate.process import process
 import json
 import os
 
 
 def replay_from_file(
     app_name: str,
-    schema: List[Tuple[str, dict]],
+    inputs: List[InputStruct],
     output: OutputStruct,
     files: FileStruct,
     cassandra: CassandraStruct,
@@ -29,7 +34,7 @@ def replay_from_file(
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     set_cassandra(cassandra, spark)
-    df = file_wrapper(app_name, files.max_file_age, Process.process, schema, spark)
+    df = file_wrapper(app_name, files.max_file_age, process, inputs, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
@@ -61,21 +66,25 @@ if __name__ == "__main__":
         file_struct,
         cassandra_struct,
         kafka_struct,
-        schema,
+        input_struct,
     ] = sys.argv
-
-    output_info = OutputStruct.Schema().load(json.loads(output_struct))
-    file_info = FileStruct.Schema().load(json.loads(file_struct))
+    output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
+    output_info = output_schema.load(json.loads(output_struct))
+    file_schema = marshmallow_dataclass.class_schema(FileStruct)()
+    file_info = file_schema.load(json.loads(file_struct))
     raw_cassandra = json.loads(cassandra_struct)
-    cassandra_info = CassandraStruct.Schema().load(
+    cassandra_schema = marshmallow_dataclass.class_schema(CassandraStruct)()
+    cassandra_info = cassandra_schema.load(
         convert_cassandra_dict(
             raw_cassandra, os.getenv("username", ""), os.getenv("password", "")
         )
     )
-    kafka_info = KafkaStruct.Schema().load(json.loads(kafka_struct))
+    kafka_schema = marshmallow_dataclass.class_schema(KafkaStruct)()
+    kafka_info = kafka_schema.load(json.loads(kafka_struct))
     # cassandra_ip = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_HOST", "")
     # cassandra_port = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_PORT", "")
-
+    input_schema = marshmallow_dataclass.class_schema(InputStruct)()
+    input_info = [input_schema.load(v) for v in json.loads(input_struct)]
     replay_from_file(
-        app_name, json.loads(schema), output_info, file_info, cassandra_info, kafka_info
+        app_name, input_info, output_info, file_info, cassandra_info, kafka_info
     )

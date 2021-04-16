@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import marshmallow_dataclass
 import marshmallow.validate
 from marshmallow import Schema
-from typing import ClassVar, Type
+from typing import ClassVar, Type, List, Dict
 
 
 @dataclass
@@ -17,6 +17,20 @@ class OutputStruct:
 @dataclass
 class FileStruct:
     max_file_age: str
+    Schema: ClassVar[Type[Schema]] = Schema  # for mypy
+
+
+@dataclass
+class SchemaStruct:
+    fields: List[Dict[str, str]]
+    Schema: ClassVar[Type[Schema]] = Schema  # for mypy
+
+
+@dataclass
+class InputStruct:
+    topic: str
+    schema: SchemaStruct
+    sample: List[dict] = field(default_factory=list)  # not all need a sample
     Schema: ClassVar[Type[Schema]] = Schema  # for mypy
 
 
