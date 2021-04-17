@@ -13,6 +13,7 @@ from streamstate_utils.utils import (
 )
 
 ## need to pass primary keys and avro_schema
+## todo, put this in a docker container for argo to run
 def main():
     cassandra_config = get_cassandra_inputs_from_config_map()
     organization = get_organization_from_config_map()
