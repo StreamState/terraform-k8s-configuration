@@ -68,9 +68,9 @@ resource "kubernetes_namespace" "argoevents" {
   depends_on = [local_file.kubeconfig]
 }
 
-resource "kubernetes_namespace" "sparkhistory" {
+resource "kubernetes_namespace" "monitoring" {
   metadata {
-    name = "spark-history-server"
+    name = "monitoring"
   }
   depends_on = [local_file.kubeconfig]
 }
@@ -108,28 +108,28 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
 # this works with google service account binding to connect kubernetes and google accounts
-resource "kubernetes_service_account" "sparkhistory" {
+resource "kubernetes_service_account" "monitoring" {
   metadata {
-    name      = "sparkhistory"
-    namespace = kubernetes_namespace.sparkhistory.metadata.0.name
+    name      = "monitoring"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = var.spark_history_svc_email
+      "iam.gke.io/gcp-service-account" = var.spark_history_svc_email # todo, change this name
     }
   }
-  depends_on = [kubernetes_namespace.sparkhistory]
+  depends_on = [kubernetes_namespace.monitoring]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
 # link service account and kubernetes service account
-resource "google_service_account_iam_binding" "sparkhistory" {
+resource "google_service_account_iam_binding" "monitoring" {
   service_account_id = var.spark_history_svc_name
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.sparkhistory.metadata.0.name}/${kubernetes_service_account.sparkhistory.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.monitoring.metadata.0.name}/${kubernetes_service_account.monitoring.metadata.0.name}]",
   ]
   depends_on = [
-    kubernetes_service_account.sparkhistory
+    kubernetes_service_account.monitoring
   ]
 }
 
@@ -360,17 +360,17 @@ data "kubectl_file_documents" "cassandra" {
 
 resource "kubernetes_config_map" "usefuldata" {
   metadata {
-    name      = "cassandra_and_other_data"
+    name      = "sparkjobdata"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
 
   data = {
-    data_center  = var.data_center
-    cluster_name = var.cluster_name
-    port         = "9042"
-    organization = var.organization
-    project      = var.project
-    org_bucket   = var.spark_storage_bucket_url
+    data_center            = var.data_center
+    cassandra_cluster_name = var.cassandra_cluster_name
+    port                   = "9042"
+    organization           = var.organization
+    project                = var.project
+    org_bucket             = var.spark_storage_bucket_url
     # add checkpoint location here...
     spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
@@ -402,57 +402,18 @@ resource "helm_release" "spark" {
 }
 
 ##################
-# Install Spark History Server
+# Install Prometheus
 ##################
-resource "helm_release" "sparkhistory" { # todo, override "loadbalancer" 
-  name      = "spark-history-server"
-  namespace = kubernetes_namespace.sparkhistory.metadata.0.name
+resource "helm_release" "prometheus" {
+  name      = "prometheus"
+  namespace = kubernetes_namespace.monitoring.metadata.0.name
   #create_namespace = true
-  repository = "https://charts.helm.sh/stable"
-  chart      = "spark-history-server"
-  set {
-    name  = "serviceAccount.create"
-    value = "false"
-  }
-  set {
-    name  = "serviceAccount.name"
-    value = kubernetes_service_account.sparkhistory.metadata.0.name
-  }
-  set {
-    name  = "gcs.logDirectory"
-    value = var.spark_history_bucket_url
-  }
-  set {
-    name  = "gcs.enableGCS" # I added permission to the spark history bucket to the kubernetes cluster service account
-    value = "true"
-  }
-  set {
-    name  = "gcs.enableIAM"
-    value = "true"
-  }
-  set {
-    name  = "pvc.enablePVC"
-    value = "false"
-  }
-  set {
-    name  = "nfs.enableExampleNFS"
-    value = "false"
-  }
-  set {
-    name = "image.repository"
-    #value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkbase"
-    value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkhistory"
-  }
-  set {
-    name  = "image.tag"
-    value = "v0.2.0"
-  }
-  set {
-    name  = "image.pullPolicy"
-    value = "IfNotPresent"
-  }
-  depends_on = [kubernetes_service_account.sparkhistory]
+  repository = "https://prometheus-community.github.io/helm-charts"
+  chart      = "prometheus"
+
+  depends_on = [kubernetes_service_account.monitoring]
 }
+
 
 ##################
 # Install Argo

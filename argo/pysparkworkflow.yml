@@ -91,6 +91,20 @@ spec:
                   archiveLocation: # maybe delete this...
                     archiveLogs: false
 
+                - name: cassandra
+                  container:
+                    volumeMounts: # may not need this
+                    - mountPath: /work #this persists across steps
+                      name: work
+                    image: cytopia/mypy #${registryprefix}/${project}/${project}/scalacompile:v0.8.0
+                    command: [sh, -c]
+                    args: [
+                      "echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
+                      mypy process.py --ignore-missing-imports "
+                    ]
+                  archiveLocation: # maybe delete this...
+                    archiveLogs: false
+
                 - name: unittests
                   inputs:
                     parameters:

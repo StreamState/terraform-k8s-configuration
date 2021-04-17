@@ -141,6 +141,31 @@ struct SparkApplication {
     metadata: Metadata,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PrometheusSpec{
+    service_account_name: String,
+    service_monitor_selector:
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PrometheusSpec{
+    service_account_name: String,
+    service_monitor_selector:
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PrometheusApplication {
+    api_version: String,
+    kind: String,
+    spec: PrometheusSpec{
+
+    },
+    metadata: Metadata,
+}
+
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Field {
@@ -186,6 +211,18 @@ enum Input {
     ReplayJob(ReplayJobInputs),
 }
 
+fn convert_prometheus<'a>(app_name: &'a str) -> PrometheusApplication {
+    PrometheusApplication {
+        api_version: "monitoring.coreos.com/v1".to_string(),
+        kind: "Prometheus".to_string(),
+        metadata: Metadata {
+            name: format!("{}_{}", "prometheus", app_name),
+            namespace: "monitoring".to_string(),
+        },
+        spec:
+    }
+}
+
 //todo, need to loop over main_job.schema to get config per topic
 fn convert_main_job_to_struct(
     main_job: &MainJobInputs,
@@ -200,7 +237,7 @@ fn convert_main_job_to_struct(
             spark_conf: SparkConf {
                 //for these purely static structs I could make more efficient by pre-declaring
                 spark_jars_packages: String::from(
-                    "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0",
+                    "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1",
                 ),
                 spark_jars_repositories: String::from("https://packages.confluent.io/maven"),
                 spark_jars_ivy: String::from("/tmp/ivy"),
@@ -210,7 +247,7 @@ fn convert_main_job_to_struct(
             mode: String::from("cluster"),
             image_pull_policy: String::from("Always"),
             main_application_file: String::from("local:///opt/spark/work-dir/replay_app.py"),
-            spark_version: String::from("3.0.1"),
+            spark_version: String::from("3.1.1"),
             hadoop_conf: HadoopConf {
                 fs_gs_project_id: project,
                 fs_gs_system_bucket: org_bucket,

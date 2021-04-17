@@ -54,12 +54,12 @@ variable "spark_storage_bucket_url" {
   type = string
 }
 
-variable "datacenter" {
+variable "data_center" {
   type    = string
   default = "dc1"
 }
 
-variable "cluster_name" {
+variable "cassandra_cluster_name" {
   type    = string
   default = "cluster1"
 }

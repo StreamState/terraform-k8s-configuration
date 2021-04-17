@@ -70,6 +70,7 @@ module "kubernetes-config" {
   spark_history_svc_name   = module.serviceaccounts.spark_history_svc_name
   org_registry             = module.serviceaccounts.org_registry
   spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
+  spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
 }
 
 

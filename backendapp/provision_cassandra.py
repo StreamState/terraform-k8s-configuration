@@ -11,13 +11,19 @@ from request_body import create_table_name
 import json
 from avro_validator.schema import Schema, RecordType
 
+from streamstate_utils.structs import CassandraInputStruct
 
-def get_cassandra_session(ip: str, port: int, user: str, password: str) -> Session:
+
+def get_cassandra_session(cassandra_input: CassandraInputStruct) -> Session:
     auth_provider = PlainTextAuthProvider(
-        username=user,
-        password=password,
+        username=cassandra_input.cassandra_username,
+        password=cassandra_input.cassandra_password,
     )
-    cluster = Cluster([ip], port=port, auth_provider=auth_provider)
+    cluster = Cluster(
+        [cassandra_input.cassandra_ip],
+        port=cassandra_input.port,
+        auth_provider=auth_provider,
+    )
     return cluster.connect()
 
 

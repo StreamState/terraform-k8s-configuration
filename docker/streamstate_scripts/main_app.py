@@ -1,8 +1,12 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate.utils import map_avro_to_spark_schema, convert_cassandra_dict
-from streamstate.generic_wrapper import (
+from streamstate_utils.utils import (
+    map_avro_to_spark_schema,
+    get_cassandra_inputs_from_config_map,
+    get_cassandra_outputs_from_config_map,
+)
+from streamstate_utils.generic_wrapper import (
     file_wrapper,
     write_console,
     kafka_wrapper,
@@ -13,13 +17,14 @@ from streamstate.generic_wrapper import (
 )
 
 ## how to add this at real time??
-from streamstate.process import process
+from process import process
 import json
 import os
-from streamstate.structs import (
+from streamstate_utils.structs import (
     OutputStruct,
     FileStruct,
-    CassandraStruct,
+    CassandraInputStruct,
+    CassandraOutputStruct,
     KafkaStruct,
     InputStruct,
 )
@@ -31,17 +36,18 @@ def kafka_source_wrapper(
     input: List[InputStruct],
     output: OutputStruct,
     files: FileStruct,
-    cassandra: CassandraStruct,
+    cassandra_input: CassandraInputStruct,
+    cassandra_output: CassandraOutputStruct,
     kafka: KafkaStruct,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    set_cassandra(cassandra, spark)
+    set_cassandra(cassandra_input, spark)
     df = kafka_wrapper(app_name, kafka.brokers, process, input, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
         write_kafka(batch_df, kafka, output)
-        write_cassandra(batch_df, cassandra)
+        write_cassandra(batch_df, cassandra_output)
 
     write_wrapper(df, output, dual_write)
 
@@ -64,21 +70,16 @@ if __name__ == "__main__":
         app_name,
         output_struct,
         file_struct,
-        cassandra_struct,  # this should be entirely populated by in-cluster variables
         kafka_struct,
         input_struct,
+        version,  ## todo, is this the best way? (probably)
     ] = sys.argv
     output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = output_schema.load(json.loads(output_struct))
     file_schema = marshmallow_dataclass.class_schema(FileStruct)()
     file_info = file_schema.load(json.loads(file_struct))
-    raw_cassandra = json.loads(cassandra_struct)
-    cassandra_schema = marshmallow_dataclass.class_schema(CassandraStruct)()
-    cassandra_info = cassandra_schema.load(
-        convert_cassandra_dict(
-            raw_cassandra, os.getenv("username", ""), os.getenv("password", "")
-        )
-    )
+    cassandra_input = get_cassandra_inputs_from_config_map()
+    cassandra_output = get_cassandra_outputs_from_config_map(app_name, version)
     kafka_info = marshmallow_dataclass.class_schema(KafkaStruct)().load(
         json.loads(kafka_struct)
     )
@@ -88,5 +89,11 @@ if __name__ == "__main__":
     input_info = [input_schema.load(v) for v in json.loads(input_struct)]
 
     kafka_source_wrapper(
-        app_name, input_info, output_info, file_info, cassandra_info, kafka_info
+        app_name,
+        input_info,
+        output_info,
+        file_info,
+        cassandra_input,
+        cassandra_output,
+        kafka_info,
     )

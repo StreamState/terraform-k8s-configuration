@@ -1,18 +1,14 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate.utils import map_avro_to_spark_schema
-from streamstate.generic_wrapper import (
+from streamstate_utils.utils import map_avro_to_spark_schema
+from streamstate_utils.generic_wrapper import (
     file_wrapper,
     write_console,
-    kafka_wrapper,
-    set_cassandra,
-    write_cassandra,
-    write_kafka,
 )
-from streamstate.process import process
+from process import process
 import json
-from streamstate.structs import OutputStruct, FileStruct, InputStruct
+from streamstate_utils.structs import OutputStruct, FileStruct, InputStruct
 import marshmallow_dataclass
 
 
