@@ -4,7 +4,7 @@ import marshmallow.validate
 from marshmallow import Schema
 from typing import ClassVar, Type, List, Dict
 
-
+## Is output_name just the app_name?? that would make sense to me...
 @dataclass
 class OutputStruct:
     mode: str

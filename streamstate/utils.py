@@ -18,6 +18,15 @@ def get_folder_location(app_name: str, topic: str) -> str:
     return os.path.join(app_name, topic)
 
 
+# get org name from ConfigMap
+def get_cassandra_key_space_from_org_name(org_name: str) -> str:
+    return org_name
+
+
+def get_cassandra_table_name_from_app_name(app_name: str, version: str) -> str:
+    return f"{app_name}_{version}"
+
+
 def _convert_type(avro_type: str) -> DataType:
     avro_type_conversion = {
         "boolean": BooleanType(),

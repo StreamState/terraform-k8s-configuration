@@ -27,5 +27,6 @@ class Table(BaseModel):
     primary_keys: List[str]
 
 
+## TODO! import this from python library
 def create_table_name(org_name: str, app_name: str, version: int) -> str:
     return f"{org_name}.{app_name}_{version}"

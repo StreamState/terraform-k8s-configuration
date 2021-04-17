@@ -1,6 +1,7 @@
 from typing import List
 from kubernetes.client import V1Role, V1ServiceAccount, V1RoleBinding
 import os
+import json
 
 MAIN_APPLICATION_FILE = "local:///opt/spark/work-dir"
 
@@ -40,15 +41,12 @@ def spark_persist_job_spec(
     }
 
     kafka_struct = {"brokers": ",".join(brokers)}
-    inputs_struct = {"folder": ""}  # doesnt matter
+    input_struct = {"topic": topic, "schema": {"fields": []}}  # doesnt matter
     default_body["spec"]["arguments"] = [
         app_name,
-        ",".join(brokers),
-        group_id,
-        topic,
-        f"gs://{bucket}",
-        "/tmp/checkpoint",
-        processing_interval,
+        json.dumps(output_struct),
+        json.dumps(kafka_struct),
+        json.dumps(input_struct),
     ]
     return default_body
 

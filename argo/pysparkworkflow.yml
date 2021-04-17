@@ -97,12 +97,12 @@ spec:
                       - name: pythoncode
                       - name: inputs
                       - name: assertions
-                  #inputs:
-                    #parameters:
-                      # Name of the image to push
-                      #- name: image
-                      #  value: ${registryprefix}/${project}/${registry}/scalaapp:v0.1.0 # TODO!  specify tag version
-                  #serviceAccountName: ${dockersecretwrite}
+                  inputs:
+                    parameters:
+                      - name: dockerfileline1 
+                        value: FROM ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
+                      - name: dockerfileline2 
+                        value: COPY process.py /opt/spark/work-dir/streamstate/process.py
                   container:
                     image: unittestpy:v0.3.0
                     imagePullPolicy: Never
@@ -112,9 +112,12 @@ spec:
                       echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
                       echo {{inputs.parameters.inputs}} | base64 --decode  > sampleinputs.json;\
                       echo {{inputs.parameters.assertions}} | base64 --decode > assertedoutputs.json;\
-                      python3 streamstate/run_test.py process.py sampleinputs.json assertedoutputs.json"
+                      python3 /opt/spark/work-dir/streamstate/run_test.py process.py sampleinputs.json assertedoutputs.json\
+                      echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
+                      echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile;
+                      "
                     ]
-                    #workingDir: /work
+                    workingDir: /work
                     volumeMounts:
                     - mountPath: /work 
                       name: work
@@ -139,8 +142,13 @@ spec:
                       name: work
 
                 - name: sparkjob ### todo deploy spark job using just created docker image
+                  inputs:
+                    parameters:
+                      # Name of the image to push
+                      - name: image
+                        value: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 # TODO!  specify tag version, different docker name per app
                   container:
-                    image: alpine:3.7
+                    image: alpine:3.7 # this will be the "backend" app docker container
                     command: [sh, -c, -x]
                     args: ['sleep 1; echo "got here"']
 
@@ -157,3 +165,15 @@ spec:
                 dependencyName: deploypysparkjob
                 dataKey: body.assertions
               dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.kafka
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.outputs
+              dest: spec.arguments.parameters.4.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.cassandra
+              dest: spec.arguments.parameters.5.value

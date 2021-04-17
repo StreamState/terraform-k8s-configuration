@@ -56,11 +56,4 @@ resource "google_artifact_registry_repository" "orgrepo" {
   format        = "DOCKER"
   depends_on    = [google_project_service.artifactregistry]
 }
-resource "google_artifact_registry_repository" "pypi" {
-  provider      = google-alpha
-  project       = var.project
-  location      = "us-central1"
-  repository_id = "${var.project}-pypi"
-  description   = "pypi repository"
-  format        = "pypi"
-}
+

@@ -64,7 +64,7 @@ if __name__ == "__main__":
         app_name,
         output_struct,
         file_struct,
-        cassandra_struct,
+        cassandra_struct,  # this should be entirely populated by in-cluster variables
         kafka_struct,
         input_struct,
     ] = sys.argv

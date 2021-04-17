@@ -23,3 +23,6 @@ output "spark_history_bucket_url" {
   value = google_storage_bucket.sparkhistory.url
 }
 
+output "spark_storage_bucket_url" {
+  value = google_storage_bucket.sparkstorage.url
+}

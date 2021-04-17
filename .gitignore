@@ -18,3 +18,7 @@ kubeconfig
 *.egg-info
 build
 dist
+
+# Added by cargo
+
+/target

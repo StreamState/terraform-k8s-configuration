@@ -351,7 +351,31 @@ resource "helm_release" "cassandra" {
 }
 
 data "kubectl_file_documents" "cassandra" {
-  content = templatefile("../../gke/cassandra.yml", { secret = kubernetes_secret.cassandra_svc.metadata.0.name })
+  content = templatefile("../../gke/cassandra.yml", {
+    secret       = kubernetes_secret.cassandra_svc.metadata.0.name,
+    data_center  = var.data_center,
+    cluster_name = var.cluster_name
+  })
+}
+
+resource "kubernetes_config_map" "usefuldata" {
+  metadata {
+    name      = "cassandra_and_other_data"
+    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+
+  data = {
+    data_center  = var.data_center
+    cluster_name = var.cluster_name
+    port         = "9042"
+    organization = var.organization
+    project      = var.project
+    org_bucket   = var.spark_storage_bucket_url
+    # add checkpoint location here...
+    spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+
+  depends_on = [kubernetes_namespace.mainnamespace]
 }
 
 resource "kubectl_manifest" "cassandra" {
