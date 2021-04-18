@@ -47,6 +47,19 @@ variable "spark_history_svc_name" {
 variable "org_registry" {
   type = string
 }
-variable "spark_history_bucket_url" {
+variable "spark_history_bucket_url" { # probably delete
   type = string
+}
+variable "spark_storage_bucket_url" {
+  type = string
+}
+
+variable "data_center" {
+  type    = string
+  default = "dc1"
+}
+
+variable "cassandra_cluster_name" {
+  type    = string
+  default = "cluster1"
 }

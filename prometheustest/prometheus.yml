@@ -10,5 +10,5 @@ spec:
       release: prometheus
   resources:
     requests:
-      memory: 400Mi
-  scrapeInterval: 12s
+      memory: 50Mi
+  scrapeInterval: 10s

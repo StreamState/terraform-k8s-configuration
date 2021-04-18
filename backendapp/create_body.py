@@ -1,52 +1,9 @@
 from typing import List
 from kubernetes.client import V1Role, V1ServiceAccount, V1RoleBinding
+import os
+import json
 
-
-# shouldn't be needed
-def spark_service_account_spec(namespace: str) -> dict:
-    return V1ServiceAccount(
-        api_version="v1",
-        kind="ServiceAccount",
-        metadata={"name": "spark", "namespace": namespace},
-    )
-
-
-# shouldn't be needed
-def spark_role_spec(namespace: str) -> dict:
-    return V1Role(
-        api_version="rbac.authorization.k8s.io/v1",
-        metadata={"namespace": namespace, "name": "spark-role"},
-        rules=[
-            {
-                "apiGroups": [""],
-                "resources": ["pods"],
-                "verbs": ["*"],
-            },
-            {"apiGroups": [""], "resources": ["services"], "verbs": ["*"]},
-        ],
-        kind="Role",
-    )
-
-
-# shouldn't be needed
-def spark_role_binding_spec(namespace: str) -> dict:
-    return V1RoleBinding(
-        api_version="rbac.authorization.k8s.io/v1",
-        kind="RoleBinding",
-        metadata={"namespace": namespace, "name": "spark-role-binding"},
-        subjects=[
-            {
-                "kind": "ServiceAccount",
-                "name": "spark",
-                "namespace": namespace,
-            },
-        ],
-        role_ref={
-            "kind": "Role",
-            "name": "spark-role",
-            "apiGroup": "rbac.authorization.k8s.io",
-        },
-    )
+MAIN_APPLICATION_FILE = "local:///opt/spark/work-dir"
 
 
 def spark_persist_job_spec(
@@ -60,8 +17,9 @@ def spark_persist_job_spec(
     project: str,
     organization: str,
 ) -> dict:
+    app_name = f"{topic}-persist"
     default_body["metadata"] = {
-        "name": f"{topic}-persist",
+        "name": app_name,
         "namespace": namespace,
     }
     bucket = f"streamstate-sparkstorage-{organization}"
@@ -69,16 +27,26 @@ def spark_persist_job_spec(
     default_body["spec"]["hadoopConf"]["fs.gs.project.id"] = project
     default_body["spec"]["hadoopConf"]["fs.gs.system.bucket"] = bucket
     default_body["spec"]["sparkConf"]["spark.eventLog.dir"] = f"gs://{history_bucket}/"
-    default_body["spec"]["image"] = image
-    default_body["spec"]["mainClass"] = "PersistKafkaSourceWrapper"
+    default_body["spec"]["image"] = image  # todo, we may be able to hardcode this
+    # default_body["spec"]["mainClass"] = "PersistKafkaSourceWrapper"
+    default_body["spec"]["mainApplicationFile"] = os.path.join(
+        MAIN_APPLICATION_FILE, "persist_app.py"
+    )
+
+    output_struct = {
+        "mode": "append",
+        "checkpoint_location": "/tmp/checkpoint",
+        "output_name": "",  # doesn't matter
+        "processing_time": processing_interval,
+    }
+
+    kafka_struct = {"brokers": ",".join(brokers)}
+    input_struct = {"topic": topic, "schema": {"fields": []}}  # doesnt matter
     default_body["spec"]["arguments"] = [
-        f"{topic}-persist",
-        ",".join(brokers),
-        group_id,
-        topic,
-        f"gs://{bucket}",
-        "/tmp/checkpoint",
-        processing_interval,
+        app_name,
+        json.dumps(output_struct),
+        json.dumps(kafka_struct),
+        json.dumps(input_struct),
     ]
     return default_body
 
