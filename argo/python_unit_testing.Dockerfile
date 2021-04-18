@@ -1,3 +1,4 @@
+## THIS IS DEPRICATED
 ## This does two things: ensures custom functions pass tests AND 
 # since its arbitrary code ensures that its valid Python
 

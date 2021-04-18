@@ -39,11 +39,13 @@ def dev_from_file(
 # ]
 if __name__ == "__main__":
     [
+        _,
         app_name,
         output_struct,
         file_struct,
         input_struct,
     ] = sys.argv
+    # app_name = app_name.replace(".py", "")
     output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = output_schema.load(json.loads(output_struct))
     file_schema = marshmallow_dataclass.class_schema(FileStruct)()
