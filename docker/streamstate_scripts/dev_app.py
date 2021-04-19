@@ -40,7 +40,7 @@ def dev_from_file(
 if __name__ == "__main__":
     [
         _,
-        app_name,
+        app_name,  # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
         output_struct,
         file_struct,
         input_struct,

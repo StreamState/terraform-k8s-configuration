@@ -89,6 +89,7 @@ def apply_table(
 
 # TODO: probably should NOT be in python (maybe provision from terraform?  or rest of github action?)
 # one table for ALL organizations
+# TODO: change dc1 to actual data center!!
 def create_tracking_table(session: Session):
     sql = """
         CREATE KEYSPACE IF NOT EXISTS admin_track WITH 
@@ -142,7 +143,7 @@ def create_schema(
     schema: dict,  # avro schema
 ):
     # will throw if schema isn't valid
-    avro_py, avro_schema = _parse_schema(schema)
+    _, avro_schema = _parse_schema(schema)
     app_name = schema["name"]
     field_names = [field["name"] for field in schema["fields"]]
     assert _sublist(primary_keys, field_names)
@@ -150,6 +151,7 @@ def create_schema(
     if prev_schema != avro_schema:
         version = prev_version + 1
         # TODO!  Figure out replication needs
+        # TODO: change dc1 to actual data center!!
         create_keyspace = f"""
             CREATE KEYSPACE IF NOT EXISTS {org_name} 
             WITH replication = {{ 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' }};

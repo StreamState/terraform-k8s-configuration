@@ -1,13 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: webhook
+  name: streamstateapi
 spec:
   template:
     serviceAccountName: argo-events-sa 
   dependencies:
     - name: deploypysparkjob
-      eventSourceName: webhook
+      eventSourceName: streamstatewebservice
       eventName: runcontainer
   triggers:
     - template:
@@ -219,7 +219,7 @@ spec:
                       # Name of the image to push
                       - name: image
                         value: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 # same as for build-docker-image
-                      - name: pythoncode
+                      #- name: pythoncode
                       - name: inputs
                       - name: kafka
                       - name: outputs
@@ -262,7 +262,8 @@ spec:
                           "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                         
                         arguments:
-                          - testdev # todo, this should be same as metadata: name
+                          - testdev 
+                            # todo, this should be same as metadata: name
                           - {{inputs.parameters.outputs}}
                           - {{inputs.parameters.fileinfo}}
                           - {{inputs.parameters.inputs}}
