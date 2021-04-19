@@ -1,11 +1,12 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate_utils.utils import (
-    map_avro_to_spark_schema,
+from streamstate_utils.pypsark_utils import map_avro_to_spark_schema
+from streamstate_utils.cassandra_utils import (
     get_cassandra_inputs_from_config_map,
     get_cassandra_outputs_from_config_map,
 )
+
 from streamstate_utils.generic_wrapper import (
     file_wrapper,
     write_wrapper,

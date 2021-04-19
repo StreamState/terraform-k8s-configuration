@@ -59,18 +59,15 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 # setup for deploy
 
 todo! make this part of CI/CD pipeline for the entire project (streamstate) level
-* cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
-
-
-* sudo docker build . -f ./argo/sparkbase.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0 
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0
-
 
 * cd docker
 * sudo docker build . -f ./sparkpy.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0
+* cd ..
+
+* cd backendapp
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy:v0.1.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy:v0.1.0
 * cd ..
 
 # setup spark history server
@@ -203,9 +200,3 @@ Curl the URL to test
 * pip3 install 'streamstate[test]'
 * python3 setup.py test
 
-
-# Docker images
-
-* argo/python_unit_test.Dockerfile needs to be built and pushed to streamstate docker registry.  It is used to run organization's unit tests when deploying a spark job through argo
-* argo/python_deploy.Dockerfile needs to be built and pushed to streamstate docker registry.  It is used as the base image for the spark operator's image, which is built per organization's app (process.py is added to it as part of argo workflow)
-* 

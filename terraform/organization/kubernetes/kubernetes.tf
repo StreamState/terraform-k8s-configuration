@@ -452,6 +452,9 @@ resource "kubectl_manifest" "argoeventswebhook" {
   depends_on         = [kubectl_manifest.argoevents]
 }
 
+
+
+## delete this as soon as pysparkworkflow is working
 data "kubectl_file_documents" "argoeventworkflow" {
   content = templatefile("../../argo/eventworkflow.yml", {
     project           = var.project,
@@ -470,6 +473,27 @@ resource "kubectl_manifest" "argoeventworkflow" {
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
+
+data "kubectl_file_documents" "pysparkeventworkflow" {
+  content = templatefile("../../argo/pysparkworkflow.yml", {
+    project           = var.project,
+    organization      = var.organization
+    dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
+    registry          = var.org_registry
+    registryprefix    = var.registryprefix
+    runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    cassandrasecret   = kubernetes_secret.cassandra_svc.metadata.0.name
+    dataconfig        = kubernetes_config_map.usefuldata.metadata.0.name
+    namespace         = kubernetes_namespace.mainnamespace.metadata.0.name
+  })
+}
+resource "kubectl_manifest" "pysparkeventworkflow" {
+  count              = 1
+  yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
+  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on         = [kubectl_manifest.pysparkeventworkflow]
+}
+
 
 # data "kubectl_file_documents" "ingressmain" {
 #   content = templatefile("../../gke/ingressmainspark.yml", {
@@ -498,16 +522,16 @@ resource "kubectl_manifest" "argoeventworkflow" {
 
 
 
-data "kubectl_file_documents" "restapi" {
-  content = templatefile("../../gke/restapi.yml", {
-    launchspark     = kubernetes_service_account.launchsparkoperator.metadata.0.name,
-    cassandrasecret = kubernetes_secret.cassandra_svc.metadata.0.name
-  })
-}
+#data "kubectl_file_documents" "restapi" {
+#  content = templatefile("../../gke/restapi.yml", {
+#    launchspark     = kubernetes_service_account.launchsparkoperator.metadata.0.name,
+#    cassandrasecret = kubernetes_secret.cassandra_svc.metadata.0.name
+#  })
+#}
 
-resource "kubectl_manifest" "restapi" {
-  count              = 2 # length(data.kubectl_file_documents.restapi.documents)
-  yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
-  override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  depends_on         = [kubernetes_namespace.mainnamespace]
-}
+#resource "kubectl_manifest" "restapi" {
+#  count              = 2 # length(data.kubectl_file_documents.restapi.documents)
+#  yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
+#  override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+#  depends_on         = [kubernetes_namespace.mainnamespace]
+#}

@@ -24,7 +24,7 @@ spec:
               metadata:
                 generateName: streamstatepy-  # Name of this Workflow
               spec:
-                serviceAccountName: argo-events-sa #${runserviceaccount}  ## argoevents-runsa
+                serviceAccountName: ${runserviceaccount} 
                 arguments:
                   parameters:
                     - name: pythoncode
@@ -38,6 +38,8 @@ spec:
                     - name: outputs
                       value: hello world # this should be overridden
                     - name: fileinfo
+                      value: hello world # this should be overridden
+                    - name: table
                       value: hello world # this should be overridden
                 entrypoint: main     
                 volumeClaimTemplates: # do I need this?
@@ -78,10 +80,21 @@ spec:
 
                     - name: runcassandra 
                       template: cassandra
+                      arguments:
+                        parameters:
+                          - name: table
+                            value: "{{inputs.parameters.table}}"
                       dependencies: [runmypy, rununittests]
+
+
+                    - name: builddocker
+                      template: create-docker-file
+                      dependencies: [runmypy, rununittests]
+
                     - name: deploydocker 
                       template: build-docker-image
-                      dependencies: [runmypy, rununittests]
+                      dependencies: [builddocker]
+
                     - name: runspark
                       template: sparksubmit
                       arguments:
@@ -97,6 +110,7 @@ spec:
                          - name: fileinfo
                            value: "{{inputs.parameters.fileinfo}}"
                       dependencies: [deploydocker]
+                    
 
                 - name: mypy
                   inputs:
@@ -121,6 +135,29 @@ spec:
                       - name: pythoncode
                       - name: inputs
                       - name: assertions
+                  container:
+                    image: ${registryprefix}/${project}/${registry}/pysparkbase:v0.1.0
+                    imagePullPolicy: IfNotPresent
+                    command: [sh, -c]
+                    args: [
+                      "echo $(pwd);\
+                      echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
+                      echo {{inputs.parameters.inputs}} > sampleinputs.json;\
+                      echo {{inputs.parameters.assertions}} > assertedoutputs.json;\
+                      run-test process.py sampleinputs.json assertedoutputs.json
+                      "
+                    ]
+                    workingDir: /work
+                    volumeMounts:
+                    - mountPath: /work 
+                      name: work
+
+                - name: create-docker-file
+                  inputs:
+                    parameters:
+                      - name: pythoncode
+                      - name: inputs
+                      - name: assertions
                   inputs:
                     parameters:
                       - name: dockerfileline1 
@@ -128,16 +165,11 @@ spec:
                       - name: dockerfileline2 
                         value: COPY process.py /opt/spark/work-dir/process.py
                   container:
-                    image: ${registryprefix}/${project}/${registry}/python_app:v0.1.0
+                    image: cytopia/mypy # doesn't really matter, so may as well use an image already downloaded
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: [
-                      "echo $(pwd);\
-                      echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
-                      echo {{inputs.parameters.inputs}} | base64 --decode  > sampleinputs.json;\
-                      echo {{inputs.parameters.assertions}} | base64 --decode > assertedoutputs.json;\
-                      run-test process.py sampleinputs.json assertedoutputs.json\
-                      echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
+                      "echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
                       echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile;
                       "
                     ]
@@ -145,7 +177,6 @@ spec:
                     volumeMounts:
                     - mountPath: /work 
                       name: work
-                
                 
                 - name: build-docker-image
                   inputs:
@@ -166,8 +197,15 @@ spec:
                       name: work
 
                 - name: cassandra
+                  inputs:
+                    parameters:
+                      - name: table
                   container:
-                    image: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 ## this isn't the right image, need one with entrypoint.py
+                    image: ${registryprefix}/${project}/${registry}/cassandrapy:v0.1.0 
+                    command: [sh, -c]
+                    args: [
+                      "python3 entrypoint.py {{inputs.parameters.table}};" #
+                    ]
                   envFrom:
                     - secretRef:
                         name: ${cassandrasecret} # add this from terraform
@@ -388,6 +426,10 @@ spec:
                 dataKey: body.outputs # mode, checkpoint_location, output_name (which is probably just app name?)
               dest: spec.arguments.parameters.4.value
             - src:
-                dependencyName: deploypysparkjob
-                dataKey: body.fileinfo # max_file_age)
+                dependencyName: deploypysparkjob # todo, may not really need this if we fix https://github.com/StreamState/k8s_poc/issues/35
+                dataKey: body.fileinfo # max_file_age
               dest: spec.arguments.parameters.5.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.table # primary_keys: list, output_schema: avro
+              dest: spec.arguments.parameters.6.value

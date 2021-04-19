@@ -5,7 +5,10 @@ from kubernetes.client.api_client import ApiClient
 from kubernetes.client.api import CoreV1Api
 import subprocess
 from typing import List, Dict, Tuple, Union
-from request_body import create_table_name
+from streamstate_utils.cassandra_utils import (
+    get_cassandra_key_space_from_org_name,
+    get_cassandra_table_name_from_app_name,
+)
 
 ## use REST api to call this on initial project creation
 import json
@@ -74,9 +77,11 @@ def apply_table(
         [field["name"] + " " + _convert_type(field["type"]) for field in fields]
     )
     primary_key_str = ",".join(primary_keys)
-    table_name = create_table_name(org_name, app_name, version)
+    key_space = get_cassandra_key_space_from_org_name(org_name)
+    table_name = get_cassandra_table_name_from_app_name(app_name, version)
+    full_table_name = f"{key_space}.{table_name}"
     sql = f"""
-        CREATE TABLE {table_name} ({field_list}, 
+        CREATE TABLE {full_table_name} ({field_list}, 
         PRIMARY KEY ({primary_key_str}));
     """
     session.execute(sql)
@@ -170,6 +175,8 @@ def list_keyspaces(session: Session, org_name: str) -> dict:
 def get_data_from_table(
     session: Session, org_name: str, app_name: str, version: int
 ) -> dict:
-    table_name = create_table_name(org_name, app_name, version)
-    fields = session.execute(f"SELECT * FROM {table_name};")
+    key_space = get_cassandra_key_space_from_org_name(org_name)
+    table_name = get_cassandra_table_name_from_app_name(app_name, version)
+    full_table_name = f"{key_space}.{table_name}"
+    fields = session.execute(f"SELECT * FROM {full_table_name};")
     return {"fields": fields}

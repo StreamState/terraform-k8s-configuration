@@ -1,11 +1,13 @@
-FROM python:3.6-jessie
+FROM python:3.7-slim
+RUN groupadd -r -g 999 cassandra && useradd -r -g cassandra -u 999 cassandra
 RUN pip3 install kubernetes 
-RUN pip3 install uvicorn[standard]
-RUN pip3 install fastapi
 RUN pip3 install cassandra-driver==3.24.0
 RUN pip3 install avro_validator==1.0.9 
-#COPY sparkstreaming sparkstreaming
-COPY backendapp backendapp
-WORKDIR /backendapp
-#CMD uvicorn server:app --reload
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0",  "--port", "8000"]
+RUN pip3 install streamstate-utils==0.3.0
+RUN mkdir backend
+RUN mkdir -p /opt/cassandra/work-dir
+WORKDIR /opt/cassandra/work-dir
+COPY entrypoint.py /opt/cassandra/work-dir/entrypoint.py
+COPY provision_cassandra.py /opt/cassandra/work-dir/provision_cassandra.py
+RUN chown -R cassandra:cassandra /opt/cassandra/work-dir
+USER cassandra
