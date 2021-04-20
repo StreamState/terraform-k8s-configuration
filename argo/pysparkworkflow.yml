@@ -121,9 +121,9 @@ spec:
                     parameters:
                       - name: pythoncode
                   container:
-                    volumeMounts: # may not need this
-                    - mountPath: /work #this persists across steps
-                      name: work
+                    #volumeMounts: # may not need this
+                    #- mountPath: /work #this persists across steps
+                    #  name: work
                     image: cytopia/mypy #${registryprefix}/${project}/${project}/scalacompile:v0.8.0
                     command: [sh, -c]
                     args: [
@@ -140,7 +140,7 @@ spec:
                       - name: inputs
                       - name: assertions
                   container:
-                    image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
+                    image: ${registryprefix}/${project}/${project}/pysparktest:v0.1.0
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: [
@@ -151,14 +151,15 @@ spec:
                       run-test process.py sampleinputs.json assertedoutputs.json
                       "
                     ]
-                    workingDir: /work
-                    volumeMounts:
-                    - mountPath: /work 
-                      name: work
+                    #workingDir: /work
+                    #volumeMounts:
+                    #- mountPath: /work 
+                    #  name: work
 
                 - name: create-docker-file
                   inputs:
                     parameters:
+                      - name: pythoncode
                       - name: dockerfileline1 
                         value: FROM ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
                       - name: dockerfileline2 
@@ -168,7 +169,8 @@ spec:
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: [
-                      "echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
+                      "echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
+                      echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
                       echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile;
                       "
                     ]
