@@ -140,7 +140,7 @@ spec:
                       - name: inputs
                       - name: assertions
                   container:
-                    image: ${registryprefix}/${project}/${registry}/pysparkbase:v0.1.0
+                    image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: [
@@ -200,7 +200,7 @@ spec:
                     parameters:
                       - name: table
                   container:
-                    image: ${registryprefix}/${project}/${registry}/cassandrapy:v0.1.0 
+                    image: ${registryprefix}/${project}/${project}/cassandrapy:v0.1.0 
                     command: [sh, -c]
                     args: [
                       "python3 entrypoint.py {{inputs.parameters.table}};" #
