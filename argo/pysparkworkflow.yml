@@ -57,6 +57,10 @@ spec:
                       - name: pythoncode
                       - name: inputs
                       - name: assertions
+                      - name: kafka
+                      - name: outputs
+                      - name: fileinfo
+                      - name: table
                   dag:
                     tasks:
                     - name: runmypy
@@ -82,8 +86,8 @@ spec:
                       template: cassandra
                       arguments:
                         parameters:
-                          - name: table
-                            value: "{{inputs.parameters.table}}"
+                         - name: table
+                           value: "{{inputs.parameters.table}}" # why does it error here??  could it be table is a reserved name?
                       dependencies: [runmypy, rununittests]
 
 
@@ -153,11 +157,6 @@ spec:
                       name: work
 
                 - name: create-docker-file
-                  inputs:
-                    parameters:
-                      - name: pythoncode
-                      - name: inputs
-                      - name: assertions
                   inputs:
                     parameters:
                       - name: dockerfileline1 
@@ -325,85 +324,7 @@ spec:
                           prometheus:
                             jmxExporterJar: "/prometheus/jmx_prometheus_javaagent-0.11.0.jar"
                             port: 8090
-                        ---
-                        apiVersion: monitoring.coreos.com/v1
-                        kind: Prometheus
-                        metadata:
-                          name: prometheus
-                          namespace: monitoring
-                        spec:
-                          serviceAccountName: prometheus-kube-prometheus-operator
-                          serviceMonitorSelector:
-                            matchLabels:
-                              release: prometheus-testdev # todo, this should be prometheus- metadata: name
-                          resources:
-                            requests:
-                              memory: 50Mi
-                          scrapeInterval: 10s
-                        ---
-                        apiVersion: v1
-                        kind: Service
-                        metadata:
-                          name: example-app-service
-                          namespace: ${namespace} #from terraform
-                          labels:
-                            sparkoperator.k8s.io/app-name: testdev # todo, this should be same as metadata: name
-                        spec:
-                          ports:
-                          - name: web
-                            port: 8090
-                            targetPort: 8090
-                            protocol: TCP
-                          selector:
-                            sparkoperator.k8s.io/app-name: testdev # todo, this should be same as metadata: name
-                        ---
-                        apiVersion: monitoring.coreos.com/v1
-                        kind: ServiceMonitor
-                        metadata:
-                          name: example-app
-                          namespace: ${namespace} #from terraform
-                          labels:
-                            release: prometheus-testdev # todo, this should be prometheus- metadata: name
-                        spec:
-                          selector:
-                            matchLabels:
-                              sparkoperator.k8s.io/app-name: testdev # todo, this should be same as metadata: name
-                          endpoints:
-                          - port: web
-                      # ---
-                      # apiVersion: storage.k8s.io/v1
-                      # kind: StorageClass
-                      # metadata:
-                      #   name: spark-data # probably need this to be named per-job
-                      # provisioner: kubernetes.io/gce-pd
-                      # volumeBindingMode: WaitForFirstConsumer
-                      # parameters:
-                      #   type: pd-ssd
-                      #   fstype: ext4
-                      #   replication-type: none
-
-                      # ---
-                      # kind: PersistentVolume
-                      # apiVersion: v1
-                      # metadata:
-                      #   name: spark-data # probably need this to be named per-job
-                      # spec:
-                      #   capacity:
-                      #     storage: 100Mi
-                      #   accessModes:
-                      #     - ReadWriteOnce
-
-                      # ---
-                      # kind: PersistentVolumeClaim
-                      # apiVersion: v1
-                      # metadata:
-                      #   name: spark-data # probably need this to be named per-job
-                      # spec:
-                      #   accessModes:
-                      #     - ReadWriteOnce
-                      #   resources:
-                      #     requests:
-                      #       storage: 100Mi
+                        
     
           parameters:
             - src:

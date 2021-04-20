@@ -488,32 +488,32 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
   })
 }
 
-locals {
-  resource_list = yamldecode(templatefile("../../argo/pysparkworkflow.yml", {
-    project           = var.project,
-    organization      = var.organization
-    dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
-    registry          = var.org_registry
-    registryprefix    = var.registryprefix
-    runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
-    cassandrasecret   = kubernetes_secret.cassandra_svc.metadata.0.name
-    dataconfig        = kubernetes_config_map.usefuldata.metadata.0.name
-    namespace         = kubernetes_namespace.mainnamespace.metadata.0.name
-  })) #.items
-}
-
-resource "kubectl_manifest" "pysparkeventworkflow" {
-  count              = 1 #length(local.resource_list)
-  yaml_body          = yamlencode(local.resource_list)
-  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on         = [kubectl_manifest.pysparkeventworkflow]
-}
-#resource "kubectl_manifest" "pysparkeventworkflow" {
-#  count              = 1
-#  yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
-#  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-#  depends_on         = [kubectl_manifest.pysparkeventworkflow]
+#locals {
+#  resource_list = yamldecode(templatefile("../../argo/pysparkworkflow.yml", {
+#    project           = var.project,
+#    organization      = var.organization
+#    dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
+#    registry          = var.org_registry
+#    registryprefix    = var.registryprefix
+#    runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
+#    cassandrasecret   = kubernetes_secret.cassandra_svc.metadata.0.name
+#    dataconfig        = kubernetes_config_map.usefuldata.metadata.0.name
+#    namespace         = kubernetes_namespace.mainnamespace.metadata.0.name
+#  })) #.items
 #}
+
+#resource "kubectl_manifest" "pysparkeventworkflow" {
+#  count              = 1 #length(local.resource_list)
+#  yaml_body          = yamlencode(local.resource_list)
+#  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+# depends_on         = [kubectl_manifest.argoeventswebhook]
+#}
+resource "kubectl_manifest" "pysparkeventworkflow" {
+  count              = 1
+  yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
+  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on         = [kubectl_manifest.argoeventswebhook]
+}
 
 
 # data "kubectl_file_documents" "ingressmain" {
