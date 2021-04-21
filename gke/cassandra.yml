@@ -15,7 +15,7 @@ metadata:
   name: ${data_center}
   #namespace: default
 spec:
-  clusterName: ${cluster_name}
+  clusterName: ${cassandra_cluster_name}
   serverType: cassandra
   serverVersion: 3.11.7
   superuserSecretName: ${secret}

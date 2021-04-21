@@ -10,7 +10,6 @@ from streamstate_utils.cassandra_utils import (
     get_cassandra_table_name_from_app_name,
 )
 
-## use REST api to call this on initial project creation
 import json
 from avro_validator.schema import Schema, RecordType
 
@@ -30,7 +29,7 @@ def get_cassandra_session(cassandra_input: CassandraInputStruct) -> Session:
     return cluster.connect()
 
 
-def _get_existing_schema(
+def get_existing_schema(
     session: Session, org_name: str, app_name: str
 ) -> Tuple[str, int]:
     rows = session.execute(
@@ -147,7 +146,7 @@ def create_schema(
     app_name = schema["name"]
     field_names = [field["name"] for field in schema["fields"]]
     assert _sublist(primary_keys, field_names)
-    prev_schema, prev_version = _get_existing_schema(session, org_name, app_name)
+    prev_schema, prev_version = get_existing_schema(session, org_name, app_name)
     if prev_schema != avro_schema:
         version = prev_version + 1
         # TODO!  Figure out replication needs

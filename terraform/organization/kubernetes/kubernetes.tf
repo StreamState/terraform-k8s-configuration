@@ -245,14 +245,20 @@ resource "random_string" "cassandra_userid" {
   length  = 8
   special = false
 }
+
+locals {
+  username = random_string.cassandra_userid.result
+  password = random_password.cassandra_password.result
+}
+
 resource "kubernetes_secret" "cassandra_svc" {
   metadata {
     name      = "cassandra-secret"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
   data = {
-    username = random_string.cassandra_userid.result
-    password = random_password.cassandra_password.result
+    username = local.username
+    password = local.password
   }
   type       = "kubernetes.io/generic"
   depends_on = [kubernetes_namespace.mainnamespace]
@@ -306,6 +312,11 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
     resources  = ["sparkapplications"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
   depends_on = [kubernetes_namespace.argoevents]
 }
 resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
@@ -345,9 +356,9 @@ resource "helm_release" "cassandra" {
 
 data "kubectl_file_documents" "cassandra" {
   content = templatefile("../../gke/cassandra.yml", {
-    secret       = kubernetes_secret.cassandra_svc.metadata.0.name,
-    data_center  = var.data_center,
-    cluster_name = var.cluster_name
+    secret                 = kubernetes_secret.cassandra_svc.metadata.0.name,
+    data_center            = var.data_center,
+    cassandra_cluster_name = var.cassandra_cluster_name
   })
 }
 
@@ -370,6 +381,7 @@ resource "kubernetes_config_map" "usefuldata" {
 
   depends_on = [kubernetes_namespace.mainnamespace]
 }
+
 
 resource "kubectl_manifest" "cassandra" {
   count              = 3 # length(data.kubectl_file_documents.cassandra.documents)
