@@ -1,5 +1,5 @@
 from typing import List
-from pyspsark.sql import DataFrame
+from pyspark.sql import DataFrame
 
 
 def process(dfs: List[DataFrame]) -> DataFrame:

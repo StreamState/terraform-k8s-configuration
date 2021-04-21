@@ -87,12 +87,16 @@ spec:
                       arguments:
                         parameters:
                          - name: table
-                           value: "{{inputs.parameters.table}}" # why does it error here??  could it be table is a reserved name?
+                           value: "{{inputs.parameters.table}}" 
                       dependencies: [runmypy, rununittests]
 
 
                     - name: builddocker
                       template: create-docker-file
+                      arguments:
+                        parameters:
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}" 
                       dependencies: [runmypy, rununittests]
 
                     - name: deploydocker 
@@ -141,14 +145,14 @@ spec:
                       - name: assertions
                   container:
                     image: ${registryprefix}/${project}/${project}/pysparktest:v0.1.0
-                    imagePullPolicy: IfNotPresent
+                    imagePullPolicy: Always
                     command: [sh, -c]
                     args: [
                       "echo $(pwd);\
                       echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
-                      echo {{inputs.parameters.inputs}} > sampleinputs.json;\
-                      echo {{inputs.parameters.assertions}} > assertedoutputs.json;\
-                      run-test process.py sampleinputs.json assertedoutputs.json
+                      echo '{{inputs.parameters.inputs}}' > sampleinputs.json;\
+                      echo '{{inputs.parameters.assertions}}' > assertedoutputs.json;\
+                      run-test '/opt/spark/work-dir/' sampleinputs.json assertedoutputs.json
                       "
                     ]
                     #workingDir: /work
@@ -203,9 +207,10 @@ spec:
                       - name: table
                   container:
                     image: ${registryprefix}/${project}/${project}/cassandrapy:v0.1.0 
+                    imagePullPolicy: Always
                     command: [sh, -c]
                     args: [
-                      "python3 entrypoint.py {{inputs.parameters.table}};" #
+                      "python3 entrypoint.py '{{inputs.parameters.table}}';" #
                     ]
                   envFrom:
                     - secretRef:
@@ -265,9 +270,9 @@ spec:
                         arguments:
                           - testdev 
                             # todo, this should be same as metadata: name
-                          - {{inputs.parameters.outputs}}
-                          - {{inputs.parameters.fileinfo}}
-                          - {{inputs.parameters.inputs}}
+                          - '{{inputs.parameters.outputs}}'
+                          - '{{inputs.parameters.fileinfo}}'
+                          - '{{inputs.parameters.inputs}}'
                           # todo, need to pass in version from output of cassandra step
                         
                           #volumes:

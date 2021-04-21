@@ -19,12 +19,12 @@ from streamstate_utils.structs import CassandraInputStruct
 
 def get_cassandra_session(cassandra_input: CassandraInputStruct) -> Session:
     auth_provider = PlainTextAuthProvider(
-        username=cassandra_input.cassandra_username,
+        username=cassandra_input.cassandra_user,
         password=cassandra_input.cassandra_password,
     )
     cluster = Cluster(
         [cassandra_input.cassandra_ip],
-        port=cassandra_input.port,
+        port=cassandra_input.cassandra_port,
         auth_provider=auth_provider,
     )
     return cluster.connect()

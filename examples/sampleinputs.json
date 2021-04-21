@@ -1,6 +1,6 @@
 [
     {
-        "folder": "topic1",
+        "topic": "topic1",
         "sample": [
             {
                 "field1": "somevalue"

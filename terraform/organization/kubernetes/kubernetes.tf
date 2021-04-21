@@ -270,6 +270,7 @@ resource "kubernetes_service_account" "cassandra_svc" {
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
+# this will have worklow permissions AND sparksubmit permissions
 resource "kubernetes_service_account" "argoevents-runsa" {
   metadata {
     name      = "argoevents-runsa"
@@ -297,13 +298,13 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
 }
 
 
-resource "kubernetes_service_account" "launchsparkoperator" {
-  metadata {
-    name      = "launchspark"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  }
-  depends_on = [kubernetes_namespace.mainnamespace]
-}
+#resource "kubernetes_service_account" "launchsparkoperator" {
+#  metadata {
+#    name      = "launchspark"
+#    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+#  }
+#  depends_on = [kubernetes_namespace.mainnamespace]
+#}
 resource "kubernetes_cluster_role" "launchsparkoperator" {
   metadata {
     name = "launchsparkoperator-role"
@@ -313,7 +314,7 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
     resources  = ["sparkapplications"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.argoevents]
 }
 resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   metadata {
@@ -326,10 +327,10 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.launchsparkoperator.metadata.0.name
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    name      = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    namespace = kubernetes_namespace.argoevents.metadata.0.name # is this for the service account?  I think so...
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.argoevents]
 }
 
 ##################
