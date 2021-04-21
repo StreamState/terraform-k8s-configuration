@@ -167,13 +167,13 @@ spec:
                       - name: dockerfileline1 
                         value: FROM ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
                       - name: dockerfileline2 
-                        value: COPY process.py /opt/spark/work-dir/process.py
+                        value: COPY /work/process.py /opt/spark/work-dir/process.py
                   container:
                     image: cytopia/mypy # doesn't really matter, so may as well use an image already downloaded
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: [
-                      "echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
+                      "echo {{inputs.parameters.pythoncode}} | base64 --decode > /work/process.py;\
                       echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
                       echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile;
                       "
@@ -193,6 +193,8 @@ spec:
                   container:
                     image: gcr.io/kaniko-project/executor:latest
                     args:
+                    - "ls -la"
+                    - "cat /work/process.py"
                     - "--dockerfile=/work/Final.Dockerfile"
                     - "--context=dir:///work"
                     - "--destination={{inputs.parameters.image}}"
@@ -240,7 +242,7 @@ spec:
                     # delimited expressions.
                     # For more details: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
                     successCondition: status.succeeded > 0
-                    failureCondition: status.failed > 3 
+                    failureCondition: status.failed > 1
                     manifest: |               #put your kubernetes spec here
                       apiVersion: "sparkoperator.k8s.io/v1beta2"
                       kind: SparkApplication
