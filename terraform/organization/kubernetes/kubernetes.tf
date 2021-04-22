@@ -204,7 +204,7 @@ resource "kubernetes_role" "sparkrules" {
   }
   rule {
     api_groups = [""]
-    resources  = ["pods"]
+    resources  = ["pods", "configmaps"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
   depends_on = [kubernetes_namespace.mainnamespace]
@@ -264,19 +264,32 @@ resource "kubernetes_secret" "cassandra_svc" {
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
-resource "kubernetes_service_account" "cassandra_svc" {
+resource "kubernetes_secret" "cassandra_svcargo" {
   metadata {
-    name      = "cassandra-svc"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    name      = "cassandra-secret"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
   }
-
-  secret {
-    name = kubernetes_secret.cassandra_svc.metadata.0.name
+  data = {
+    username = local.username
+    password = local.password
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  type       = "kubernetes.io/generic"
+  depends_on = [kubernetes_namespace.argoevents]
 }
 
-# this will have worklow permissions AND sparksubmit permissions
+#resource "kubernetes_service_account" "cassandra_svc" {
+#  metadata {
+#    name      = "cassandra-svc"
+#    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+#  }
+
+#  secret {
+#    name = kubernetes_secret.cassandra_svc.metadata.0.name
+#  }
+#  depends_on = [kubernetes_namespace.mainnamespace]
+#}
+
+# this will have worklow permissions 
 resource "kubernetes_service_account" "argoevents-runsa" {
   metadata {
     name      = "argoevents-runsa"
@@ -303,6 +316,15 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   depends_on = [kubernetes_namespace.argoevents]
 }
 
+resource "kubernetes_service_account" "argoevents-sparksubmit" {
+  metadata {
+    name      = "argoevents-sparksubmit"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+  depends_on = [
+    kubernetes_namespace.argoevents
+  ]
+}
 resource "kubernetes_cluster_role" "launchsparkoperator" {
   metadata {
     name = "launchsparkoperator-role"
@@ -312,11 +334,11 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
     resources  = ["sparkapplications"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
-  rule {
-    api_groups = ["batch"]
-    resources  = ["jobs"]
-    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
-  }
+  #rule {
+  #  api_groups = ["batch"]
+  #  resources  = ["jobs"]
+  #  verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  #}
   depends_on = [kubernetes_namespace.argoevents]
 }
 resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
@@ -330,7 +352,7 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    name      = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
     namespace = kubernetes_namespace.argoevents.metadata.0.name # is this for the service account?  I think so...
   }
   depends_on = [kubernetes_namespace.argoevents]
@@ -381,7 +403,25 @@ resource "kubernetes_config_map" "usefuldata" {
 
   depends_on = [kubernetes_namespace.mainnamespace]
 }
+resource "kubernetes_config_map" "usefuldataargo" {
+  metadata {
+    name      = "sparkjobdata"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
 
+  data = {
+    data_center            = var.data_center
+    cassandra_cluster_name = var.cassandra_cluster_name
+    port                   = "9042"
+    organization           = var.organization
+    project                = var.project
+    org_bucket             = var.spark_storage_bucket_url
+    # add checkpoint location here...
+    spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+
+  depends_on = [kubernetes_namespace.argoevents, kubernetes_namespace.mainnamespace]
+}
 
 resource "kubectl_manifest" "cassandra" {
   count              = 3 # length(data.kubectl_file_documents.cassandra.documents)
@@ -460,15 +500,19 @@ resource "kubectl_manifest" "argoeventswebhook" {
 
 data "kubectl_file_documents" "pysparkeventworkflow" {
   content = templatefile("../../argo/pysparkworkflow.yml", {
-    project           = var.project,
-    organization      = var.organization
-    dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
-    registry          = var.org_registry
-    registryprefix    = var.registryprefix
-    runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
-    cassandrasecret   = kubernetes_secret.cassandra_svc.metadata.0.name
-    dataconfig        = kubernetes_config_map.usefuldata.metadata.0.name
-    namespace         = kubernetes_namespace.mainnamespace.metadata.0.name
+    project                   = var.project,
+    organization              = var.organization
+    dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
+    registry                  = var.org_registry
+    registryprefix            = var.registryprefix
+    runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
+    cassandrasecret           = kubernetes_secret.cassandra_svc.metadata.0.name
+    cassandrasecretargo       = kubernetes_secret.cassandra_svcargo.metadata.0.name
+    dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
+    dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
+    namespace                 = kubernetes_namespace.mainnamespace.metadata.0.name
+
   })
 }
 

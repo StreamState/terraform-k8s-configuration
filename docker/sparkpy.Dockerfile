@@ -21,7 +21,7 @@ RUN chmod 644 /prometheus/jmx_prometheus_javaagent-0.11.0.jar
 RUN mkdir -p /etc/metrics/conf
 COPY sparkstreaming/metrics.properties /etc/metrics/conf
 COPY sparkstreaming/prometheus.yaml /etc/metrics/conf
-RUN pip3 install streamstate-utils==0.3.3
+RUN pip3 install streamstate-utils==0.3.4
 COPY streamstate_scripts/dev_app.py /opt/spark/work-dir/dev_app.py
 COPY streamstate_scripts/main_app.py /opt/spark/work-dir/main_app.py
 COPY streamstate_scripts/persist_app.py /opt/spark/work-dir/persist_app.py

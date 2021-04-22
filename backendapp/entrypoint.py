@@ -16,7 +16,6 @@ import json
 
 def main():
     [_, table_struct] = sys.argv
-    print(table_struct)
     table_schema = marshmallow_dataclass.class_schema(TableStruct)()
     table_info = table_schema.load(json.loads(table_struct))
     cassandra_config = get_cassandra_inputs_from_config_map()
@@ -31,7 +30,7 @@ def main():
         table_info.primary_keys,
         table_info.output_schema,
     )
-    return version
+    print(version)
 
 
 if __name__ == "__main__":

@@ -42,7 +42,7 @@ spec:
                     - name: table
                       value: hello world # this should be overridden
                 entrypoint: main     
-                volumeClaimTemplates: # do I need this?
+                volumeClaimTemplates:
                 - metadata:
                     name: work
                   spec:
@@ -117,8 +117,9 @@ spec:
                            value: "{{inputs.parameters.outputs}}"
                          - name: fileinfo
                            value: "{{inputs.parameters.fileinfo}}"
-                         #- name: version
-                         #  value: "{{tasks.runcassandra.outputs.parameters.version}}"
+                         - name: version
+                           value: "{{tasks.runcassandra.outputs.result}}"
+                           #value: "{{tasks.runcassandra.outputs.parameters.version}}"
                       dependencies: [deploydocker, runcassandra]
                     
 
@@ -172,10 +173,13 @@ spec:
                         value: COPY process.py /opt/spark/work-dir/process.py
                   container:
                     image: cytopia/mypy # doesn't really matter, so may as well use an image already downloaded
+                    #image: ${registryprefix}/${project}/${project}/pysparktest:v0.1.0 # doesn't really matter, so may as well use an image already downloaded
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
+                    #securityContext:
+                    #  privileged: true
                     args: [
-                      "echo {{inputs.parameters.pythoncode}} | base64 --decode > /work/process.py;\
+                      "echo {{inputs.parameters.pythoncode}} | base64 -d > /work/process.py;\
                       echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
                       echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile; \
                       cat /work/process.py;
@@ -208,59 +212,35 @@ spec:
                   inputs:
                     parameters:
                       - name: table
-                  resource:
-                    action: create   
-                    successCondition: status.succeeded > 0
-                    failureCondition: status.failed > 1
-                    manifest: |           
-                      apiVersion: batch/v1
-                      kind: Job
-                      metadata:
-                        generateName: cassandra-  # Name of this job
-                        namespace: ${namespace}
-                      spec:
-                        template:
-                          spec:
-                            restartPolicy: Never
-                            containers:
-                            - name: createcassandra
-                              image: ${registryprefix}/${project}/${project}/cassandrapy:v0.1.0 
-                              imagePullPolicy: Always
-                              envFrom:
-                              - secretRef:
-                                  name: ${cassandrasecret}
-                              - configMapRef:
-                                  name: ${dataconfig} 
-                              command: [sh, -c]
-                              args: 
-                              - python3 entrypoint.py '{{inputs.parameters.table}}' > version
-                              #volumeMounts:
-                              #- mountPath: /work 
-                              #  name: work
-                  #outputs:
-                  #  parameters:
-                    # job-name is extracted using a jsonPath expression and is equivalent to:
-                    # `kubectl get job <jobname> -o jsonpath='{.metadata.name}'`
-                  #  - name: job-name
-                  #    valueFrom:
-                  #      jsonPath: '{.metadata.name}'
-                    # job-obj is extracted using a jq filter and is equivalent to:
-                    # `kubectl get job <jobname> -o json | jq -c '.'
-                    # which returns the entire job object in json format
-                  #  - name: job-obj
-                  #    valueFrom:
-                  #      jqFilter: '.'
-
-
+                  script: # script allows us to get the output from the console rather than from a file
+                  #container:
+                    image: ${registryprefix}/${project}/${project}/cassandrapy:v0.1.0 
+                    imagePullPolicy: Always
+                    envFrom:
+                    - secretRef:
+                        name: ${cassandrasecretargo}
+                    - configMapRef:
+                        name: ${dataconfigargo}
+                    command: [sh]
+                    #securityContext:
+                    #  privileged: true
+                    source: | 
+                      python3 entrypoint.py '{{inputs.parameters.table}}'
+                    #workingDir: /work
+                    #volumeMounts:
+                    #- mountPath: /work 
+                    #  name: work
+                
                   #outputs:
                   #  parameters:
                   #  - name: version       # name of output parameter
                   #    valueFrom:
-                  #      path: /work/version
+                  #      path: /tmp/version.txt
                   
 
                   #todo, loop this for each topic.  see, eg, https://github.com/argoproj/argo-workflows/blob/master/examples/loops.yaml
                 - name: sparksubmit
+                  serviceAccountName: ${sparksubmitserviceaccount}
                   inputs:
                     parameters:
                       # Name of the image to push
@@ -271,6 +251,7 @@ spec:
                       - name: kafka
                       - name: outputs
                       - name: fileinfo
+                      - name: version
                       #- name: version
                   resource:                   # indicates that this is a resource template
                     action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
@@ -310,8 +291,7 @@ spec:
                           "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                         
                         arguments:
-                          - testdev 
-                            # todo, this should be same as metadata: name
+                          - testdev # todo, this should be same as metadata: name
                           - '{{inputs.parameters.outputs}}'
                           - '{{inputs.parameters.fileinfo}}'
                           - '{{inputs.parameters.inputs}}'
