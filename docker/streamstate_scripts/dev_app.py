@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate_utils.utils import map_avro_to_spark_schema
+from streamstate_utils.pyspark_utils import map_avro_to_spark_schema
 from streamstate_utils.generic_wrapper import (
     file_wrapper,
     write_console,
@@ -40,7 +40,7 @@ def dev_from_file(
 if __name__ == "__main__":
     [
         _,
-        app_name,
+        app_name,  # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
         output_struct,
         file_struct,
         input_struct,

@@ -204,7 +204,7 @@ resource "kubernetes_role" "sparkrules" {
   }
   rule {
     api_groups = [""]
-    resources  = ["pods"]
+    resources  = ["pods", "configmaps"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
   depends_on = [kubernetes_namespace.mainnamespace]
@@ -245,31 +245,51 @@ resource "random_string" "cassandra_userid" {
   length  = 8
   special = false
 }
+
+locals {
+  username = random_string.cassandra_userid.result
+  password = random_password.cassandra_password.result
+}
+
 resource "kubernetes_secret" "cassandra_svc" {
   metadata {
     name      = "cassandra-secret"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
   data = {
-    username = random_string.cassandra_userid.result
-    password = random_password.cassandra_password.result
+    username = local.username
+    password = local.password
   }
   type       = "kubernetes.io/generic"
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
-resource "kubernetes_service_account" "cassandra_svc" {
+resource "kubernetes_secret" "cassandra_svcargo" {
   metadata {
-    name      = "cassandra-svc"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    name      = "cassandra-secret"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
   }
-
-  secret {
-    name = kubernetes_secret.cassandra_svc.metadata.0.name
+  data = {
+    username = local.username
+    password = local.password
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  type       = "kubernetes.io/generic"
+  depends_on = [kubernetes_namespace.argoevents]
 }
 
+#resource "kubernetes_service_account" "cassandra_svc" {
+#  metadata {
+#    name      = "cassandra-svc"
+#    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+#  }
+
+#  secret {
+#    name = kubernetes_secret.cassandra_svc.metadata.0.name
+#  }
+#  depends_on = [kubernetes_namespace.mainnamespace]
+#}
+
+# this will have worklow permissions 
 resource "kubernetes_service_account" "argoevents-runsa" {
   metadata {
     name      = "argoevents-runsa"
@@ -296,13 +316,14 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   depends_on = [kubernetes_namespace.argoevents]
 }
 
-
-resource "kubernetes_service_account" "launchsparkoperator" {
+resource "kubernetes_service_account" "argoevents-sparksubmit" {
   metadata {
-    name      = "launchspark"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    name      = "argoevents-sparksubmit"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [
+    kubernetes_namespace.argoevents
+  ]
 }
 resource "kubernetes_cluster_role" "launchsparkoperator" {
   metadata {
@@ -313,7 +334,12 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
     resources  = ["sparkapplications"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  #rule {
+  #  api_groups = ["batch"]
+  #  resources  = ["jobs"]
+  #  verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  #}
+  depends_on = [kubernetes_namespace.argoevents]
 }
 resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   metadata {
@@ -326,10 +352,10 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.launchsparkoperator.metadata.0.name
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    name      = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
+    namespace = kubernetes_namespace.argoevents.metadata.0.name # is this for the service account?  I think so...
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.argoevents]
 }
 
 ##################
@@ -352,9 +378,9 @@ resource "helm_release" "cassandra" {
 
 data "kubectl_file_documents" "cassandra" {
   content = templatefile("../../gke/cassandra.yml", {
-    secret       = kubernetes_secret.cassandra_svc.metadata.0.name,
-    data_center  = var.data_center,
-    cluster_name = var.cluster_name
+    secret                 = kubernetes_secret.cassandra_svc.metadata.0.name,
+    data_center            = var.data_center,
+    cassandra_cluster_name = var.cassandra_cluster_name
   })
 }
 
@@ -376,6 +402,25 @@ resource "kubernetes_config_map" "usefuldata" {
   }
 
   depends_on = [kubernetes_namespace.mainnamespace]
+}
+resource "kubernetes_config_map" "usefuldataargo" {
+  metadata {
+    name      = "sparkjobdata"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+
+  data = {
+    data_center            = var.data_center
+    cassandra_cluster_name = var.cassandra_cluster_name
+    port                   = "9042"
+    organization           = var.organization
+    project                = var.project
+    org_bucket             = var.spark_storage_bucket_url
+    # add checkpoint location here...
+    spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+  }
+
+  depends_on = [kubernetes_namespace.argoevents, kubernetes_namespace.mainnamespace]
 }
 
 resource "kubectl_manifest" "cassandra" {
@@ -452,62 +497,29 @@ resource "kubectl_manifest" "argoeventswebhook" {
   depends_on         = [kubectl_manifest.argoevents]
 }
 
-data "kubectl_file_documents" "argoeventworkflow" {
-  content = templatefile("../../argo/eventworkflow.yml", {
-    project           = var.project,
-    dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
-    registry          = var.org_registry
-    registryprefix    = var.registryprefix
-    runserviceaccount = kubernetes_service_account.argoevents-runsa.metadata.0.name
+
+data "kubectl_file_documents" "pysparkeventworkflow" {
+  content = templatefile("../../argo/pysparkworkflow.yml", {
+    project                   = var.project,
+    organization              = var.organization
+    dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
+    registry                  = var.org_registry
+    registryprefix            = var.registryprefix
+    runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
+    cassandrasecret           = kubernetes_secret.cassandra_svc.metadata.0.name
+    cassandrasecretargo       = kubernetes_secret.cassandra_svcargo.metadata.0.name
+    dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
+    dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
+    namespace                 = kubernetes_namespace.mainnamespace.metadata.0.name
+
   })
 }
-## The docker containers needed for this are built as part of the CI/CD pipeline that
-## includes provisioning global TF, so the images will be available
-## question: which images?  The latest?  Or specific tags?
-resource "kubectl_manifest" "argoeventworkflow" {
+
+resource "kubectl_manifest" "pysparkeventworkflow" {
   count              = 1
-  yaml_body          = element(data.kubectl_file_documents.argoeventworkflow.documents, count.index)
+  yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
 
-# data "kubectl_file_documents" "ingressmain" {
-#   content = templatefile("../../gke/ingressmainspark.yml", {
-#     organization = var.organization
-#   })
-# }
-
-# resource "kubectl_manifest" "ingressmain" {
-#   count              = 1
-#   yaml_body          = element(data.kubectl_file_documents.ingressmain.documents, count.index)
-#   override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-# }
-
-# data "kubectl_file_documents" "ingressargo" {
-#   content = templatefile("../../gke/ingressargo.yml", {
-#     organization = var.organization
-#   })
-# }
-
-# resource "kubectl_manifest" "ingressargo" {
-#   count              = 1
-#   yaml_body          = element(data.kubectl_file_documents.ingressargo.documents, count.index)
-#   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-# }
-
-
-
-
-data "kubectl_file_documents" "restapi" {
-  content = templatefile("../../gke/restapi.yml", {
-    launchspark     = kubernetes_service_account.launchsparkoperator.metadata.0.name,
-    cassandrasecret = kubernetes_secret.cassandra_svc.metadata.0.name
-  })
-}
-
-resource "kubectl_manifest" "restapi" {
-  count              = 2 # length(data.kubectl_file_documents.restapi.documents)
-  yaml_body          = element(data.kubectl_file_documents.restapi.documents, count.index)
-  override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  depends_on         = [kubernetes_namespace.mainnamespace]
-}

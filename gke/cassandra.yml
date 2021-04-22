@@ -15,7 +15,7 @@ metadata:
   name: ${data_center}
   #namespace: default
 spec:
-  clusterName: ${cluster_name}
+  clusterName: ${cassandra_cluster_name}
   serverType: cassandra
   serverVersion: 3.11.7
   superuserSecretName: ${secret}
@@ -39,25 +39,3 @@ spec:
       initial_heap_size: 800M
       max_heap_size: 800M
 
-## TODO!! This should NOT be needed
-
-# GKE automatically assigns in-cluster dns: my-svc.my-namespace.svc.my-zone
-# in this case, this would be dc1.mainspark.CassandraDatacenter.us-central1
-# ---
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: cassandraservice
-#   labels:
-#     cassandra.datastax.com/cluster: cluster1
-#     cassandra.datastax.com/datacenter: dc1
-#     cassandra.datastax.com/rack: default
-# spec:
-#   type: LoadBalancer
-#   ports:
-#   - port: 9042
-#     protocol: TCP
-#   selector:
-#     cassandra.datastax.com/cluster: cluster1
-#     cassandra.datastax.com/datacenter: dc1
-#     cassandra.datastax.com/rack: default

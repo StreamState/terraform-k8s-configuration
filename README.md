@@ -59,18 +59,18 @@ https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnect
 # setup for deploy
 
 todo! make this part of CI/CD pipeline for the entire project (streamstate) level
-* cat $TF_CREDS | sudo docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
-* sudo docker build . -f ./argo/scalacompile.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/scalacompile:v0.8.0
-
-
-* sudo docker build . -f ./argo/sparkbase.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0 
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkbase:v0.1.0
-
 
 * cd docker
 * sudo docker build . -f ./sparkpy.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0
+
+* sudo docker build . -f ./sparktest.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparktest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparktest:v0.1.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparktest:v0.1.0
+* cd ..
+
+* cd backendapp
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy:v0.1.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy:v0.1.0
 * cd ..
 
 # setup spark history server
@@ -90,11 +90,11 @@ To find webui url:
 
 # deploy workflow
 
-* kubectl  -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000 
-* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://localhost:12000/build/container
+* kubectl  -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=streamstatewebservice -o name) 12000:12000 
+
+* curl -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"output_name\": \"testapp\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":{\"name\": \"myappname\", \"fields\":[{\"name\":\"field1\", \"type\": \"string\"}]}} }" http://localhost:12000/build/container
 
 
-* curl -H "Content-Type: application/json" -X POST -d "{\"scalacode\":\"$(base64 -w 0 ./src/main/scala/custom.scala)\"}" http://[ipaddress from load balancer]:12000/build/container 
 
 
 # upload json to bucket
@@ -121,60 +121,6 @@ You may have to create a subfolder first (eg, /test)
 
 The backend for provisioning new jobs
 
-## python rest app
-
-* sudo docker build . -f backendapp/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.16.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/rest:v0.16.0
-* [do something here with ingress]
-
-After everything is provisioned, run the following:
-34.68.82.248
-curl 34.68.82.248:8000/database/create  -X POST 
-export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"string"}]}'
-curl 34.68.82.248:8000/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"primary_keys\":[\"last_name\"] }"
-
-curl 34.68.82.248:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
-
-
-* curl [ipaddress from ingress]:8000
-* curl [ipaddress from ingress]:8000/database/create  -X POST 
-* export AVRO_SCHEMA='{"name": "testapp", "type":"record", "doc": "testavro", "fields":[{"name": "first_name", "type":"string"}, {"name":"last_name", "type":"string"}]}'
-
-* curl [ipaddress from ingress]:8000/database/table/update  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"primary_keys\":[\"last_name\"] }"
-
-* curl [ipaddress from ingress]:8000/job/replay  -X POST -d "{\"organization\": \"$ORGANIZATION_NAME\", \"avro_schema\":$AVRO_SCHEMA, \"topics\":[\"test\"], \"brokers\":[\"broker1\"], \"namespace\": \"mainspark\", \"output_topic\":\"outputtest\", \"project\":\"$PROJECT_NAME\", \"registry\":\"us-central1-docker.pkg.dev\", \"version\": 1, \"cassandra_cluster_name\": \"cluster1\"}"
-
-
-
-
-## Knative: put on hold, for now...just use normal deploy/pod for now
-
-Initial KNative app will be stateless: simply take a json payload (including kafka secrets, and maybe cassandra secrets, though kafka will be outside the cluster and cassandra is within cluster) and create the required applications.  There will be one spark streaming application per topic (to persist) and one spark streaming application for doing stateful transformations on the kafka topics.   
-
-* sudo curl -L "https://storage.googleapis.com/knative-nightly/client/latest/kn-linux-amd64" -o /usr/local/bin/kn
-
-* sudo chmod +x /usr/local/bin/kn
-
-* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-crds.yaml
-
-* kubectl apply --filename https://github.com/knative/serving/releases/download/v0.20.0/serving-core.yaml
-
-* kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.19.1/kourier.yaml
-
-* export EXTERNAL_IP=$(kubectl -n kourier-system get service kourier -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-
-* kubectl patch configmap/config-network --namespace knative-serving --type merge --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
-
-* export KNATIVE_DOMAIN="$EXTERNAL_IP.nip.io"
-
-* kubectl patch configmap -n knative-serving config-domain -p "{"data": {"$KNATIVE_DOMAIN": ""}}"
-
-* kubectl apply --filename back-end-app.yml
-
-* kubectl get ksvc helloworld-go
-
-Curl the URL to test
-
 
 # dev area
 * sudo docker build . -t spsbt -f ./test_container/Dockerfile
@@ -198,14 +144,4 @@ Curl the URL to test
 * kubectl apply -f prometheustest/pysparkjob.yml
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
-# python based
 
-* pip3 install 'streamstate[test]'
-* python3 setup.py test
-
-
-# Docker images
-
-* argo/python_unit_test.Dockerfile needs to be built and pushed to streamstate docker registry.  It is used to run organization's unit tests when deploying a spark job through argo
-* argo/python_deploy.Dockerfile needs to be built and pushed to streamstate docker registry.  It is used as the base image for the spark operator's image, which is built per organization's app (process.py is added to it as part of argo workflow)
-* 

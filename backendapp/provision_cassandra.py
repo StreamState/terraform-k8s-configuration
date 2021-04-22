@@ -5,9 +5,11 @@ from kubernetes.client.api_client import ApiClient
 from kubernetes.client.api import CoreV1Api
 import subprocess
 from typing import List, Dict, Tuple, Union
-from request_body import create_table_name
+from streamstate_utils.cassandra_utils import (
+    get_cassandra_key_space_from_org_name,
+    get_cassandra_table_name_from_app_name,
+)
 
-## use REST api to call this on initial project creation
 import json
 from avro_validator.schema import Schema, RecordType
 
@@ -16,18 +18,18 @@ from streamstate_utils.structs import CassandraInputStruct
 
 def get_cassandra_session(cassandra_input: CassandraInputStruct) -> Session:
     auth_provider = PlainTextAuthProvider(
-        username=cassandra_input.cassandra_username,
+        username=cassandra_input.cassandra_user,
         password=cassandra_input.cassandra_password,
     )
     cluster = Cluster(
         [cassandra_input.cassandra_ip],
-        port=cassandra_input.port,
+        port=cassandra_input.cassandra_port,
         auth_provider=auth_provider,
     )
     return cluster.connect()
 
 
-def _get_existing_schema(
+def get_existing_schema(
     session: Session, org_name: str, app_name: str
 ) -> Tuple[str, int]:
     rows = session.execute(
@@ -74,9 +76,11 @@ def apply_table(
         [field["name"] + " " + _convert_type(field["type"]) for field in fields]
     )
     primary_key_str = ",".join(primary_keys)
-    table_name = create_table_name(org_name, app_name, version)
+    key_space = get_cassandra_key_space_from_org_name(org_name)
+    table_name = get_cassandra_table_name_from_app_name(app_name, version)
+    full_table_name = f"{key_space}.{table_name}"
     sql = f"""
-        CREATE TABLE {table_name} ({field_list}, 
+        CREATE TABLE {full_table_name} ({field_list}, 
         PRIMARY KEY ({primary_key_str}));
     """
     session.execute(sql)
@@ -84,6 +88,7 @@ def apply_table(
 
 # TODO: probably should NOT be in python (maybe provision from terraform?  or rest of github action?)
 # one table for ALL organizations
+# TODO: change dc1 to actual data center!!
 def create_tracking_table(session: Session):
     sql = """
         CREATE KEYSPACE IF NOT EXISTS admin_track WITH 
@@ -137,14 +142,15 @@ def create_schema(
     schema: dict,  # avro schema
 ):
     # will throw if schema isn't valid
-    avro_py, avro_schema = _parse_schema(schema)
+    _, avro_schema = _parse_schema(schema)
     app_name = schema["name"]
     field_names = [field["name"] for field in schema["fields"]]
     assert _sublist(primary_keys, field_names)
-    prev_schema, prev_version = _get_existing_schema(session, org_name, app_name)
+    prev_schema, prev_version = get_existing_schema(session, org_name, app_name)
     if prev_schema != avro_schema:
         version = prev_version + 1
         # TODO!  Figure out replication needs
+        # TODO: change dc1 to actual data center!!
         create_keyspace = f"""
             CREATE KEYSPACE IF NOT EXISTS {org_name} 
             WITH replication = {{ 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' }};
@@ -170,6 +176,8 @@ def list_keyspaces(session: Session, org_name: str) -> dict:
 def get_data_from_table(
     session: Session, org_name: str, app_name: str, version: int
 ) -> dict:
-    table_name = create_table_name(org_name, app_name, version)
-    fields = session.execute(f"SELECT * FROM {table_name};")
+    key_space = get_cassandra_key_space_from_org_name(org_name)
+    table_name = get_cassandra_table_name_from_app_name(app_name, version)
+    full_table_name = f"{key_space}.{table_name}"
+    fields = session.execute(f"SELECT * FROM {full_table_name};")
     return {"fields": fields}
