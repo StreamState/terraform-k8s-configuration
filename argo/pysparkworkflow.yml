@@ -306,7 +306,7 @@ spec:
                         driver:
                           coreRequest: 200m
                           memory: "512m"
-                          serviceAccount: spark # this maps to spark-gcs 
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
                           #volumeMounts:
                           #  - name: spark-data
                           #    mountPath: /mnt/spark/work

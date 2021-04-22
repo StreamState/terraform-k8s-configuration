@@ -507,6 +507,7 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     registryprefix            = var.registryprefix
     runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
     sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
+    sparkserviceaccount       = kubernetes_service_account.spark.metadata.0.name
     cassandrasecret           = kubernetes_secret.cassandra_svc.metadata.0.name
     cassandrasecretargo       = kubernetes_secret.cassandra_svcargo.metadata.0.name
     dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
