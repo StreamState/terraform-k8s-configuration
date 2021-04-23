@@ -92,7 +92,7 @@ To find webui url:
 
 * kubectl  -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=streamstatewebservice -o name) 12000:12000 
 
-* curl -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"output_name\": \"testapp\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":{\"name\": \"myappname\", \"fields\":[{\"name\":\"field1\", \"type\": \"string\"}]}} }" http://localhost:12000/build/container
+* curl -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"output_name\": \"testapp\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":{\"name\": \"myappname\", \"fields\":[{\"name\":\"field1\", \"type\": \"string\"}]}}, \"appname\":\"mytestapp\"}" http://localhost:12000/build/container
 
 
 
@@ -145,3 +145,10 @@ The backend for provisioning new jobs
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
 
+# test workload identity
+
+kubectl run -it \
+--image google/cloud-sdk:slim \
+--serviceaccount spark \
+--namespace mainspark \
+workload-identity-test

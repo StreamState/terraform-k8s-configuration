@@ -1,8 +1,10 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate_utils.pyspark_utils import map_avro_to_spark_schema
-from streamstate_utils.cassandra_utils import get_folder_location
+from streamstate_utils.pyspark_utils import (
+    map_avro_to_spark_schema,
+    get_folder_location,
+)
 from streamstate_utils.generic_wrapper import (
     kafka_wrapper,
     write_wrapper,

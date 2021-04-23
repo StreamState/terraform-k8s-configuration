@@ -41,6 +41,8 @@ spec:
                       value: hello world # this should be overridden
                     - name: table
                       value: hello world # this should be overridden
+                    - name: appname
+                      value: hello world
                 entrypoint: main     
                 volumeClaimTemplates:
                 - metadata:
@@ -61,6 +63,7 @@ spec:
                       - name: outputs
                       - name: fileinfo
                       - name: table
+                      - name: appname
                   dag:
                     tasks:
                     - name: runmypy
@@ -71,7 +74,6 @@ spec:
                            value: "{{inputs.parameters.pythoncode}}"
                          
                     - name: rununittests
-                      #dependencies: [runmypy]
                       template: unittests
                       arguments:
                         parameters: 
@@ -103,6 +105,40 @@ spec:
                       template: build-docker-image
                       dependencies: [builddocker]
 
+                    - name: runprometheus
+                      template: prometheus
+                      arguments:
+                        parameters: 
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}"
+                      dependencies: [deploydocker, runcassandra]
+
+                    - name: runservicemonitor
+                      template: servicemonitor
+                      arguments:
+                        parameters: 
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}"
+                      dependencies: [deploydocker, runcassandra]
+
+                    - name: runservice
+                      template: service
+                      arguments:
+                        parameters: 
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}"
+                      dependencies: [deploydocker, runcassandra]
+
+                    - name: createfolder
+                      template: gcsfolder
+                      arguments:
+                        parameters: 
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}"
+                          - name: inputs
+                            value: "{{inputs.parameters.inputs}}"
+                      dependencies: [runmypy, rununittests]
+
                     - name: runspark
                       template: sparksubmit
                       arguments:
@@ -117,10 +153,12 @@ spec:
                            value: "{{inputs.parameters.outputs}}"
                          - name: fileinfo
                            value: "{{inputs.parameters.fileinfo}}"
+                         - name: appname
+                           value: "{{inputs.parameters.appname}}"
                          - name: version
                            value: "{{tasks.runcassandra.outputs.result}}"
                            #value: "{{tasks.runcassandra.outputs.parameters.version}}"
-                      dependencies: [deploydocker, runcassandra]
+                      dependencies: [createfolder, deploydocker, runcassandra]
                     
 
                 - name: mypy
@@ -128,18 +166,13 @@ spec:
                     parameters:
                       - name: pythoncode
                   container:
-                    #volumeMounts: # may not need this
-                    #- mountPath: /work #this persists across steps
-                    #  name: work
                     image: cytopia/mypy #${registryprefix}/${project}/${project}/scalacompile:v0.8.0
                     command: [sh, -c]
-                    args: [
-                      "echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
-                      mypy process.py --ignore-missing-imports "
-                    ]
-                  archiveLocation: # maybe delete this...
-                    archiveLogs: false
-
+                    args: 
+                      - |
+                        echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py
+                        mypy process.py --ignore-missing-imports
+                    
                 - name: unittests
                   inputs:
                     parameters:
@@ -150,18 +183,64 @@ spec:
                     image: ${registryprefix}/${project}/${project}/pysparktest:v0.1.0
                     imagePullPolicy: Always
                     command: [sh, -c]
-                    args: [
-                      "echo $(pwd);\
-                      echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py;\
-                      echo '{{inputs.parameters.inputs}}' > sampleinputs.json;\
-                      echo '{{inputs.parameters.assertions}}' > assertedoutputs.json;\
-                      run-test '/opt/spark/work-dir/' sampleinputs.json assertedoutputs.json
-                      "
-                    ]
-                    #workingDir: /work
-                    #volumeMounts:
-                    #- mountPath: /work 
-                    #  name: work
+                    args: 
+                      - |
+                        echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py
+                        echo '{{inputs.parameters.inputs}}' > sampleinputs.json
+                        echo '{{inputs.parameters.assertions}}' > assertedoutputs.json
+                        run-test '/opt/spark/work-dir/' sampleinputs.json assertedoutputs.json
+
+
+                - name: gcsfolder
+                  serviceAccountName: ${sparksubmitserviceaccount}
+                  inputs:
+                    parameters:
+                      - name: appname
+                      - name: inputs
+                  resource:
+                    action: apply
+                    successCondition: status.succeeded > 0
+                    failureCondition: status.failed > 1
+                    manifest: |
+                      apiVersion: batch/v1
+                      kind: Job
+                      metadata:
+                        generateName: gcsfolder-
+                        namespace: ${namespace}
+                      spec:
+                        template:
+                          spec:
+                            serviceAccountName: ${sparkserviceaccount}
+                            containers:
+                            - name: gcsfolder
+                              image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
+                              imagePullPolicy: Always
+                              command: [
+                                "python3",  
+                                "create_folder.py", 
+                                '{{inputs.parameters.appname}}', 
+                                "streamstate-sparkstorage-${organization}", 
+                                '{{inputs.parameters.inputs}}'
+                              ]
+                            restartPolicy: Never
+                        # backoffLimit: 4
+
+                #- name: gcsfolder
+
+
+                #- name: gcsfolder
+                #  inputs:
+                #    parameters:
+                #      - name: appname
+                #      - name: inputs
+                #  serviceAccount: ${sparkserviceaccount} # needed to have write access to gcs
+                #  container:
+                #    image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
+                #    imagePullPolicy: Always
+                #    command: [sh, -c]
+                #    args: 
+                #      - |
+                #        python3 create_folder.py {{inputs.parameters.appname}} streamstate-sparkstorage-${organization} '{{inputs.parameters.inputs}}'
 
                 - name: create-docker-file
                   inputs:
@@ -173,18 +252,15 @@ spec:
                         value: COPY process.py /opt/spark/work-dir/process.py
                   container:
                     image: cytopia/mypy # doesn't really matter, so may as well use an image already downloaded
-                    #image: ${registryprefix}/${project}/${project}/pysparktest:v0.1.0 # doesn't really matter, so may as well use an image already downloaded
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
-                    #securityContext:
-                    #  privileged: true
-                    args: [
-                      "echo {{inputs.parameters.pythoncode}} | base64 -d > /work/process.py;\
-                      echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile;\
-                      echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile; \
-                      cat /work/process.py;
-                      "
-                    ]
+                    args:
+                      - | 
+                        echo {{inputs.parameters.pythoncode}} | base64 -d > /work/process.py
+                        echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile
+                        echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile
+                        cat /work/process.py
+                      
                     workingDir: /work
                     volumeMounts:
                     - mountPath: /work 
@@ -213,7 +289,6 @@ spec:
                     parameters:
                       - name: table
                   script: # script allows us to get the output from the console rather than from a file
-                  #container:
                     image: ${registryprefix}/${project}/${project}/cassandrapy:v0.1.0 
                     imagePullPolicy: Always
                     envFrom:
@@ -222,21 +297,84 @@ spec:
                     - configMapRef:
                         name: ${dataconfigargo}
                     command: [sh]
-                    #securityContext:
-                    #  privileged: true
                     source: | 
                       python3 entrypoint.py '{{inputs.parameters.table}}'
-                    #workingDir: /work
-                    #volumeMounts:
-                    #- mountPath: /work 
-                    #  name: work
-                
-                  #outputs:
-                  #  parameters:
-                  #  - name: version       # name of output parameter
-                  #    valueFrom:
-                  #      path: /tmp/version.txt
                   
+                - name: prometheus
+                  serviceAccountName: ${sparksubmitserviceaccount}
+                  inputs:
+                    parameters:
+                      - name: appname
+                  resource:
+                    action: apply
+                    successCondition: status.succeeded > 0
+                    failureCondition: status.failed > 1
+                    manifest: |
+                      apiVersion: monitoring.coreos.com/v1
+                      kind: Prometheus
+                      metadata:
+                        name: prometheus-{{inputs.parameters.appname}}
+                        namespace: monitoring
+                      spec:
+                        serviceAccountName: prometheus-kube-prometheus-operator
+                        serviceMonitorSelector:
+                          matchLabels:
+                            release: prometheus-{{inputs.parameters.appname}}
+                        resources:
+                          requests:
+                            memory: 50Mi
+                        scrapeInterval: 10s
+                
+                - name: service
+                  serviceAccountName: ${sparksubmitserviceaccount}
+                  inputs:
+                    parameters:
+                      - name: appname
+                  resource:
+                    action: apply
+                    successCondition: status.succeeded > 0
+                    failureCondition: status.failed > 1
+                    manifest: |
+                      apiVersion: v1
+                      kind: Service
+                      metadata:
+                        name: service-{{inputs.parameters.appname}}
+                        namespace: ${namespace}
+                        labels:
+                          sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
+                      spec:
+                        ports:
+                        - name: web-{{inputs.parameters.appname}}
+                          port: 8090
+                          targetPort: 8090
+                          protocol: TCP
+                        selector:
+                          sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
+
+                - name: servicemonitor
+                  serviceAccountName: ${sparksubmitserviceaccount}
+                  inputs:
+                    parameters:
+                      - name: appname
+                  resource:
+                    action: apply
+                    successCondition: status.succeeded > 0
+                    failureCondition: status.failed > 1
+                    manifest: |
+                      apiVersion: monitoring.coreos.com/v1
+                      kind: ServiceMonitor
+                      metadata:
+                        name: servicemonitor-{{inputs.parameters.appname}}
+                        namespace: ${namespace}
+                        labels:
+                          release: prometheus-{{inputs.parameters.appname}}
+                      spec:
+                        selector:
+                          matchLabels:
+                            sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
+                        endpoints:
+                        - port: web-{{inputs.parameters.appname}}
+
 
                   #todo, loop this for each topic.  see, eg, https://github.com/argoproj/argo-workflows/blob/master/examples/loops.yaml
                 - name: sparksubmit
@@ -251,8 +389,9 @@ spec:
                       - name: kafka
                       - name: outputs
                       - name: fileinfo
+                      - name: appname
                       - name: version
-                      #- name: version
+  
                   resource:                   # indicates that this is a resource template
                     action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
                     # The successCondition and failureCondition are optional expressions.
@@ -268,7 +407,7 @@ spec:
                       apiVersion: "sparkoperator.k8s.io/v1beta2"
                       kind: SparkApplication
                       metadata:
-                        name: testdev #todo, make this a function of "topics" (ie, the thing to be looping over)
+                        name: {{inputs.parameters.appname}} #todo, make this a function of "topics" (ie, the thing to be looping over)
                         namespace: ${namespace} # need to add this to terraform
                       spec:
                         sparkConf:
@@ -297,21 +436,12 @@ spec:
                           - '{{inputs.parameters.inputs}}'
                           # todo, need to pass in version from output of cassandra step
                         
-                          #volumes:
-                        #  - name: spark-data
-                        #    persistentVolumeClaim:
-                        #      claimName: spark-data
                         restartPolicy:
                           type: Always # should be able to resume from checkpoint if killed for some reason
                         driver:
                           coreRequest: 200m
                           memory: "512m"
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
-                          #volumeMounts:
-                          #  - name: spark-data
-                          #    mountPath: /mnt/spark/work
-
-
                           metadata:
                             annotations:
                               prometheus.io/scrape: "true"
@@ -326,23 +456,10 @@ spec:
                                 name: ${cassandrasecret} # add this from terraform
                             - configMapRef:
                                 name: ${dataconfig} # add this from terraform
-                          #env:
-                            #- name: CASSANDRA_LOADBALANCER_SERVICE_HOST
-                            #  valueFrom:
-                            #    configMapKeyRef:
-                            #      name: cassandra-data
-                            #      key: clusterName
-                            #- name: CASSANDRA_LOADBALANCER_SERVICE_HOST # TODO! pass this in as part of json
-                            #  value: cluster1-dc1-service # todo!  this could possibly change if multiple cassandra racks/nodes/clusters
-                            #- name: CASSANDRA_LOADBALANCER_SERVICE_PORT
-                            #  value: "9042"
                         executor:
                           instances: 1
                           cores: 1
                           memory: "512m"
-                          #volumeMounts:
-                          #  - name: spark-data
-                          #    mountPath: /mnt/spark/work
                           secrets:
                           - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
                             path: "/mnt/secrets"
@@ -384,3 +501,7 @@ spec:
                 dependencyName: deploypysparkjob
                 dataKey: body.table # primary_keys: list, output_schema: avro
               dest: spec.arguments.parameters.6.value
+            - src:
+                dependencyName: deploypysparkjob # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
+                dataKey: body.appname # string
+              dest: spec.arguments.parameters.7.value

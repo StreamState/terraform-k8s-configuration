@@ -178,10 +178,11 @@ resource "kubernetes_service_account" "spark" {
     name      = "spark"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.mainnamespace]
 }
 
 ## need to create explicit account for spark rather than workload identity
+## why? is this a limitation of sparkoperator?
 resource "google_service_account_key" "sparkkey" {
   service_account_id = var.spark_gcs_svc_name
 }
@@ -334,11 +335,21 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
     resources  = ["sparkapplications"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
-  #rule {
-  #  api_groups = ["batch"]
-  #  resources  = ["jobs"]
-  #  verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
-  #}
+  rule {
+    api_groups = ["monitoring.coreos.com"]
+    resources  = ["prometheuses", "servicemonitors"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["services"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
   depends_on = [kubernetes_namespace.argoevents]
 }
 resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
@@ -394,7 +405,7 @@ resource "kubernetes_config_map" "usefuldata" {
     data_center            = var.data_center
     cassandra_cluster_name = var.cassandra_cluster_name
     port                   = "9042"
-    organization           = var.organization
+    organization           = var.organization # may not need this, could pass this in
     project                = var.project
     org_bucket             = var.spark_storage_bucket_url
     # add checkpoint location here...
@@ -454,7 +465,7 @@ resource "helm_release" "prometheus" {
   namespace = kubernetes_namespace.monitoring.metadata.0.name
   #create_namespace = true
   repository = "https://prometheus-community.github.io/helm-charts"
-  chart      = "prometheus"
+  chart      = "kube-prometheus-stack" # apparently this includes the prometheus operator, while raw "prometheus" doesn't
 
   depends_on = [kubernetes_service_account.monitoring]
 }
