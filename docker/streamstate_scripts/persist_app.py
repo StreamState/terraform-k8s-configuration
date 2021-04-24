@@ -1,10 +1,7 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate_utils.pyspark_utils import (
-    map_avro_to_spark_schema,
-    get_folder_location,
-)
+from streamstate_utils.pyspark_utils import map_avro_to_spark_schema
 from streamstate_utils.generic_wrapper import (
     kafka_wrapper,
     write_wrapper,
@@ -17,6 +14,7 @@ import marshmallow_dataclass
 
 def persist_topic(
     app_name: str,
+    bucket: str,
     input: InputStruct,
     kafka: KafkaStruct,
     output: OutputStruct,
@@ -26,7 +24,7 @@ def persist_topic(
     write_wrapper(
         df,
         output,
-        lambda df: write_parquet(df, get_folder_location(app_name, input.topic)),
+        lambda df: write_parquet(df, app_name, bucket, input.topic),
     )
 
 
@@ -43,7 +41,13 @@ def persist_topic(
 #     }
 #
 if __name__ == "__main__":
-    [app_name, output_struct, kafka_struct, input_struct] = sys.argv
+    [
+        app_name,
+        bucket,  # bucket name including gs://
+        output_struct,
+        kafka_struct,
+        input_struct,
+    ] = sys.argv
 
     output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = output_schema.load(json.loads(output_struct))
@@ -53,6 +57,7 @@ if __name__ == "__main__":
     input_info = input_schema.load(json.loads(input_struct))
     persist_topic(
         app_name,
+        bucket,
         input_info,
         kafka_info,
         output_info,

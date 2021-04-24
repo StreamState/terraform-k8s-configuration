@@ -83,8 +83,7 @@ Unfortunately, this requires root access, but just for spark history which has v
 # argo helps
 
 To find webui url:
-* kubectl -n argo-events get svc
-* go to [webuiurl]:2746 in your favorite browser
+* kubectl port-forward svc/argo-server -n argo-events 2746:2746
 
 
 
@@ -144,6 +143,8 @@ The backend for provisioning new jobs
 * kubectl apply -f prometheustest/pysparkjob.yml
 * kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
+* kubectl port-forward svc/prometheus-operated -n monitoring 9090:9090
+* kubectl port-forward svc/prometheus-grafana  -n monitoring 8000:80
 
 # test workload identity
 

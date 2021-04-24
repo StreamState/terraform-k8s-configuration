@@ -15,12 +15,13 @@ import marshmallow_dataclass
 def dev_from_file(
     app_name: str,
     max_file_age: str,
+    bucket: str,
     inputs: List[InputStruct],
     checkpoint: str,
     mode: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    df = file_wrapper(app_name, max_file_age, process, inputs, spark)
+    df = file_wrapper(app_name, max_file_age, bucket, process, inputs, spark)
     write_console(df, checkpoint, mode)
 
 
@@ -41,11 +42,11 @@ if __name__ == "__main__":
     [
         _,
         app_name,  # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
+        bucket,  # bucket name including gs://
         output_struct,
         file_struct,
         input_struct,
     ] = sys.argv
-    # app_name = app_name.replace(".py", "")
     output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = output_schema.load(json.loads(output_struct))
     file_schema = marshmallow_dataclass.class_schema(FileStruct)()
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     dev_from_file(
         app_name,
         file_info.max_file_age,
+        bucket,
         input_info,
         output_info.checkpoint_location,
         output_info.mode,

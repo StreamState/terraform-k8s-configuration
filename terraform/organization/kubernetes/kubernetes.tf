@@ -181,8 +181,8 @@ resource "kubernetes_service_account" "spark" {
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
-## need to create explicit account for spark rather than workload identity
-## why? is this a limitation of sparkoperator?
+## open question, should I use workload identity for creating folder or re-use the key?
+## need to create explicit account for spark rather than workload identity for spark operator
 resource "google_service_account_key" "sparkkey" {
   service_account_id = var.spark_gcs_svc_name
 }
@@ -196,6 +196,8 @@ resource "kubernetes_secret" "spark-gcs-to-kubernetes" {
     "key.json" = base64decode(google_service_account_key.sparkkey.private_key)
   }
 }
+
+
 
 ## needed for operating spark resources
 resource "kubernetes_role" "sparkrules" {

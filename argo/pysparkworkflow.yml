@@ -105,14 +105,6 @@ spec:
                       template: build-docker-image
                       dependencies: [builddocker]
 
-                    - name: runprometheus
-                      template: prometheus
-                      arguments:
-                        parameters: 
-                          - name: appname
-                            value: "{{inputs.parameters.appname}}"
-                      dependencies: [deploydocker, runcassandra]
-
                     - name: runservicemonitor
                       template: servicemonitor
                       arguments:
@@ -125,8 +117,8 @@ spec:
                       template: service
                       arguments:
                         parameters: 
-                          - name: appname
-                            value: "{{inputs.parameters.appname}}"
+                         - name: appname
+                           value: "{{inputs.parameters.appname}}"
                       dependencies: [deploydocker, runcassandra]
 
                     - name: createfolder
@@ -198,7 +190,7 @@ spec:
                       - name: appname
                       - name: inputs
                   resource:
-                    action: apply
+                    action: create
                     successCondition: status.succeeded > 0
                     failureCondition: status.failed > 1
                     manifest: |
@@ -211,6 +203,10 @@ spec:
                         template:
                           spec:
                             serviceAccountName: ${sparkserviceaccount}
+                            volumes:
+                            - name: secrets
+                              secret:
+                                secretName: spark-secret
                             containers:
                             - name: gcsfolder
                               image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
@@ -220,8 +216,13 @@ spec:
                                 "create_folder.py", 
                                 '{{inputs.parameters.appname}}', 
                                 "streamstate-sparkstorage-${organization}", 
-                                '{{inputs.parameters.inputs}}'
+                                '{{inputs.parameters.inputs}}',
+                                "/mnt/secrets/key.json"
                               ]
+                              volumeMounts:
+                              - name: secrets
+                                mountPath: "/mnt/secrets"
+                                readOnly: true
                             restartPolicy: Never
                         # backoffLimit: 4
 
@@ -300,54 +301,23 @@ spec:
                     source: | 
                       python3 entrypoint.py '{{inputs.parameters.table}}'
                   
-                - name: prometheus
-                  serviceAccountName: ${sparksubmitserviceaccount}
-                  inputs:
-                    parameters:
-                      - name: appname
-                  resource:
-                    action: apply
-                    successCondition: status.succeeded > 0
-                    failureCondition: status.failed > 1
-                    manifest: |
-                      apiVersion: monitoring.coreos.com/v1
-                      kind: Prometheus
-                      metadata:
-                        name: prometheus-{{inputs.parameters.appname}}
-                        namespace: monitoring
-                      spec:
-                        serviceAccountName: prometheus-kube-prometheus-operator
-                        serviceMonitorSelector:
-                          matchLabels:
-                            release: prometheus-{{inputs.parameters.appname}}
-                        resources:
-                          requests:
-                            memory: 50Mi
-                        scrapeInterval: 10s
-                
                 - name: service
-                  serviceAccountName: ${sparksubmitserviceaccount}
-                  inputs:
-                    parameters:
-                      - name: appname
                   resource:
                     action: apply
-                    successCondition: status.succeeded > 0
-                    failureCondition: status.failed > 1
                     manifest: |
                       apiVersion: v1
                       kind: Service
                       metadata:
-                        name: service-{{inputs.parameters.appname}}
+                        name: spark-svc-{{inputs.parameters.appname}}
                         namespace: ${namespace}
                         labels:
-                          sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
+                          app: {{inputs.parameters.appname}}
                       spec:
                         ports:
-                        - name: web-{{inputs.parameters.appname}}
-                          port: 8090
-                          targetPort: 8090
-                          protocol: TCP
+                          - name: metrics-{{inputs.parameters.appname}}
+                            port: 8090
+                            targetPort: 8090
+                            protocol: TCP
                         selector:
                           sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
 
@@ -365,15 +335,18 @@ spec:
                       kind: ServiceMonitor
                       metadata:
                         name: servicemonitor-{{inputs.parameters.appname}}
-                        namespace: ${namespace}
+                        namespace: monitoring # todo, make this a variable from terraform
                         labels:
-                          release: prometheus-{{inputs.parameters.appname}}
+                          release: prometheus
                       spec:
+                        namespaceSelector:
+                        matchNames: 
+                          - ${namespace}
                         selector:
                           matchLabels:
                             sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
                         endpoints:
-                        - port: web-{{inputs.parameters.appname}}
+                        - port: metrics-{{inputs.parameters.appname}}
 
 
                   #todo, loop this for each topic.  see, eg, https://github.com/argoproj/argo-workflows/blob/master/examples/loops.yaml
@@ -430,7 +403,8 @@ spec:
                           "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                         
                         arguments:
-                          - testdev # todo, this should be same as metadata: name
+                          - '{{inputs.parameters.appname}}'
+                          - 'gs://streamstate-sparkstorage-${organization}'
                           - '{{inputs.parameters.outputs}}'
                           - '{{inputs.parameters.fileinfo}}'
                           - '{{inputs.parameters.inputs}}'
@@ -442,11 +416,11 @@ spec:
                           coreRequest: 200m
                           memory: "512m"
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
-                          metadata:
-                            annotations:
-                              prometheus.io/scrape: "true"
-                              prometheus.io/path: "/metrics"
-                              prometheus.io/port: "8090"
+                          #metadata:
+                          #  annotations:
+                          #    prometheus.io/scrape: "true"
+                          #    prometheus.io/path: "/metrics"
+                          #    prometheus.io/port: "8090"
                           secrets:
                           - name: "spark-secret" # Secret name as defined when creating a kubernetes secret, generated from spark-gcs
                             path: "/mnt/secrets"
