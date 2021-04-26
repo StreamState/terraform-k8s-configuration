@@ -335,16 +335,16 @@ spec:
                       kind: ServiceMonitor
                       metadata:
                         name: servicemonitor-{{inputs.parameters.appname}}
-                        namespace: monitoring # todo, make this a variable from terraform
+                        namespace: ${monitoringnamespace}
                         labels:
                           release: prometheus
                       spec:
                         namespaceSelector:
-                        matchNames: 
-                          - ${namespace}
+                          matchNames: 
+                            - ${namespace}
                         selector:
                           matchLabels:
-                            sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
+                            app: {{inputs.parameters.appname}}
                         endpoints:
                         - port: metrics-{{inputs.parameters.appname}}
 

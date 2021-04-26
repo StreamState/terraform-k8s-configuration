@@ -390,7 +390,7 @@ resource "helm_release" "cassandra" {
 }
 
 data "kubectl_file_documents" "cassandra" {
-  content = templatefile("../../gke/cassandra.yml", {
+  content = templatefile("../../kubernetes_resources/cassandra.yml", {
     secret                 = kubernetes_secret.cassandra_svc.metadata.0.name,
     data_center            = var.data_center,
     cassandra_cluster_name = var.cassandra_cluster_name
@@ -456,6 +456,10 @@ resource "helm_release" "spark" {
     name  = "webhook.enable"
     value = true
   }
+  set {
+    name  = "metrics.enable"
+    value = true
+  }
   depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
@@ -471,6 +475,23 @@ resource "helm_release" "prometheus" {
 
   depends_on = [kubernetes_service_account.monitoring]
 }
+
+
+###################
+# Install servicemonitor for spark
+###################
+data "kubectl_file_documents" "sparkoperatorprometheus" {
+  content = templatefile("../../kubernetes_resources/prometheusservicemonitor.yml", {
+    operatornamespace   = helm_release.spark.metadata.0.namespace
+    monitoringnamespace = kubernetes_namespace.monitoring.metadata.0.name
+  })
+}
+resource "kubectl_manifest" "sparkoperatorprometheus" {
+  count      = 2
+  yaml_body  = element(data.kubectl_file_documents.sparkoperatorprometheus.documents, count.index)
+  depends_on = [helm_release.prometheus, helm_release.spark]
+}
+
 
 
 ##################
@@ -526,6 +547,7 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
     dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace                 = kubernetes_namespace.mainnamespace.metadata.0.name
+    monitoringnamespace       = kubernetes_namespace.monitoring.metadata.0.name
 
   })
 }
