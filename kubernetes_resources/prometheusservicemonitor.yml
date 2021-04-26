@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: servicemonitor-sparkoperator
+  namespace: ${monitoringnamespace}
+  labels:
+    release: prometheus # to connect back to main prometheus "hub"
+spec:
+  namespaceSelector:
+    matchNames: 
+      - ${operatornamespace}
+  selector:
+    matchLabels:
+      app: spark-operator
+  endpoints:
+  - targetPort: 10254 # todo, change 
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-svc-sparkoperator
+  namespace: ${operatornamespace}
+  labels:
+    app: spark-operator
+spec:
+  ports:
+    - name: metrics-sparkoperator
+      port: 10254
+      targetPort: 10254
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: spark-operator

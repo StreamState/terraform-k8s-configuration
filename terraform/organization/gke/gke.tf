@@ -23,6 +23,15 @@ resource "google_container_cluster" "primary" {
   project  = var.project
   name     = "streamstatecluster-${var.organization}"
   location = var.region
+
+  # VPC-native
+  network    = "default"
+  subnetwork = "default"
+  ip_allocation_policy {
+    cluster_ipv4_cidr_block  = "/16"
+    services_ipv4_cidr_block = "/22"
+  }
+
   # Enable Workload Identity
   workload_identity_config {
     identity_namespace = "${var.project}.svc.id.goog"
@@ -33,6 +42,7 @@ resource "google_container_cluster" "primary" {
   remove_default_node_pool = true
   initial_node_count       = 1
 }
+
 
 # this should be at the organization level (each organization gets their own cluster)
 resource "google_container_node_pool" "primary_preemptible_nodes" {
@@ -57,7 +67,10 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
     ]
   }
 }
-
+data "google_container_cluster" "primary" {
+  name     = google_container_cluster.primary.name
+  location = var.region
+}
 resource "google_artifact_registry_repository_iam_member" "read" {
   provider   = google-beta
   project    = var.project

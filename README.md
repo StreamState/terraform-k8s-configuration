@@ -146,6 +146,10 @@ The backend for provisioning new jobs
 * kubectl port-forward svc/prometheus-operated -n monitoring 9090:9090
 * kubectl port-forward svc/prometheus-grafana  -n monitoring 8000:80
 
+Grafana password:
+* kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode
+
+
 # test workload identity
 
 kubectl run -it \
