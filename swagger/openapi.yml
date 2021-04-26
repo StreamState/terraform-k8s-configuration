@@ -1,0 +1,124 @@
+swagger: "2.0"
+info:
+  description: "Streamstate endpoints"
+  title: "Streamstate"
+  version: "1.0.0"
+host: "streamstate-api.endpoints.${PROJECT_ID}.cloud.goog" # "echo-api.endpoints.YOUR-PROJECT-ID.cloud.goog"
+# basePath: "/${VERSION_MAJOR}"
+schemes:
+  - https
+
+#produces:
+#  - application/json
+x-google-backend:
+  name: "streamstate-api.endpoints.${PROJECT_ID}.cloud.goog"
+  target: ${CLUSTER_IP} ## add IP here
+
+securityDefinitions:
+  firebase:
+    authorizationUrl: ""
+    flow: "implicit"
+    type: "oauth2"
+    x-google-issuer: "https://securetoken.google.com/${PROJECT_ID}"
+    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+    x-google-audiences: "${PROJECT_ID}"
+  JWT:  
+    type: apiKey  
+    in: query  
+    name: access_token  
+
+security:
+  - firebase: []
+  - JWT: []
+
+
+
+
+paths:
+  "/build/container":
+    post:
+      consumes:
+      - application/json
+      operationId: createSparkStreamingJob
+      summary: Creates a spark streaming job 
+      description: Runs unit tests and linting, starts a spark streaming job
+      responses:
+        '200':
+          description: SuccessResponse
+          schema:
+            type: string
+          examples:
+            application/text:
+              "success"
+        '400':
+          description: Error for incorrect request
+          schema:
+            type: object
+            properties: 
+              err: 
+                type: string
+      parameters:
+      - required: true
+        name: body
+        in: body
+        schema:
+          type: object
+          properties:
+            pythoncode: # stopped here
+              type: integer
+              example: 8
+            rate:
+              type: number
+              example: 0.04
+            maturity:
+              type: number
+              example: 0.5
+            asset:
+              type: number
+              example: 50
+            cf_parameters:
+              type: object
+              properties:
+                sigma:
+                  type: number
+                  example: 0.3
+                c:
+                  type: number
+                  example: 0.3
+                g:
+                  type: number
+                  example: 5
+                m:
+                  type: number
+                  example: 5
+                y:
+                  type: number
+                  example: 1.2
+                speed:
+                  type: number
+                  example: 0.2
+                v0:
+                  type: number
+                  example: 0.9
+                eta_v:
+                  type: number
+                  example: 0.2
+                rho:
+                  type: number
+                  example: -0.5
+              additionalProperties: false
+            strikes:
+              type: array
+              items:
+                type: number
+              example:
+              - 50
+          required:
+          - num_u
+          - rate
+          - maturity
+          - asset
+          - cf_parameters
+          - strikes
+          additionalProperties: false
+

@@ -53,6 +53,11 @@ module "serviceaccounts" {
   project       = var.project
   cluster_email = module.gke-cluster.cluster_email
 }
+module "swagger" {
+  source    = "./swagger"
+  project   = var.project
+  clusterip = module.gke-cluster.endpoint
+}
 module "kubernetes-config" {
   source                   = "./kubernetes"
   cluster_name             = module.gke-cluster.cluster_name

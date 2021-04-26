@@ -302,6 +302,10 @@ spec:
                       python3 entrypoint.py '{{inputs.parameters.table}}'
                   
                 - name: service
+                  serviceAccountName: ${sparksubmitserviceaccount}
+                  inputs:
+                    parameters:
+                      - name: appname
                   resource:
                     action: apply
                     manifest: |

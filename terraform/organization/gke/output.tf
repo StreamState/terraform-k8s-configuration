@@ -21,3 +21,7 @@ output "cluster_name" {
 output "cluster_email" {
   value = google_service_account.cluster.email
 }
+
+output "endpoint" {
+  value = data.google_container_cluster.primary.endpoint
+}
