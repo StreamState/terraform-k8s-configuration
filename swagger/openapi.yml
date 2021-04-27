@@ -3,7 +3,7 @@ info:
   description: "Streamstate endpoints"
   title: "Streamstate"
   version: "1.0.0"
-host: "streamstate-api.endpoints.${PROJECT_ID}.cloud.goog" # "echo-api.endpoints.YOUR-PROJECT-ID.cloud.goog"
+host: ${HOST} # "echo-api.endpoints.YOUR-PROJECT-ID.cloud.goog"
 # basePath: "/${VERSION_MAJOR}"
 schemes:
   - https
@@ -11,7 +11,7 @@ schemes:
 #produces:
 #  - application/json
 x-google-backend:
-  name: "streamstate-api.endpoints.${PROJECT_ID}.cloud.goog"
+  name: ${HOST}
   target: ${CLUSTER_IP} ## add IP here
 
 securityDefinitions:
