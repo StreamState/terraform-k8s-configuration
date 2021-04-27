@@ -15,22 +15,25 @@ import json
 
 
 def main():
-    [_, table_struct] = sys.argv
+    [_, app_name, table_struct] = sys.argv
     table_schema = marshmallow_dataclass.class_schema(TableStruct)()
     table_info = table_schema.load(json.loads(table_struct))
     cassandra_config = get_cassandra_inputs_from_config_map()
     organization = get_organization_from_config_map()
     # idempotent
-    session = get_cassandra_session(cassandra_config)
-    create_tracking_table(session)
-    # checks validity of avro_schema
-    version = create_schema(
-        session,
-        organization,
-        table_info.primary_keys,
-        table_info.output_schema,
-    )
-    print(version)
+    cluster, session = get_cassandra_session(cassandra_config)
+    try:
+        create_tracking_table(session)
+        version = create_schema(
+            session,
+            organization,
+            app_name,
+            table_info.primary_keys,
+            table_info.output_schema,
+        )
+        print(version)  # this is needed for Argo to pick this up
+    finally:
+        cluster.shutdown()
 
 
 if __name__ == "__main__":

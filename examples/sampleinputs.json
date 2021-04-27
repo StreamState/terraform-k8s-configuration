@@ -6,13 +6,11 @@
                 "field1": "somevalue"
             }
         ],
-        "schema": {
-            "fields": [
-                {
-                    "name": "field1",
-                    "type": "string"
-                }
-            ]
-        }
+        "schema": [
+            {
+                "name": "field1",
+                "type": "string"
+            }
+        ]
     }
 ]

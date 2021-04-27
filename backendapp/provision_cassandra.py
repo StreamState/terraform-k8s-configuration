@@ -16,7 +16,9 @@ from avro_validator.schema import Schema, RecordType
 from streamstate_utils.structs import CassandraInputStruct
 
 
-def get_cassandra_session(cassandra_input: CassandraInputStruct) -> Session:
+def get_cassandra_session(
+    cassandra_input: CassandraInputStruct,
+) -> Tuple[Cluster, Session]:
     auth_provider = PlainTextAuthProvider(
         username=cassandra_input.cassandra_user,
         password=cassandra_input.cassandra_password,
@@ -26,7 +28,7 @@ def get_cassandra_session(cassandra_input: CassandraInputStruct) -> Session:
         port=cassandra_input.cassandra_port,
         auth_provider=auth_provider,
     )
-    return cluster.connect()
+    return cluster, cluster.connect()
 
 
 def get_existing_schema(
@@ -45,11 +47,12 @@ def get_existing_schema(
         return row.avroschema, row.version
 
 
-def _parse_schema(schema: dict) -> Tuple[RecordType, str]:
-    schema_json = json.dumps(schema)
-
-    schema_avro = Schema(schema_json)
-    return schema_avro.parse(), schema_json
+def _parse_schema(schema: List[Dict[str, str]]):
+    for field in schema:
+        assert "name" in field
+        assert "type" in field
+        assert type(field["name"]) == str
+        assert type(field["type"]) == str
 
 
 def _convert_type(avro_type: str) -> str:
@@ -137,17 +140,18 @@ def _sublist(ls1: List[str], ls2: List[str]) -> bool:
 def create_schema(
     session: Session,
     org_name: str,
-    # app_name: str,
+    app_name: str,
     primary_keys: List[str],
-    schema: dict,  # avro schema
+    schema: List[Dict[str, str]],  # name: fieldname, type: datatype
 ):
     # will throw if schema isn't valid
-    _, avro_schema = _parse_schema(schema)
-    app_name = schema["name"]
-    field_names = [field["name"] for field in schema["fields"]]
+    _parse_schema(schema)
+    # app_name = schema["name"]
+    field_names = [field["name"] for field in schema]
     assert _sublist(primary_keys, field_names)
     prev_schema, prev_version = get_existing_schema(session, org_name, app_name)
-    if prev_schema != avro_schema:
+    schema_as_string = json.dumps(schema)
+    if prev_schema != schema_as_string:
         version = prev_version + 1
         # TODO!  Figure out replication needs
         # TODO: change dc1 to actual data center!!
@@ -155,12 +159,9 @@ def create_schema(
             CREATE KEYSPACE IF NOT EXISTS {org_name} 
             WITH replication = {{ 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' }};
         """
-        print(f"running query {create_keyspace}")
         session.execute(create_keyspace)
-        insert_tracking_table(session, org_name, app_name, avro_schema, version)
-        apply_table(
-            session, org_name, app_name, version, primary_keys, schema["fields"]
-        )
+        insert_tracking_table(session, org_name, app_name, schema_as_string, version)
+        apply_table(session, org_name, app_name, version, primary_keys, schema)
         return version
     else:
         return prev_version

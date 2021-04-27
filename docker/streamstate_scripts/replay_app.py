@@ -66,6 +66,7 @@ def replay_from_file(
 
 if __name__ == "__main__":
     [
+        _,
         app_name,
         output_struct,
         file_struct,
@@ -81,8 +82,6 @@ if __name__ == "__main__":
     cassandra_output = get_cassandra_outputs_from_config_map(app_name, version)
     kafka_schema = marshmallow_dataclass.class_schema(KafkaStruct)()
     kafka_info = kafka_schema.load(json.loads(kafka_struct))
-    # cassandra_ip = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_HOST", "")
-    # cassandra_port = os.getenv("CASSANDRA_LOADBALANCER_SERVICE_PORT", "")
     input_schema = marshmallow_dataclass.class_schema(InputStruct)()
     input_info = [input_schema.load(v) for v in json.loads(input_struct)]
     replay_from_file(
