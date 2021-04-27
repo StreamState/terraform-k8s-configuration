@@ -145,12 +145,13 @@ def create_schema(
     schema: List[Dict[str, str]],  # name: fieldname, type: datatype
 ):
     # will throw if schema isn't valid
-    _, avro_schema = _parse_schema(schema)
+    _parse_schema(schema)
     # app_name = schema["name"]
     field_names = [field["name"] for field in schema]
     assert _sublist(primary_keys, field_names)
     prev_schema, prev_version = get_existing_schema(session, org_name, app_name)
-    if prev_schema != avro_schema:
+    schema_as_string = json.dumps(schema)
+    if prev_schema != schema_as_string:
         version = prev_version + 1
         # TODO!  Figure out replication needs
         # TODO: change dc1 to actual data center!!
@@ -158,9 +159,8 @@ def create_schema(
             CREATE KEYSPACE IF NOT EXISTS {org_name} 
             WITH replication = {{ 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' }};
         """
-        print(f"running query {create_keyspace}")
         session.execute(create_keyspace)
-        insert_tracking_table(session, org_name, app_name, avro_schema, version)
+        insert_tracking_table(session, org_name, app_name, schema_as_string, version)
         apply_table(session, org_name, app_name, version, primary_keys, schema)
         return version
     else:
