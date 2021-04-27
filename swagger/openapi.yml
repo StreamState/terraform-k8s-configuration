@@ -64,61 +64,129 @@ paths:
         schema:
           type: object
           properties:
-            pythoncode: # stopped here
-              type: integer
-              example: 8
-            rate:
-              type: number
-              example: 0.04
-            maturity:
-              type: number
-              example: 0.5
-            asset:
-              type: number
-              example: 50
-            cf_parameters:
-              type: object
-              properties:
-                sigma:
-                  type: number
-                  example: 0.3
-                c:
-                  type: number
-                  example: 0.3
-                g:
-                  type: number
-                  example: 5
-                m:
-                  type: number
-                  example: 5
-                y:
-                  type: number
-                  example: 1.2
-                speed:
-                  type: number
-                  example: 0.2
-                v0:
-                  type: number
-                  example: 0.9
-                eta_v:
-                  type: number
-                  example: 0.2
-                rho:
-                  type: number
-                  example: -0.5
-              additionalProperties: false
-            strikes:
+            pythoncode: 
+              type: string
+              example: "base 64 encoded python code"
+            inputs:
               type: array
               items:
-                type: number
-              example:
-              - 50
-          required:
-          - num_u
-          - rate
-          - maturity
-          - asset
-          - cf_parameters
-          - strikes
-          additionalProperties: false
+                type: object
+                properties:
+                  topic: 
+                    type: string
+                    example: "topic1"
+                  schema: # schema of the kafka topic
+                    type: object
+                    properties:
+                      fields:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: "field1"
+                            type:
+                              type: string
+                              example: "string"   
+                          required:
+                          - name
+                          - type          
+                  sample: # samples from kafka topic
+                    type: array
+                    items:
+                      type: object # variable properties.  An example is "field1": "somevalue"
+                      properties:
+                        field1: # not required, just an example
+                          type: string 
+                          example: "somevalue"
+                      additionalProperties: true
+                required:
+                - topic
+                - schema
+                - sample
 
+            assertions: # expected output from spark streaming job for unit testing
+              type: array
+              items:
+                type: object
+                properties:
+                  field1: # not required, just an example
+                    type: string 
+                    example: "somevalue"
+                additionalProperties: true
+            kafka:
+              type: object
+              properties:
+                brokers:
+                  type: string
+                  example: "broker1,broker2" # comma delineated
+              required:
+              - brokers
+            outputs:
+              type: object
+              properties:
+                mode: 
+                  type: string
+                  enum: [ "append", "complete", "update"],
+                checkpoint_location:
+                  type: string
+                  example: "/tmp/checkpoint"
+                output_name: # This is the output topic.  Should this be the same as the cassandra table and the output_schema name??
+                  type: string 
+                
+              required:
+                - mode
+                - checkpoint_location
+                - output_name
+            fileinfo:
+              type: object
+              properties:
+                max_file_age:
+                  type: string
+                  example: "2d"
+              required:
+                - max_file_age
+            table:
+              type: object
+              properties:
+                primary_keys:
+                  type: array
+                  items:
+                    type: string
+                    example: "field1"
+                output_schema: # avro schema
+                  type: object
+                  properties:
+                    name: 
+                      type: string # TODO THIS IS WRONG! avro schema requires it, and I currently use it to create the cassandra table name in entrypoint.  However I use the CassandraOutputStruct in spark streaming app to call the table, which uses the top level appname
+                      example: myappname
+                    fields:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name: 
+                            type: string
+                            example: "field1"
+                          type:
+                            type: string
+                            example: "string"
+                        required:
+                          - name
+                          - type
+                  required:
+                    - name
+                    - fields
+            appname: 
+              type: string
+              example: mytestapp
+          required:
+           - pythoncode
+           - inputs
+           - assertions
+           - kafka
+           - outputs
+           - fileinfo
+           - table
+           - appname
