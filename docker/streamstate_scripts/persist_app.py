@@ -42,6 +42,7 @@ def persist_topic(
 #
 if __name__ == "__main__":
     [
+        _,
         app_name,
         bucket,  # bucket name including gs://
         output_struct,

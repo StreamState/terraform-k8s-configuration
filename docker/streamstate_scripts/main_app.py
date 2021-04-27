@@ -69,6 +69,7 @@ def kafka_source_wrapper(
 # ]
 if __name__ == "__main__":
     [
+        _,
         app_name,
         output_struct,
         file_struct,

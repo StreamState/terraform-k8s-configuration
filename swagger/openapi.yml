@@ -129,7 +129,7 @@ paths:
                 mode: 
                   type: string
                   enum: [ "append", "complete", "update"],
-                checkpoint_location:
+                checkpoint_location: # this should be moved to terraform at some point, when we point to gcs rather than local to docker
                   type: string
                   example: "/tmp/checkpoint"
                 output_name: # This is the output topic.  Should this be the same as the cassandra table and the output_schema name??
