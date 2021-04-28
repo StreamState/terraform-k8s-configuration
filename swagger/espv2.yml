@@ -17,13 +17,13 @@ metadata:
   name: espv2
 spec:
   backend:
-    serviceName: espservice # Name of the Service targeted by the Ingress
+    serviceName: espv2 # Name of the Service targeted by the Ingress
     servicePort: 80 # Should match the port used by the Service
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: espservice
+  name: espv2
   annotations:
     cloud.google.com/neg: '{"ingress": true}'
     cloud.google.com/backend-config: '{"default": "espv2"}'
@@ -36,16 +36,16 @@ spec:
   selector:
     app: espv2
   type: ClusterIP
----
-apiVersion: cloud.google.com/v1
-kind: BackendConfig
-metadata:
-  name: espv2
-spec:
-  healthCheck:
-    type: HTTP
-    requestPath: /healthz
-    port: 8081
+#---
+##apiVersion: cloud.google.com/v1
+#kind: BackendConfig
+#metadata:
+#  name: espv2
+#spec:
+#  healthCheck:
+#    type: HTTP
+#    requestPath: /healthz
+#    port: 8081
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -70,12 +70,13 @@ spec:
           "--backend", "${argo_host}",
           "--service", "${service_name}", # "streamstate-api.endpoints.streamstatetest.cloud.goog",
           "--rollout_strategy", "managed",
-          "--healthz=/healthz",
+          #"--healthz=/healthz",
         ]
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
+        #readinessProbe:
+        #  httpGet:
+        #    path: /healthz
+        #    port: 8081
       # [END esp]
         ports:
           - containerPort: 8081
+

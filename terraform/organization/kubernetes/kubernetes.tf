@@ -577,7 +577,7 @@ data "kubectl_file_documents" "swagger" {
   })
 }
 resource "kubectl_manifest" "swagger" {
-  count              = 4
+  count              = 3
   yaml_body          = element(data.kubectl_file_documents.swagger.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.pysparkeventworkflow]
