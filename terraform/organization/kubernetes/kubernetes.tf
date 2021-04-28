@@ -33,6 +33,8 @@ provider "kubectl" {
   cluster_ca_certificate = base64decode(var.cluster_ca_cert)
 }
 
+
+
 data "template_file" "kubeconfig" {
   template = file("${path.module}/kubeconfig.yml")
 
@@ -559,3 +561,24 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
 
+### ##############
+## Install ESPv2
+#################
+data "kubernetes_service" "argosensorip" {
+  metadata {
+    name      = "streamstatewebservice-eventsource-svc"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+}
+data "kubectl_file_documents" "swagger" {
+  content = templatefile("../../swagger/espv2.yml", {
+    argo_host    = "${data.kubernetes_service.argosensorip.spec.0.cluster_ip}:12000"
+    service_name = var.service_name
+  })
+}
+resource "kubectl_manifest" "swagger" {
+  count              = 4
+  yaml_body          = element(data.kubectl_file_documents.swagger.documents, count.index)
+  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on         = [kubectl_manifest.pysparkeventworkflow]
+}

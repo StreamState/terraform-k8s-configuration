@@ -63,3 +63,7 @@ variable "cassandra_cluster_name" {
   type    = string
   default = "cluster1"
 }
+
+variable "service_name" {
+  type = string
+}

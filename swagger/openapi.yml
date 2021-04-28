@@ -4,34 +4,23 @@ info:
   title: "Streamstate"
   version: "1.0.0"
 host: ${HOST} # "echo-api.endpoints.YOUR-PROJECT-ID.cloud.goog"
-# basePath: "/${VERSION_MAJOR}"
+x-google-endpoints:
+- name: ${HOST}
+  target: ${CLUSTER_IP}
+
 schemes:
-  - https
+  - http
 
-#produces:
-#  - application/json
-x-google-backend:
-  name: ${HOST}
-  target: ${CLUSTER_IP} ## add IP here
-
-securityDefinitions:
-  firebase:
-    authorizationUrl: ""
-    flow: "implicit"
-    type: "oauth2"
-    x-google-issuer: "https://securetoken.google.com/${PROJECT_ID}"
-    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
-    x-google-audiences: "${PROJECT_ID}"
-  JWT:  
-    type: apiKey  
-    in: query  
-    name: access_token  
+## todo, add firebase auth
 
 security:
-  - firebase: []
-  - JWT: []
-
-
+- api_key: []
+securityDefinitions:
+  # This section configures basic authentication with an API key.
+  api_key:
+    type: "apiKey"
+    name: "key"
+    in: "query"
 
 
 paths:
@@ -48,7 +37,7 @@ paths:
           schema:
             type: string
           examples:
-            application/text:
+            text/plain:
               "success"
         '400':
           description: Error for incorrect request
@@ -128,7 +117,7 @@ paths:
               properties:
                 mode: 
                   type: string
-                  enum: [ "append", "complete", "update"],
+                  enum: [append, complete, update]
                 checkpoint_location: # this should be moved to terraform at some point, when we point to gcs rather than local to docker
                   type: string
                   example: "/tmp/checkpoint"
