@@ -157,3 +157,13 @@ kubectl run -it \
 --serviceaccount spark \
 --namespace mainspark \
 workload-identity-test
+
+
+
+
+curl --request POST \
+   --header "content-type:application/json" \
+   --data '{"message":"hello world"}' \
+   "http://streamstate-api.endpoints.streamstatetest.cloud.goog/healthz?key=AIzaSyDx6KHvMkvR6qu5FOWZbkPafczVXh_QcB8"
+
+curl -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" http://streamstate-api.endpoints.streamstatetest.cloud.goog/build/container?key=AIzaSyDx6KHvMkvR6qu5FOWZbkPafczVXh_QcB8

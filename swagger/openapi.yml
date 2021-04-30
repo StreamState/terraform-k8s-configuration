@@ -121,8 +121,6 @@ paths:
                 checkpoint_location: # this should be moved to terraform at some point, when we point to gcs rather than local to docker
                   type: string
                   example: "/tmp/checkpoint"
-                output_name: # This is the output topic.  Should this be the same as the cassandra table and the output_schema name??
-                  type: string 
                 
               required:
                 - mode
@@ -145,28 +143,22 @@ paths:
                     type: string
                     example: "field1"
                 output_schema: # avro schema
-                  type: object
-                  properties:
-                    name: 
-                      type: string # TODO THIS IS WRONG! avro schema requires it, and I currently use it to create the cassandra table name in entrypoint.  However I use the CassandraOutputStruct in spark streaming app to call the table, which uses the top level appname
-                      example: myappname
-                    fields:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          name: 
-                            type: string
-                            example: "field1"
-                          type:
-                            type: string
-                            example: "string"
-                        required:
-                          - name
-                          - type
-                  required:
-                    - name
-                    - fields
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: 
+                        type: string
+                        example: "field1"
+                      type:
+                        type: string
+                        example: "string"
+                    required:
+                      - name
+                      - type
+              required:
+                - primary_keys
+                - output_schema
             appname: 
               type: string
               example: mytestapp

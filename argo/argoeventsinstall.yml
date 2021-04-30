@@ -300,16 +300,33 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8081
+            port: 8081 
           initialDelaySeconds: 3
           periodSeconds: 3
         name: eventsource-controller
         readinessProbe:
           httpGet:
             path: /readyz
-            port: 8081
+            port: 8081 
           initialDelaySeconds: 3
           periodSeconds: 3
+      # [START esp]
+      #- name: esp
+      #  image: gcr.io/endpoints-release/endpoints-runtime:2
+      #  args: [
+      ##    "--listener_port", "8082",
+      #    "--backend", "127.0.0.1:8081",
+      #    "--service", "${service_name}", # "streamstate-api.endpoints.streamstatetest.cloud.goog",
+      #    "--rollout_strategy", "managed",
+          #"--healthz=/healthz",
+      #  ]
+        #readinessProbe:
+        #  httpGet:
+        #    path: /healthz
+        #    port: 8082
+      # [END esp]
+      #  ports:
+      #    - containerPort: 8082
       securityContext:
         runAsNonRoot: true
         runAsUser: 9731

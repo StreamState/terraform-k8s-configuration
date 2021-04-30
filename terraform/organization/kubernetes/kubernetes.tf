@@ -465,6 +465,21 @@ resource "helm_release" "spark" {
   depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
+#################
+# Install gloo
+#################
+
+resource "helm_release" "prometheus" {
+  name      = "prometheus"
+  namespace = "gloo-system"
+  create_namespace = true
+  repository = "https://storage.googleapis.com/solo-public-helm"
+  chart      = "gloo" # apparently this includes the prometheus operator, while raw "prometheus" doesn't
+
+  depends_on = [local_file.kubeconfig]
+}
+
+
 ##################
 # Install Prometheus
 ##################
@@ -512,11 +527,13 @@ resource "kubectl_manifest" "argoworkflow" {
 }
 
 data "kubectl_file_documents" "argoevents" {
-  content = file("../../argo/argoeventsinstall.yml")
+  content = templatefile("../../argo/argoeventsinstall.yml", {
+    service_name = var.service_name
+  })
 }
 
 resource "kubectl_manifest" "argoevents" {
-  count              = length(data.kubectl_file_documents.argoevents.documents)
+  count              = 9 #length(data.kubectl_file_documents.argoevents.documents)
   yaml_body          = element(data.kubectl_file_documents.argoevents.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoworkflow]
@@ -564,21 +581,23 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
 ### ##############
 ## Install ESPv2
 #################
-data "kubernetes_service" "argosensorip" {
-  metadata {
-    name      = "streamstatewebservice-eventsource-svc"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
-  }
-}
-data "kubectl_file_documents" "swagger" {
-  content = templatefile("../../swagger/espv2.yml", {
-    argo_host    = "${data.kubernetes_service.argosensorip.spec.0.cluster_ip}:12000"
-    service_name = var.service_name
-  })
-}
-resource "kubectl_manifest" "swagger" {
-  count              = 3
-  yaml_body          = element(data.kubectl_file_documents.swagger.documents, count.index)
-  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on         = [kubectl_manifest.pysparkeventworkflow]
-}
+#data "kubernetes_service" "argosensorip" {
+#  metadata {
+#    name      = "streamstatewebservice-eventsource-svc"
+#    namespace = kubernetes_namespace.argoevents.metadata.0.name
+#  }
+#  depends_on = [kubectl_manifest.pysparkeventworkflow]
+#}
+#data "kubectl_file_documents" "swagger" {
+#  content = templatefile("../../swagger/espv2.yml", {
+#    argo_host    = "${data.kubernetes_service.argosensorip.spec.0.cluster_ip}:12000"
+#    service_name = var.service_name
+#  })#
+
+#}
+#resource "kubectl_manifest" "swagger" {
+#  count              = 4
+#  yaml_body          = element(data.kubectl_file_documents.swagger.documents, count.index)
+#  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+#  depends_on         = [kubectl_manifest.pysparkeventworkflow]
+#}
