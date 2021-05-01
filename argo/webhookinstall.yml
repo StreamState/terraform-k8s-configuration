@@ -91,34 +91,59 @@ spec:
 #   - port: 80
 #     targetPort: 12000
 #     protocol: TCP
----
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: espv2
-spec:
-  backend:
-    serviceName: espv2 # Name of the Service targeted by the Ingress
-    servicePort: 80 # Should match the port used by the Service
+#---
+#apiVersion: networking.k8s.io/v1beta1
+#kind: Ingress
+#metadata:
+#  name: espv2
+#spec:
+#  backend:
+#    serviceName: espv2 # Name of the Service targeted by the Ingress
+#    servicePort: 80 # Should match the port used by the Service
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: espv2
-  annotations:
-    cloud.google.com/neg: '{"ingress": true}'
-    cloud.google.com/backend-config: '{"default": "espv2"}'
+  name: argowebhook
 spec:
   ports:
   - port: 80
-    #targetPort: 12000 # this "worked" when port-forwarding but I think it byappsed esp
-    targetPort: 8082 # try directly calling esp
+    targetPort: 12000
     protocol: TCP
     name: http
   #selector:
   #  eventsource: streamstate
-  type: ClusterIP 
+  type: NodePort 
   selector:
     controller: eventsource-controller
     eventsource-name: streamstatewebservice
     # owner-name: webhook
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: argoingress
+  annotations:
+    # If the class annotation is not specified it defaults to "gce".
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: ${staticipname} # streamstate-global-ip # defined in gke.tf, TODO add this as output variable from gke.tf instead of hardcoding
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: argowebhook
+          servicePort: 80
+      - path: /test
+        backend:
+          serviceName: argowebhook 
+          servicePort: 80
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: certificate-name
+spec:
+  domains:
+    - streamstate.org

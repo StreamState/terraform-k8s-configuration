@@ -64,6 +64,6 @@ variable "cassandra_cluster_name" {
   default = "cluster1"
 }
 
-variable "service_name" {
+variable "staticip_name" {
   type = string
 }

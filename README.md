@@ -95,6 +95,7 @@ To find webui url:
 
 
 
+curl  -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" 34.98.95.203/build/container
 
 # upload json to bucket
 
@@ -131,17 +132,6 @@ The backend for provisioning new jobs
 
 # prometheus
 
-* helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-* helm repo update
-* kubectl create namespace monitoring
-* helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring
-* helm show values prometheus-community/kube-prometheus-stack
-* kubectl port-forward svc/prometheus-operated 9090:9090
-* kubectl apply -f prometheustest/prometheus.yml
-* kubectl apply -f prometheustest/servicemonitor.yml
-* kubectl apply -f prometheustest/service.yml
-* kubectl apply -f prometheustest/pysparkjob.yml
-* kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
 * kubectl port-forward svc/prometheus-operated -n monitoring 9090:9090
 * kubectl port-forward svc/prometheus-grafana  -n monitoring 8000:80
@@ -158,12 +148,3 @@ kubectl run -it \
 --namespace mainspark \
 workload-identity-test
 
-
-
-
-curl --request POST \
-   --header "content-type:application/json" \
-   --data '{"message":"hello world"}' \
-   "http://streamstate-api.endpoints.streamstatetest.cloud.goog/healthz?key=AIzaSyDx6KHvMkvR6qu5FOWZbkPafczVXh_QcB8"
-
-curl -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" http://streamstate-api.endpoints.streamstatetest.cloud.goog/build/container?key=AIzaSyDx6KHvMkvR6qu5FOWZbkPafczVXh_QcB8

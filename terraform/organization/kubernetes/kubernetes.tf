@@ -465,20 +465,6 @@ resource "helm_release" "spark" {
   depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
-#################
-# Install gloo
-#################
-
-resource "helm_release" "prometheus" {
-  name      = "prometheus"
-  namespace = "gloo-system"
-  create_namespace = true
-  repository = "https://storage.googleapis.com/solo-public-helm"
-  chart      = "gloo" # apparently this includes the prometheus operator, while raw "prometheus" doesn't
-
-  depends_on = [local_file.kubeconfig]
-}
-
 
 ##################
 # Install Prometheus
@@ -527,24 +513,24 @@ resource "kubectl_manifest" "argoworkflow" {
 }
 
 data "kubectl_file_documents" "argoevents" {
-  content = templatefile("../../argo/argoeventsinstall.yml", {
-    service_name = var.service_name
-  })
+  content = file("../../argo/argoeventsinstall.yml")
 }
 
 resource "kubectl_manifest" "argoevents" {
-  count              = 9 #length(data.kubectl_file_documents.argoevents.documents)
+  count              = length(data.kubectl_file_documents.argoevents.documents)
   yaml_body          = element(data.kubectl_file_documents.argoevents.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoworkflow]
 }
 
 data "kubectl_file_documents" "argoeventswebhook" {
-  content = file("../../argo/webhookinstall.yml")
+  content = templatefile("../../argo/webhookinstall.yml", {
+    staticipname = var.staticip_name
+  })
 }
 
 resource "kubectl_manifest" "argoeventswebhook" {
-  count              = length(data.kubectl_file_documents.argoeventswebhook.documents)
+  count              = 5 #length(data.kubectl_file_documents.argoeventswebhook.documents)
   yaml_body          = element(data.kubectl_file_documents.argoeventswebhook.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoevents]

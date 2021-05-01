@@ -4,12 +4,6 @@ provider "google" {
   #zone    = "us-central1-c"
 }
 
-resource "google_compute_global_address" "ip_address" {
-  name    = "ipaddress-${var.organization}"
-  project = var.project
-}
-
-
 # this is the default cluster service account, this shouldn't be used for much
 # we should create custom service accounts with minimal permissions
 resource "google_service_account" "cluster" {
@@ -18,7 +12,13 @@ resource "google_service_account" "cluster" {
   display_name = "Service Account ${var.organization}"
 }
 
+
+resource "google_compute_global_address" "staticgkeip" {
+  name = "streamstate-global-ip"
+}
+
 # this should be at the organization level (each organization gets their own cluster)
+# what about loadbalancing and IP address?
 resource "google_container_cluster" "primary" {
   project  = var.project
   name     = "streamstatecluster-${var.organization}"
@@ -56,6 +56,7 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   #  min_node_count = 1
   #  max_node_count = 5
   #}
+
   node_config {
     preemptible  = true
     machine_type = "e2-standard-2" #"e2-medium" 
@@ -79,4 +80,3 @@ resource "google_artifact_registry_repository_iam_member" "read" {
   role       = "roles/artifactregistry.reader"
   member     = "serviceAccount:${google_service_account.cluster.email}"
 }
-
