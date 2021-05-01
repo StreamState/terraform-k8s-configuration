@@ -406,11 +406,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: argo-server
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
   ports:
   - name: web
     port: 2746
     targetPort: 2746
+  type: NodePort 
   selector:
     app: argo-server
 ---

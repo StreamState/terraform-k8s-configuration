@@ -1,10 +1,6 @@
 from cassandra.cluster import Cluster, Session
 from cassandra.auth import PlainTextAuthProvider
-import os
-from kubernetes.client.api_client import ApiClient
-from kubernetes.client.api import CoreV1Api
-import subprocess
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple
 from streamstate_utils.cassandra_utils import (
     get_cassandra_key_space_from_org_name,
     get_cassandra_table_name_from_app_name,

@@ -1,0 +1,139 @@
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+from typing import List, Dict, Tuple
+from streamstate_utils.cassandra_utils import (
+    get_cassandra_key_space_from_org_name,
+    get_cassandra_table_name_from_app_name,
+)
+
+import json
+from avro_validator.schema import Schema, RecordType
+
+from streamstate_utils.structs import CassandraInputStruct
+
+
+def get_firestore_session(project_id: str) -> firestore.client:
+    cred = credentials.ApplicationDefault()
+    firebase_admin.initialize_app(
+        cred,
+        {
+            "projectId": project_id,
+        },
+    )
+    return firestore.client()
+
+
+def get_existing_schema(db, org_name: str, app_name: str) -> Tuple[str, int]:
+
+    doc_stream = (
+        db.collection("admin_track")
+        .where("organization", "==", org_name)
+        .where("appname", "==", app_name)
+        .stream()
+    )
+    for row in doc_stream:
+        r = row.to_dict()
+        return r["avroschema"], r["version"]
+
+    return "", 0
+
+
+def _parse_schema(schema: List[Dict[str, str]]):
+    for field in schema:
+        assert "name" in field
+        assert "type" in field
+        assert type(field["name"]) == str
+        assert type(field["type"]) == str
+
+
+def _convert_type(avro_type: str) -> str:
+    avro_type_conversion = {
+        "boolean": "boolean",
+        "int": "int",
+        "long": "bigint",
+        "float": "float",  # safe side
+        "double": "double",
+        "string": "text",
+    }
+    return avro_type_conversion[avro_type]
+
+
+def set_document_name_version(app_name: str, org_name: str, version: int) -> str:
+    return f"{app_name}_{org_name}_{version}"
+
+
+def set_document_name(app_name: str, org_name: str) -> str:
+    return f"{app_name}_{org_name}"
+
+
+def insert_tracking_table(
+    db, org_name: str, app_name: str, avro_schema: str, version: int
+):
+    document_name_history = set_document_name_version(app_name, org_name, version)
+    # creates a new document
+    db.collection("admin_track_history").document(document_name_history).set(
+        {
+            "organization": org_name,
+            "avro_schema": avro_schema,
+            "version": version,
+            "app_name": app_name,
+        }
+    )
+    document_name = set_document_name(app_name, org_name)
+    # updates existing document
+    db.collection("admin_track").document(document_name).set(
+        {
+            "organization": org_name,
+            "avro_schema": avro_schema,
+            "version": version,
+            "app_name": app_name,
+        }
+    )
+
+
+def _sublist(ls1: List[str], ls2: List[str]) -> bool:
+    for x in ls1:
+        if x not in ls2:
+            return False
+    return True
+
+
+# this doesn't actually create a schema though
+def create_schema(
+    db,
+    org_name: str,
+    app_name: str,
+    primary_keys: List[str],
+    schema: List[Dict[str, str]],  # name: fieldname, type: datatype
+):
+    # will throw if schema isn't valid
+    _parse_schema(schema)
+    # app_name = schema["name"]
+    field_names = [field["name"] for field in schema]
+    assert _sublist(primary_keys, field_names)
+    prev_schema, prev_version = get_existing_schema(db, org_name, app_name)
+    schema_as_string = json.dumps(schema)
+    if prev_schema != schema_as_string:
+        version = prev_version + 1
+        return version
+    else:
+        return prev_version
+
+
+def get_stream_from_table(db, org_name: str, app_name: str, version: int):
+    collection = get_collection_from_org_name_and_app_name(org_name, app_name, version)
+    # document = get_document_name_from_app_name(app_name, version)
+
+    return db.collection(collection).stream()
+
+
+def get_latest_record(
+    db, org_name: str, app_name: str, version: int, primary_keys: List[str]
+) -> dict:
+    collection = get_collection_from_org_name_and_app_name(org_name, version)
+    document = get_document_name_from_org_name_and_app_name_and_keys(
+        org_name, app_name, version, primary_keys
+    )
+
+    return db.collection(collection).document(document).get().to_dict()

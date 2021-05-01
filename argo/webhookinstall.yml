@@ -55,6 +55,12 @@ spec:
       endpoint: /build/example
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
+    readiness:
+      # port to run HTTP server on
+      port: "12000"
+      # endpoint to listen to
+      endpoint: /
+      method: GET
       #authSecret:
       #  name: my-webhook-token
       #  key: my-token
@@ -105,6 +111,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: argowebhook
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
   ports:
   - port: 80
@@ -128,17 +136,22 @@ metadata:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.global-static-ip-name: ${staticipname} # streamstate-global-ip # defined in gke.tf, TODO add this as output variable from gke.tf instead of hardcoding
 spec:
+  backend:
+    serviceName: argowebhook
+    servicePort: 80
   rules:
-  - http:
+  - 
+    http:
       paths:
-      - path: /*
+      - path: /* # todo, make this /[organization]/.  I think we need to go with one k8s cluster
         backend:
           serviceName: argowebhook
           servicePort: 80
-      - path: /test
-        backend:
-          serviceName: argowebhook 
-          servicePort: 80
+    # host: streamstate.org
+      #- path: /ui # how will this work with ssl?
+      #  backend: 
+      #    serviceName: argo-server 
+      #    servicePort: 2746 
 ---
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
@@ -146,4 +159,4 @@ metadata:
   name: certificate-name
 spec:
   domains:
-    - streamstate.org
+    - streamstate.org # manually confgured A records to point to static ip
