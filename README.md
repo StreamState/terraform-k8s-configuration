@@ -95,6 +95,7 @@ To find webui url:
 
 
 
+curl  -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" 34.123.47.132/build/container
 
 # upload json to bucket
 
@@ -108,6 +109,9 @@ You may have to create a subfolder first (eg, /test)
 * kubectl logs replaytest-driver
 * kubectl port-forward examplegcp-driver 4040:4040 # to view spark-ui, go to localhost:4040
 
+
+* echo {\"field1\": \"somevalue\"} > ./mytest1.json
+* gsutil cp ./mytest1.json gs://streamstate-sparkstorage-testorg/mytestapp/topic1
 
 # python consume cassandra
 
@@ -131,17 +135,6 @@ The backend for provisioning new jobs
 
 # prometheus
 
-* helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-* helm repo update
-* kubectl create namespace monitoring
-* helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring
-* helm show values prometheus-community/kube-prometheus-stack
-* kubectl port-forward svc/prometheus-operated 9090:9090
-* kubectl apply -f prometheustest/prometheus.yml
-* kubectl apply -f prometheustest/servicemonitor.yml
-* kubectl apply -f prometheustest/service.yml
-* kubectl apply -f prometheustest/pysparkjob.yml
-* kubectl get pods -l sparkoperator.k8s.io/app-name=devfromfile
 
 * kubectl port-forward svc/prometheus-operated -n monitoring 9090:9090
 * kubectl port-forward svc/prometheus-grafana  -n monitoring 8000:80
@@ -157,3 +150,4 @@ kubectl run -it \
 --serviceaccount spark \
 --namespace mainspark \
 workload-identity-test
+

@@ -35,6 +35,13 @@ variable "docker_write_svc_email" {
 variable "docker_write_svc_name" {
   type = string
 }
+
+variable "firestore_svc_name" {
+  type = string
+}
+variable "firestore_svc_email" {
+  type = string
+}
 variable "spark_gcs_svc_name" {
   type = string
 }
@@ -62,4 +69,8 @@ variable "data_center" {
 variable "cassandra_cluster_name" {
   type    = string
   default = "cluster1"
+}
+
+variable "staticip_name" {
+  type = string
 }

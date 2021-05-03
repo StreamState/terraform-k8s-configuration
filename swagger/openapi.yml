@@ -3,35 +3,24 @@ info:
   description: "Streamstate endpoints"
   title: "Streamstate"
   version: "1.0.0"
-host: "streamstate-api.endpoints.${PROJECT_ID}.cloud.goog" # "echo-api.endpoints.YOUR-PROJECT-ID.cloud.goog"
-# basePath: "/${VERSION_MAJOR}"
+host: ${HOST} # "echo-api.endpoints.YOUR-PROJECT-ID.cloud.goog"
+x-google-endpoints:
+- name: ${HOST}
+  target: ${CLUSTER_IP}
+
 schemes:
-  - https
+  - http
 
-#produces:
-#  - application/json
-x-google-backend:
-  name: "streamstate-api.endpoints.${PROJECT_ID}.cloud.goog"
-  target: ${CLUSTER_IP} ## add IP here
-
-securityDefinitions:
-  firebase:
-    authorizationUrl: ""
-    flow: "implicit"
-    type: "oauth2"
-    x-google-issuer: "https://securetoken.google.com/${PROJECT_ID}"
-    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
-    x-google-audiences: "${PROJECT_ID}"
-  JWT:  
-    type: apiKey  
-    in: query  
-    name: access_token  
+## todo, add firebase auth
 
 security:
-  - firebase: []
-  - JWT: []
-
-
+- api_key: []
+securityDefinitions:
+  # This section configures basic authentication with an API key.
+  api_key:
+    type: "apiKey"
+    name: "key"
+    in: "query"
 
 
 paths:
@@ -48,7 +37,7 @@ paths:
           schema:
             type: string
           examples:
-            application/text:
+            text/plain:
               "success"
         '400':
           description: Error for incorrect request
@@ -128,12 +117,10 @@ paths:
               properties:
                 mode: 
                   type: string
-                  enum: [ "append", "complete", "update"],
+                  enum: [append, complete, update]
                 checkpoint_location: # this should be moved to terraform at some point, when we point to gcs rather than local to docker
                   type: string
                   example: "/tmp/checkpoint"
-                output_name: # This is the output topic.  Should this be the same as the cassandra table and the output_schema name??
-                  type: string 
                 
               required:
                 - mode
@@ -156,28 +143,22 @@ paths:
                     type: string
                     example: "field1"
                 output_schema: # avro schema
-                  type: object
-                  properties:
-                    name: 
-                      type: string # TODO THIS IS WRONG! avro schema requires it, and I currently use it to create the cassandra table name in entrypoint.  However I use the CassandraOutputStruct in spark streaming app to call the table, which uses the top level appname
-                      example: myappname
-                    fields:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          name: 
-                            type: string
-                            example: "field1"
-                          type:
-                            type: string
-                            example: "string"
-                        required:
-                          - name
-                          - type
-                  required:
-                    - name
-                    - fields
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: 
+                        type: string
+                        example: "field1"
+                      type:
+                        type: string
+                        example: "string"
+                    required:
+                      - name
+                      - type
+              required:
+                - primary_keys
+                - output_schema
             appname: 
               type: string
               example: mytestapp

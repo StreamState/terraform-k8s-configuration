@@ -4,12 +4,6 @@ provider "google" {
   #zone    = "us-central1-c"
 }
 
-resource "google_compute_global_address" "ip_address" {
-  name    = "ipaddress-${var.organization}"
-  project = var.project
-}
-
-
 # this is the default cluster service account, this shouldn't be used for much
 # we should create custom service accounts with minimal permissions
 resource "google_service_account" "cluster" {
@@ -18,7 +12,18 @@ resource "google_service_account" "cluster" {
   display_name = "Service Account ${var.organization}"
 }
 
+# enable firestore
+resource "google_project_service" "firestore" {
+  service                    = "firestore.googleapis.com"
+  disable_dependent_services = true
+}
+
+resource "google_compute_global_address" "staticgkeip" {
+  name = "streamstate-global-ip"
+}
+
 # this should be at the organization level (each organization gets their own cluster)
+# what about loadbalancing and IP address?
 resource "google_container_cluster" "primary" {
   project  = var.project
   name     = "streamstatecluster-${var.organization}"
@@ -56,6 +61,7 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   #  min_node_count = 1
   #  max_node_count = 5
   #}
+
   node_config {
     preemptible  = true
     machine_type = "e2-standard-2" #"e2-medium" 
@@ -80,3 +86,12 @@ resource "google_artifact_registry_repository_iam_member" "read" {
   member     = "serviceAccount:${google_service_account.cluster.email}"
 }
 
+# Use firestore
+## apparently I need to enable (but not instantiate) app engine 
+## to use firestore from terraform
+resource "google_app_engine_application" "dummyapp" {
+  provider      = google-beta
+  location_id   = "us-central" # var.region
+  project       = var.project
+  database_type = "CLOUD_FIRESTORE"
+}

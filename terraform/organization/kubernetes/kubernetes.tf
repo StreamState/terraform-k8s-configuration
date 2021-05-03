@@ -33,6 +33,8 @@ provider "kubectl" {
   cluster_ca_certificate = base64decode(var.cluster_ca_cert)
 }
 
+
+
 data "template_file" "kubeconfig" {
   template = file("${path.module}/kubeconfig.yml")
 
@@ -113,7 +115,7 @@ resource "kubernetes_service_account" "monitoring" {
     name      = "monitoring"
     namespace = kubernetes_namespace.monitoring.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = var.spark_history_svc_email # todo, change this name
+      "iam.gke.io/gcp-service-account" = var.spark_history_svc_email
     }
   }
   depends_on = [kubernetes_namespace.monitoring]
@@ -130,6 +132,34 @@ resource "google_service_account_iam_binding" "monitoring" {
   ]
   depends_on = [
     kubernetes_service_account.monitoring
+  ]
+}
+
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
+resource "kubernetes_service_account" "firestore" {
+  metadata {
+    name      = "firestore"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.firestore_svc_email
+    }
+  }
+  depends_on = [kubernetes_namespace.argoevents]
+}
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "firestore" {
+  service_account_id = var.firestore_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.argoevents.metadata.0.name}/${kubernetes_service_account.firestore.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_namespace.argoevents
   ]
 }
 
@@ -167,6 +197,23 @@ resource "kubernetes_role_binding" "dockerwrite" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+}
+
+resource "kubernetes_role_binding" "firestore" {
+  metadata {
+    name      = "firestorepermissions-role-binding"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.argorules.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.firestore.metadata.0.name
     namespace = kubernetes_namespace.argoevents.metadata.0.name
   }
 }
@@ -319,6 +366,8 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   depends_on = [kubernetes_namespace.argoevents]
 }
 
+
+
 resource "kubernetes_service_account" "argoevents-sparksubmit" {
   metadata {
     name      = "argoevents-sparksubmit"
@@ -463,6 +512,20 @@ resource "helm_release" "spark" {
   depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
+###############
+# Install gloo
+###############
+resource "helm_release" "gloo" {
+  name             = "gloo"
+  namespace        = "gloo-system"
+  create_namespace = true
+  repository       = "https://storage.googleapis.com/solo-public-helm"
+  chart            = "gloo"
+
+  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+}
+
+
 ##################
 # Install Prometheus
 ##################
@@ -521,7 +584,9 @@ resource "kubectl_manifest" "argoevents" {
 }
 
 data "kubectl_file_documents" "argoeventswebhook" {
-  content = file("../../argo/webhookinstall.yml")
+  content = file("../../argo/webhookinstall.yml") #{
+  #staticipname = var.staticip_name
+  #})
 }
 
 resource "kubectl_manifest" "argoeventswebhook" {
@@ -529,6 +594,19 @@ resource "kubectl_manifest" "argoeventswebhook" {
   yaml_body          = element(data.kubectl_file_documents.argoeventswebhook.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoevents]
+}
+
+data "kubectl_file_documents" "glooservice" {
+  content = file("../../gloo/virtualservice.yml") #{
+  #staticipname = var.staticip_name
+  #})
+}
+
+resource "kubectl_manifest" "glooservice" {
+  count     = length(data.kubectl_file_documents.glooservice.documents)
+  yaml_body = element(data.kubectl_file_documents.glooservice.documents, count.index)
+  # override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on = [kubectl_manifest.argoeventswebhook]
 }
 
 
@@ -542,6 +620,7 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
     sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
     sparkserviceaccount       = kubernetes_service_account.spark.metadata.0.name
+    firestoreserviceaccount   = kubernetes_service_account.firestore.metadata.0.name
     cassandrasecret           = kubernetes_secret.cassandra_svc.metadata.0.name
     cassandrasecretargo       = kubernetes_secret.cassandra_svcargo.metadata.0.name
     dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
@@ -559,3 +638,26 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
 
+### ##############
+## Install ESPv2
+#################
+#data "kubernetes_service" "argosensorip" {
+#  metadata {
+#    name      = "streamstatewebservice-eventsource-svc"
+#    namespace = kubernetes_namespace.argoevents.metadata.0.name
+#  }
+#  depends_on = [kubectl_manifest.pysparkeventworkflow]
+#}
+#data "kubectl_file_documents" "swagger" {
+#  content = templatefile("../../swagger/espv2.yml", {
+#    argo_host    = "${data.kubernetes_service.argosensorip.spec.0.cluster_ip}:12000"
+#    service_name = var.service_name
+#  })#
+
+#}
+#resource "kubectl_manifest" "swagger" {
+#  count              = 4
+#  yaml_body          = element(data.kubectl_file_documents.swagger.documents, count.index)
+#  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+#  depends_on         = [kubectl_manifest.pysparkeventworkflow]
+#}

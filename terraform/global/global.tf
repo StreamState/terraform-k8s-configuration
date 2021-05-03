@@ -2,6 +2,11 @@ variable "project" {
   type = string
   #default = "streamstate"
 }
+variable "location" {
+  type        = string
+  description = "The default App Engine region. For instance 'europe-west'"
+  default     = "us-central1"
+}
 
 terraform {
   backend "gcs" {
@@ -12,7 +17,7 @@ terraform {
 
 provider "google" {
   project = var.project
-  region  = "us-central1"
+  region  = var.location
   #zone    = "us-central1-c"
 }
 
@@ -21,10 +26,17 @@ resource "google_project_service" "resource_manager" {
   service = "cloudresourcemanager.googleapis.com"
 }
 
-resource "google_project_service" "apigateway" {
+resource "google_project_service" "endpoints" {
   project = var.project
-  service = "apigateway.googleapis.com"
+  service = "endpoints.googleapis.com"
 }
+
+
+resource "google_project_service" "firestore" {
+  service                    = "firestore.googleapis.com"
+  disable_dependent_services = true
+}
+
 
 resource "google_project_service" "iam" {
   project    = var.project
@@ -50,7 +62,7 @@ resource "google_project_service" "container_cluster" {
 resource "google_artifact_registry_repository" "orgrepo" {
   provider      = google-beta
   project       = var.project
-  location      = "us-central1"
+  location      = var.location
   repository_id = var.project
   description   = "organization specific docker repo"
   format        = "DOCKER"

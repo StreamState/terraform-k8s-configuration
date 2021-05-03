@@ -151,6 +151,8 @@ spec:
                            value: "{{inputs.parameters.appname}}"
                          - name: version
                            value: "{{tasks.runcassandra.outputs.result}}"
+                         - name: table
+                           value: "{{inputs.parameters.table}}"
                            #value: "{{tasks.runcassandra.outputs.parameters.version}}"
                       dependencies: [createfolder, deploydocker, runcassandra]
                     
@@ -287,7 +289,8 @@ spec:
                     - mountPath: /work 
                       name: work
 
-                - name: cassandra
+                - name: cassandra 
+                  serviceAccountName: ${firestoreserviceaccount}
                   inputs:
                     parameters:
                       - name: table
@@ -364,13 +367,13 @@ spec:
                       # Name of the image to push
                       - name: image
                         value: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 # same as for build-docker-image
-                      #- name: pythoncode
                       - name: inputs
                       - name: kafka
                       - name: outputs
                       - name: fileinfo
                       - name: appname
                       - name: version
+                      - name: table
   
                   resource:                   # indicates that this is a resource template
                     action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
@@ -388,7 +391,7 @@ spec:
                       kind: SparkApplication
                       metadata:
                         name: {{inputs.parameters.appname}} #todo, make this a function of "topics" (ie, the thing to be looping over)
-                        namespace: ${namespace} # need to add this to terraform
+                        namespace: ${namespace} 
                       spec:
                         sparkConf:
                           spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
@@ -399,7 +402,7 @@ spec:
                         mode: cluster
                         image: {{inputs.parameters.image}}
                         imagePullPolicy: Always
-                        mainApplicationFile: "local:///opt/spark/work-dir/dev_app.py" # todo, adjust this to be the right entrypoint
+                        mainApplicationFile: "local:///opt/spark/work-dir/replay_app.py" # todo, adjust this to be the right entrypoint
                         sparkVersion: "3.1.1"
                         hadoopConf:
                           "fs.gs.project.id": ${project}
@@ -412,22 +415,19 @@ spec:
                         arguments:
                           - '{{inputs.parameters.appname}}'
                           - 'gs://streamstate-sparkstorage-${organization}'
+                          - '{{inputs.parameters.table}}'
                           - '{{inputs.parameters.outputs}}'
                           - '{{inputs.parameters.fileinfo}}'
+                          - '{{inputs.parameters.kafka}}'
                           - '{{inputs.parameters.inputs}}'
-                          # todo, need to pass in version from output of cassandra step
-                        
+                          - '{{inputs.parameters.version}}'
+                       
                         restartPolicy:
                           type: Always # should be able to resume from checkpoint if killed for some reason
                         driver:
                           coreRequest: 200m
                           memory: "512m"
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
-                          #metadata:
-                          #  annotations:
-                          #    prometheus.io/scrape: "true"
-                          #    prometheus.io/path: "/metrics"
-                          #    prometheus.io/port: "8090"
                           secrets:
                           - name: "spark-secret" # Secret name as defined when creating a kubernetes secret, generated from spark-gcs
                             path: "/mnt/secrets"
