@@ -76,6 +76,13 @@ resource "google_artifact_registry_repository_iam_member" "read" {
   member     = "serviceAccount:${google_service_account.docker-write.email}"
 }
 
+## access to firestore
+resource "google_project_iam_member" "firestore_user" {
+  role    = "roles/datastore.user"
+  project = var.project
+  member  = "serviceAccount:${google_service_account.spark-gcs.email}"
+}
+
 
 #write access to gcs
 resource "google_storage_bucket_iam_member" "sparkadmin" {

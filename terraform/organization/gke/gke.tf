@@ -12,6 +12,11 @@ resource "google_service_account" "cluster" {
   display_name = "Service Account ${var.organization}"
 }
 
+# enable firestore
+resource "google_project_service" "firestore" {
+  service                    = "firestore.googleapis.com"
+  disable_dependent_services = true
+}
 
 resource "google_compute_global_address" "staticgkeip" {
   name = "streamstate-global-ip"
@@ -79,4 +84,14 @@ resource "google_artifact_registry_repository_iam_member" "read" {
   repository = var.project # see ../../global/global.tf
   role       = "roles/artifactregistry.reader"
   member     = "serviceAccount:${google_service_account.cluster.email}"
+}
+
+# Use firestore
+## apparently I need to enable (but not instantiate) app engine 
+## to use firestore from terraform
+resource "google_app_engine_application" "dummyapp" {
+  provider      = google-beta
+  location_id   = "us-central" # var.region
+  project       = var.project
+  database_type = "CLOUD_FIRESTORE"
 }

@@ -1,0 +1,41 @@
+---
+apiVersion: gateway.solo.io/v1
+kind: VirtualService
+metadata:
+  name: default
+  namespace: gloo-system
+  ownerReferences: []
+status:
+  reportedBy: gateway
+  state: Accepted
+  subresourceStatuses:
+    '*v1.Proxy.gloo-system.gateway-proxy':
+      reportedBy: gloo
+      state: Accepted
+spec:
+  virtualHost:
+    domains:
+    - '*'
+    routes:
+    - matchers:
+      # - exact: /all-pets
+      - prefix: /build
+      options:
+        # prefixRewrite: /api/pets
+        autoHostRewrite: true
+      routeAction:
+        single:
+          upstream:
+            name: argo-events-argowebhook-12000
+            namespace: gloo-system
+    - matchers:
+      # - exact: /all-pets
+      - prefix: /ui
+      options:
+        # prefixRewrite: /api/pets
+        autoHostRewrite: true
+      routeAction:
+        single:
+          upstream:
+            name: argo-events-argo-server-2746
+            namespace: gloo-system

@@ -465,6 +465,19 @@ resource "helm_release" "spark" {
   depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
+###############
+# Install gloo
+###############
+resource "helm_release" "gloo" {
+  name             = "gloo"
+  namespace        = "gloo-system"
+  create_namespace = true
+  repository       = "https://storage.googleapis.com/solo-public-helm"
+  chart            = "gloo"
+
+  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+}
+
 
 ##################
 # Install Prometheus
@@ -524,16 +537,29 @@ resource "kubectl_manifest" "argoevents" {
 }
 
 data "kubectl_file_documents" "argoeventswebhook" {
-  content = templatefile("../../argo/webhookinstall.yml", {
-    staticipname = var.staticip_name
-  })
+  content = file("../../argo/webhookinstall.yml") #{
+  #staticipname = var.staticip_name
+  #})
 }
 
 resource "kubectl_manifest" "argoeventswebhook" {
-  count              = 5 #length(data.kubectl_file_documents.argoeventswebhook.documents)
+  count              = length(data.kubectl_file_documents.argoeventswebhook.documents)
   yaml_body          = element(data.kubectl_file_documents.argoeventswebhook.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoevents]
+}
+
+data "kubectl_file_documents" "glooservice" {
+  content = file("../../gloo/virtualservice.yml") #{
+  #staticipname = var.staticip_name
+  #})
+}
+
+resource "kubectl_manifest" "glooservice" {
+  count     = length(data.kubectl_file_documents.glooservice.documents)
+  yaml_body = element(data.kubectl_file_documents.glooservice.documents, count.index)
+  # override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on = [kubectl_manifest.argoeventswebhook]
 }
 
 

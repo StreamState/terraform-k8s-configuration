@@ -111,52 +111,29 @@ apiVersion: v1
 kind: Service
 metadata:
   name: argowebhook
-  annotations:
-    cloud.google.com/neg: '{"ingress": true}'
+  # namespace: default
+  labels:
+    service: argowebhook
 spec:
   ports:
-  - port: 80
-    targetPort: 12000
+  - port: 12000
     protocol: TCP
-    name: http
-  #selector:
-  #  eventsource: streamstate
-  type: NodePort 
   selector:
     controller: eventsource-controller
     eventsource-name: streamstatewebservice
-    # owner-name: webhook
----
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: argoingress
-  annotations:
-    # If the class annotation is not specified it defaults to "gce".
-    kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: ${staticipname} # streamstate-global-ip # defined in gke.tf, TODO add this as output variable from gke.tf instead of hardcoding
-spec:
-  backend:
-    serviceName: argowebhook
-    servicePort: 80
-  rules:
-  - 
-    http:
-      paths:
-      - path: /* # todo, make this /[organization]/.  I think we need to go with one k8s cluster
-        backend:
-          serviceName: argowebhook
-          servicePort: 80
-    # host: streamstate.org
-      #- path: /ui # how will this work with ssl?
-      #  backend: 
-      #    serviceName: argo-server 
-      #    servicePort: 2746 
----
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: certificate-name
-spec:
-  domains:
-    - streamstate.org # manually confgured A records to point to static ip
+#---
+#apiVersion: gloo.solo.io/v1
+#kind: Upstream
+#metadata:
+#  name: argoupstream
+#  namespace: gloo-system
+#spec:
+#  kube:
+#    selector:
+#      controller: eventsource-controller
+#      eventsource-name: streamstatewebservice
+#    serviceName: argowebhook
+#    serviceNamespace: argo-events # todo, make thjis a variable
+#    servicePort: 12000 # does this have to be the same as the service port?
+
+

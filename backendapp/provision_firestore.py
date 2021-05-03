@@ -2,26 +2,20 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 from typing import List, Dict, Tuple
-from streamstate_utils.cassandra_utils import (
-    get_cassandra_key_space_from_org_name,
-    get_cassandra_table_name_from_app_name,
+
+# from streamstate_utils.cassandra_utils import (
+##    get_cassandra_key_space_from_org_name,
+#    get_cassandra_table_name_from_app_name,
+# )
+from streamstate_utils.firestore import (
+    get_collection_from_org_name_and_app_name,
+    get_document_name_from_version_and_keys,
 )
 
 import json
 from avro_validator.schema import Schema, RecordType
 
-from streamstate_utils.structs import CassandraInputStruct
-
-
-def get_firestore_session(project_id: str) -> firestore.client:
-    cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(
-        cred,
-        {
-            "projectId": project_id,
-        },
-    )
-    return firestore.client()
+from streamstate_utils.structs import FirestoreStruct
 
 
 def get_existing_schema(db, org_name: str, app_name: str) -> Tuple[str, int]:
@@ -45,18 +39,6 @@ def _parse_schema(schema: List[Dict[str, str]]):
         assert "type" in field
         assert type(field["name"]) == str
         assert type(field["type"]) == str
-
-
-def _convert_type(avro_type: str) -> str:
-    avro_type_conversion = {
-        "boolean": "boolean",
-        "int": "int",
-        "long": "bigint",
-        "float": "float",  # safe side
-        "double": "double",
-        "string": "text",
-    }
-    return avro_type_conversion[avro_type]
 
 
 def set_document_name_version(app_name: str, org_name: str, version: int) -> str:
@@ -109,18 +91,22 @@ def create_schema(
 ):
     # will throw if schema isn't valid
     _parse_schema(schema)
-    # app_name = schema["name"]
     field_names = [field["name"] for field in schema]
     assert _sublist(primary_keys, field_names)
     prev_schema, prev_version = get_existing_schema(db, org_name, app_name)
     schema_as_string = json.dumps(schema)
     if prev_schema != schema_as_string:
         version = prev_version + 1
+        insert_tracking_table(db, org_name, app_name, schema_as_string, version)
         return version
     else:
         return prev_version
 
 
+# shouldn't use this...just consume from kafka output instead
+## if, for example, the data is account_id, count_logins_last_30_days
+## with account_id being the primary key, then this would get the most
+## recent data for all account_ids
 def get_stream_from_table(db, org_name: str, app_name: str, version: int):
     collection = get_collection_from_org_name_and_app_name(org_name, app_name, version)
     # document = get_document_name_from_app_name(app_name, version)
@@ -128,12 +114,24 @@ def get_stream_from_table(db, org_name: str, app_name: str, version: int):
     return db.collection(collection).stream()
 
 
+## if, for example, the data is account_id, count_logins_last_30_days
+## with account_id being the primary key, then this would get the most
+## recent data for this account_id
 def get_latest_record(
-    db, org_name: str, app_name: str, version: int, primary_keys: List[str]
+    db, org_name: str, app_name: str, version: int, key_values: List[str]
 ) -> dict:
-    collection = get_collection_from_org_name_and_app_name(org_name, version)
-    document = get_document_name_from_org_name_and_app_name_and_keys(
-        org_name, app_name, version, primary_keys
-    )
+    """
+    Gets latest record by key
+
+    Attributes:
+    db: instance of firestore client
+    org_name: name of organiation
+    app_name: name of app
+    version: schema version
+    key_values: the values of the primary key columns.
+    Must be in the same order as on write
+    """
+    collection = get_collection_from_org_name_and_app_name(org_name, app_name)
+    document = get_document_name_from_version_and_keys(key_values, version)
 
     return db.collection(collection).document(document).get().to_dict()
