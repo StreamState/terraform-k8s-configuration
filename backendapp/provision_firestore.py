@@ -3,19 +3,12 @@ from firebase_admin import credentials, firestore
 
 from typing import List, Dict, Tuple
 
-# from streamstate_utils.cassandra_utils import (
-##    get_cassandra_key_space_from_org_name,
-#    get_cassandra_table_name_from_app_name,
-# )
 from streamstate_utils.firestore import (
     get_collection_from_org_name_and_app_name,
     get_document_name_from_version_and_keys,
 )
 
 import json
-from avro_validator.schema import Schema, RecordType
-
-from streamstate_utils.structs import FirestoreStruct
 
 
 def get_existing_schema(db, org_name: str, app_name: str) -> Tuple[str, int]:

@@ -83,35 +83,11 @@ spec:
 #        name: my-secret
 #        key: pk-key
 
-# ---        
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: argoeventsservice
-#   #namespace: default
-# spec:
-#   type: NodePort
-#   selector:
-#     app: argobackend
-#   ports:
-#   - port: 80
-#     targetPort: 12000
-#     protocol: TCP
-#---
-#apiVersion: networking.k8s.io/v1beta1
-#kind: Ingress
-#metadata:
-#  name: espv2
-#spec:
-#  backend:
-#    serviceName: espv2 # Name of the Service targeted by the Ingress
-#    servicePort: 80 # Should match the port used by the Service
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: argowebhook
-  # namespace: default
   labels:
     service: argowebhook
 spec:
@@ -121,19 +97,5 @@ spec:
   selector:
     controller: eventsource-controller
     eventsource-name: streamstatewebservice
-#---
-#apiVersion: gloo.solo.io/v1
-#kind: Upstream
-#metadata:
-#  name: argoupstream
-#  namespace: gloo-system
-#spec:
-#  kube:
-#    selector:
-#      controller: eventsource-controller
-#      eventsource-name: streamstatewebservice
-#    serviceName: argowebhook
-#    serviceNamespace: argo-events # todo, make thjis a variable
-#    servicePort: 12000 # does this have to be the same as the service port?
 
 

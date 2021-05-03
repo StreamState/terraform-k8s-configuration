@@ -6,8 +6,7 @@ from typing import List
 #    create_tracking_table,
 # )
 from provision_firestore import (
-    get_existing_schema,
-    insert_tracking_table,
+    create_schema,
 )
 import marshmallow_dataclass
 import sys
@@ -20,9 +19,7 @@ from streamstate_utils.k8s_utils import (
 #    get_cassandra_inputs_from_config_map,
 #    get_organization_from_config_map,
 # )
-from streamstate_utils.firestore import (
-    open_firestore_connection,
-)
+from streamstate_utils.firestore import open_firestore_connection
 from streamstate_utils.structs import TableStruct
 import json
 
@@ -36,7 +33,7 @@ def main():
     db = open_firestore_connection(project_id)
 
     version = create_schema(
-        session,
+        db,
         organization,
         app_name,
         table_info.primary_keys,

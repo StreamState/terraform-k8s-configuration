@@ -51,6 +51,13 @@ resource "google_service_account" "spark-gcs" {
   account_id   = "spark-gcs-${var.organization}"
   display_name = "Spark Service account ${var.organization}"
 }
+## needed for the initial write to firestore from argo events
+## run in argo-events namespace instead of sparkmain
+resource "google_service_account" "firestore" {
+  project      = var.project
+  account_id   = "firestore-${var.organization}"
+  display_name = "Firestore service account ${var.organization}"
+}
 resource "google_service_account" "spark-history" {
   project      = var.project
   account_id   = "spark-history-${var.organization}"
@@ -76,11 +83,18 @@ resource "google_artifact_registry_repository_iam_member" "read" {
   member     = "serviceAccount:${google_service_account.docker-write.email}"
 }
 
-## access to firestore
+## access to firestore from spark
 resource "google_project_iam_member" "firestore_user" {
   role    = "roles/datastore.user"
   project = var.project
   member  = "serviceAccount:${google_service_account.spark-gcs.email}"
+}
+
+## access to firestore from argo-events
+resource "google_project_iam_member" "firestore_user_argoevents" {
+  role    = "roles/datastore.user"
+  project = var.project
+  member  = "serviceAccount:${google_service_account.firestore.email}"
 }
 
 

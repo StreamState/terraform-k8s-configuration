@@ -115,7 +115,7 @@ resource "kubernetes_service_account" "monitoring" {
     name      = "monitoring"
     namespace = kubernetes_namespace.monitoring.metadata.0.name
     annotations = {
-      "iam.gke.io/gcp-service-account" = var.spark_history_svc_email # todo, change this name
+      "iam.gke.io/gcp-service-account" = var.spark_history_svc_email
     }
   }
   depends_on = [kubernetes_namespace.monitoring]
@@ -132,6 +132,34 @@ resource "google_service_account_iam_binding" "monitoring" {
   ]
   depends_on = [
     kubernetes_service_account.monitoring
+  ]
+}
+
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
+resource "kubernetes_service_account" "firestore" {
+  metadata {
+    name      = "firestore"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.firestore_svc_email
+    }
+  }
+  depends_on = [kubernetes_namespace.argoevents]
+}
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "firestore" {
+  service_account_id = var.firestore_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.argoevents.metadata.0.name}/${kubernetes_service_account.firestore.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_namespace.argoevents
   ]
 }
 
@@ -169,6 +197,23 @@ resource "kubernetes_role_binding" "dockerwrite" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+}
+
+resource "kubernetes_role_binding" "firestore" {
+  metadata {
+    name      = "firestorepermissions-role-binding"
+    namespace = kubernetes_namespace.argoevents.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.argorules.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.firestore.metadata.0.name
     namespace = kubernetes_namespace.argoevents.metadata.0.name
   }
 }
@@ -320,6 +365,8 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   }
   depends_on = [kubernetes_namespace.argoevents]
 }
+
+
 
 resource "kubernetes_service_account" "argoevents-sparksubmit" {
   metadata {
@@ -573,6 +620,7 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
     sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
     sparkserviceaccount       = kubernetes_service_account.spark.metadata.0.name
+    firestoreserviceaccount   = kubernetes_service_account.firestore.metadata.0.name
     cassandrasecret           = kubernetes_secret.cassandra_svc.metadata.0.name
     cassandrasecretargo       = kubernetes_secret.cassandra_svcargo.metadata.0.name
     dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name

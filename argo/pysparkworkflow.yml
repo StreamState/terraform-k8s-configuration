@@ -289,7 +289,8 @@ spec:
                     - mountPath: /work 
                       name: work
 
-                - name: cassandra
+                - name: cassandra 
+                  serviceAccountName: ${firestoreserviceaccount}
                   inputs:
                     parameters:
                       - name: table
@@ -366,7 +367,6 @@ spec:
                       # Name of the image to push
                       - name: image
                         value: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 # same as for build-docker-image
-                      #- name: pythoncode
                       - name: inputs
                       - name: kafka
                       - name: outputs
@@ -391,7 +391,7 @@ spec:
                       kind: SparkApplication
                       metadata:
                         name: {{inputs.parameters.appname}} #todo, make this a function of "topics" (ie, the thing to be looping over)
-                        namespace: ${namespace} # need to add this to terraform
+                        namespace: ${namespace} 
                       spec:
                         sparkConf:
                           spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
@@ -421,19 +421,13 @@ spec:
                           - '{{inputs.parameters.kafka}}'
                           - '{{inputs.parameters.inputs}}'
                           - '{{inputs.parameters.version}}'
-                          # todo, need to pass in version from output of cassandra step
-                        
+                       
                         restartPolicy:
                           type: Always # should be able to resume from checkpoint if killed for some reason
                         driver:
                           coreRequest: 200m
                           memory: "512m"
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
-                          #metadata:
-                          #  annotations:
-                          #    prometheus.io/scrape: "true"
-                          #    prometheus.io/path: "/metrics"
-                          #    prometheus.io/port: "8090"
                           secrets:
                           - name: "spark-secret" # Secret name as defined when creating a kubernetes secret, generated from spark-gcs
                             path: "/mnt/secrets"

@@ -1,7 +1,6 @@
 from pyspark.sql import SparkSession, DataFrame
 from typing import List, Dict, Tuple
 import sys
-from streamstate_utils.pypsark_utils import map_avro_to_spark_schema
 from streamstate_utils.firestore import get_firestore_inputs_from_config_map
 
 # from streamstate_utils.cassandra_utils import (
@@ -25,7 +24,7 @@ from streamstate_utils.structs import (
     KafkaStruct,
     InputStruct,
     TableStruct,
-    FirestoreStruct,
+    FirestoreOutputStruct,
 )
 import marshmallow_dataclass
 from process import process
@@ -40,7 +39,7 @@ def replay_from_file(
     output: OutputStruct,
     files: FileStruct,
     table: TableStruct,
-    firestore: FirestoreStruct,
+    firestore: FirestoreOutputStruct,
     # cassandra_input: CassandraInputStruct,
     # cassandra_output: CassandraOutputStruct,
     kafka: KafkaStruct,

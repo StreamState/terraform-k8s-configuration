@@ -9,6 +9,12 @@ output "docker_write_svc_name" {
 output "spark_gcs_svc_name" {
   value = google_service_account.spark-gcs.name
 }
+output "firestore_svc_name" {
+  value = google_service_account.firestore.name
+}
+output "firestore_svc_email" {
+  value = google_service_account.firestore.email
+}
 output "spark_history_svc_email" {
   value = google_service_account.spark-history.email
 }
