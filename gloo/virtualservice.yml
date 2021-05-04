@@ -15,7 +15,7 @@ status:
 spec:
   virtualHost:
     domains:
-    - '*'
+    - streamstate.org
     routes:
     - matchers:
       # - exact: /all-pets
@@ -39,3 +39,7 @@ spec:
           upstream:
             name: argo-events-argo-server-2746
             namespace: gloo-system
+  ssl_config:
+    secret_ref:
+      name: streamstatecert # letsencrypt-staging # I think this is right? from ClusterIssuer
+      namespace: gloo-system

@@ -73,6 +73,8 @@ module "kubernetes-config" {
   spark_gcs_svc_name       = module.serviceaccounts.spark_gcs_svc_name
   firestore_svc_name       = module.serviceaccounts.firestore_svc_name
   firestore_svc_email      = module.serviceaccounts.firestore_svc_email
+  dns_svc_name             = module.serviceaccounts.dns_svc_name
+  dns_svc_email            = module.serviceaccounts.dns_svc_email
   spark_history_svc_email  = module.serviceaccounts.spark_history_svc_email
   spark_history_svc_name   = module.serviceaccounts.spark_history_svc_name
   org_registry             = module.serviceaccounts.org_registry

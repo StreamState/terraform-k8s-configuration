@@ -9,3 +9,7 @@ output "cluster_name" {
 #output "swagger" {
 #  value = module.swagger.swagger
 #}
+
+output "nameservers" {
+  value = module.gke-cluster.nameservers
+}

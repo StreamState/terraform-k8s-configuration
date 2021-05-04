@@ -1,23 +1,4 @@
-apiVersion: cert-manager.io/v1alpha2
-kind: ClusterIssuer
-metadata:
- name: letsencrypt-staging
- namespace: cert-manager
-spec:
- acme:
-   # The ACME server URL
-   server: https://acme-staging-v02.api.letsencrypt.org/directory
-   # Email address used for ACME registration
-   email: danstahl1138@gmail.com
-   # Name of a secret used to store the ACME account private key
-   privateKeySecretRef:
-     name: letsencrypt-staging
-   # Enable the HTTP-01 challenge provider
-   solvers:
-   - http01: {}
-
----
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
@@ -30,9 +11,6 @@ spec:
       name: letsencrypt-staging
     solvers:
     - dns01:
-        route53:
-          region: us-east-1
-          accessKeyID: $(kubectl -n cert-manager get secret aws-creds -o=jsonpath='{.data.access_key_id}'|base64 --decode)
-          secretAccessKeySecretRef:
-            name: aws-creds
-            key: secret_access_key
+        cloudDNS:
+          # The ID of the GCP project
+          project: ${project}

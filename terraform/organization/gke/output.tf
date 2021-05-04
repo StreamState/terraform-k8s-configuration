@@ -28,3 +28,6 @@ output "endpoint" {
 output "staticip_name" {
   value = google_compute_global_address.staticgkeip.name
 }
+output "nameservers" {
+  value = google_dns_managed_zone.streamstate-zone.name_servers
+}

@@ -31,6 +31,12 @@ resource "google_project_service" "endpoints" {
   service = "endpoints.googleapis.com"
 }
 
+resource "google_project_service" "dns" {
+  project = var.project
+  service = "dns.googleapis.com"
+  disable_dependent_services=true
+}
+
 
 resource "google_project_service" "firestore" {
   service                    = "firestore.googleapis.com"

@@ -21,7 +21,9 @@ resource "google_project_service" "firestore" {
 resource "google_compute_global_address" "staticgkeip" {
   name = "streamstate-global-ip"
 }
-
+data "google_compute_global_address" "staticgkeip" {
+  name = google_compute_global_address.staticgkeip.name
+}
 # this should be at the organization level (each organization gets their own cluster)
 # what about loadbalancing and IP address?
 resource "google_container_cluster" "primary" {
@@ -95,3 +97,21 @@ resource "google_app_engine_application" "dummyapp" {
   project       = var.project
   database_type = "CLOUD_FIRESTORE"
 }
+
+
+resource "google_dns_managed_zone" "streamstate-zone" {
+  name        = "streamstate-zone"
+  dns_name    = "myzone.streamstate.org." #example-${random_id.rnd.hex}.com."
+  description = "streamstate zone"
+}
+
+resource "google_dns_record_set" "streamstate-recordset" {
+  provider     = google-beta
+  project      = var.project
+  managed_zone = google_dns_managed_zone.streamstate-zone.name
+  name         = "test-record.myzone.streamstate.org."
+  type         = "A"
+  rrdatas      = [data.google_compute_global_address.staticgkeip.address]
+  ttl          = 86400
+}
+

@@ -70,6 +70,13 @@ resource "kubernetes_namespace" "argoevents" {
   depends_on = [local_file.kubeconfig]
 }
 
+resource "kubernetes_namespace" "gloo" {
+  metadata {
+    name = "gloo-system"
+  }
+  depends_on = [local_file.kubeconfig]
+}
+
 resource "kubernetes_namespace" "monitoring" {
   metadata {
     name = "monitoring"
@@ -160,6 +167,33 @@ resource "google_service_account_iam_binding" "firestore" {
   ]
   depends_on = [
     kubernetes_namespace.argoevents
+  ]
+}
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
+resource "kubernetes_service_account" "dns" {
+  metadata {
+    name      = "dns-solver"
+    namespace = kubernetes_namespace.gloo.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.dns_svc_email
+    }
+  }
+  depends_on = [kubernetes_namespace.gloo]
+}
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "dns" {
+  service_account_id = var.dns_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.gloo.metadata.0.name}/${kubernetes_service_account.dns.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_namespace.gloo
   ]
 }
 
@@ -429,11 +463,11 @@ resource "helm_release" "spark" {
 # Install gloo
 ###############
 resource "helm_release" "gloo" {
-  name             = "gloo"
-  namespace        = "gloo-system"
-  create_namespace = true
-  repository       = "https://storage.googleapis.com/solo-public-helm"
-  chart            = "gloo"
+  name      = "gloo"
+  namespace = kubernetes_namespace.gloo.metadata.0.name
+  # create_namespace = true
+  repository = "https://storage.googleapis.com/solo-public-helm"
+  chart      = "gloo"
 
   depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
@@ -523,18 +557,7 @@ resource "kubectl_manifest" "argoeventswebhook" {
   depends_on         = [kubectl_manifest.argoevents]
 }
 
-data "kubectl_file_documents" "glooservice" {
-  content = file("../../gloo/virtualservice.yml") #{
-  #staticipname = var.staticip_name
-  #})
-}
 
-resource "kubectl_manifest" "glooservice" {
-  count     = length(data.kubectl_file_documents.glooservice.documents)
-  yaml_body = element(data.kubectl_file_documents.glooservice.documents, count.index)
-  # override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on = [kubectl_manifest.argoeventswebhook]
-}
 
 
 data "kubectl_file_documents" "pysparkeventworkflow" {
@@ -561,4 +584,43 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
   yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
+}
+
+
+###############
+# install certs and gateway
+##############
+
+## todo, maybe override namespace 
+
+data "kubectl_file_documents" "glooservice" {
+  content = file("../../gloo/virtualservice.yml")
+}
+
+resource "kubectl_manifest" "glooservice" {
+  count      = length(data.kubectl_file_documents.glooservice.documents)
+  yaml_body  = element(data.kubectl_file_documents.glooservice.documents, count.index)
+  depends_on = [kubectl_manifest.argoeventswebhook]
+}
+
+data "kubectl_file_documents" "certstaging" {
+  content = templatefile("../../gloo/staging_issuer.yml", {
+    project = var.project
+  })
+}
+
+resource "kubectl_manifest" "certstaging" {
+  count      = 1
+  yaml_body  = element(data.kubectl_file_documents.certstaging.documents, count.index)
+  depends_on = [kubectl_manifest.argoeventswebhook]
+}
+
+data "kubectl_file_documents" "cert" {
+  content = file("../../gloo/certs.yml")
+}
+
+resource "kubectl_manifest" "cert" {
+  count      = length(data.kubectl_file_documents.cert.documents)
+  yaml_body  = element(data.kubectl_file_documents.cert.documents, count.index)
+  depends_on = [kubectl_manifest.argoeventswebhook]
 }

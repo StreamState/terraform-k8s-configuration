@@ -64,3 +64,10 @@ variable "spark_storage_bucket_url" {
 variable "staticip_name" {
   type = string
 }
+
+variable "dns_svc_name" {
+  type = string
+}
+variable "dns_svc_email" {
+  type = string
+}

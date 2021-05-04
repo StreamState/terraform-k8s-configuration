@@ -58,6 +58,14 @@ resource "google_service_account" "firestore" {
   account_id   = "firestore-${var.organization}"
   display_name = "Firestore service account ${var.organization}"
 }
+
+## needed to access CloudDNS for cert management
+resource "google_service_account" "dns" {
+  project      = var.project
+  account_id   = "dns-solver-${var.organization}"
+  display_name = "DNS solver for ${var.organization}"
+}
+
 resource "google_service_account" "spark-history" {
   project      = var.project
   account_id   = "spark-history-${var.organization}"
@@ -138,3 +146,29 @@ resource "google_storage_bucket_iam_member" "sparkhistoryread" {
   role   = "projects/${var.project}/roles/${google_project_iam_custom_role.readbucketrole.role_id}"
   member = "serviceAccount:${google_service_account.spark-history.email}"
 }
+
+
+resource "google_project_iam_custom_role" "minimaldnsrole" {
+  role_id     = "dnsrole"
+  title       = "access cloud dns"
+  description = "Provides minimal access to use cloud dns"
+  permissions = [
+    "dns.changes.create",
+    "dns.changes.get",
+    "dns.changes.list",
+    "dns.resourceRecordSets.create",
+    "dns.resourceRecordSets.delete",
+    "dns.resourceRecordSets.get",
+    "dns.resourceRecordSets.list",
+    "dns.resourceRecordSets.patch",
+    "dns.managedZones.list",
+  ]
+  project = var.project
+}
+
+resource "google_project_iam_member" "minimaldnsrole" {
+  project = var.project
+  role    = "projects/${var.project}/roles/${google_project_iam_custom_role.minimaldnsrole.role_id}"
+  member  = "serviceAccount:${google_service_account.dns.email}"
+}
+

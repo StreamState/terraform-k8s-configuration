@@ -1,24 +1,12 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager-test
----
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: test-selfsigned
-  namespace: cert-manager-test
-spec:
-  selfSigned: {}
----
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: selfsigned-cert
-  namespace: cert-manager-test
+  name: streamstatecert
+  namespace: gloo-system # does this need to be in a certain namespace?
 spec:
   dnsNames:
-    - example.com
-  secretName: selfsigned-cert-tls
+    - streamstate.org
+  secretName: letsencrypt-staging # is this prviateKeySecretRef?
   issuerRef:
-    name: test-selfsigned
+    kind: ClusterIssuer
+    name: letsencrypt-staging
