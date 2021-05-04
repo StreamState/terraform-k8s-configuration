@@ -18,7 +18,6 @@ from streamstate_utils.generic_wrapper import (
     write_kafka,
 )
 
-## how to add this at real time??
 from process import process
 import json
 import os

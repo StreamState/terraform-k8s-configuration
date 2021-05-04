@@ -285,60 +285,6 @@ resource "kubernetes_role_binding" "sparkrules" {
 # Standalone kubernetes service accounts and secrets
 ##################
 
-
-resource "random_password" "cassandra_password" {
-  length  = 32
-  special = true
-}
-
-resource "random_string" "cassandra_userid" {
-  length  = 8
-  special = false
-}
-
-locals {
-  username = random_string.cassandra_userid.result
-  password = random_password.cassandra_password.result
-}
-
-resource "kubernetes_secret" "cassandra_svc" {
-  metadata {
-    name      = "cassandra-secret"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  }
-  data = {
-    username = local.username
-    password = local.password
-  }
-  type       = "kubernetes.io/generic"
-  depends_on = [kubernetes_namespace.mainnamespace]
-}
-
-resource "kubernetes_secret" "cassandra_svcargo" {
-  metadata {
-    name      = "cassandra-secret"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
-  }
-  data = {
-    username = local.username
-    password = local.password
-  }
-  type       = "kubernetes.io/generic"
-  depends_on = [kubernetes_namespace.argoevents]
-}
-
-#resource "kubernetes_service_account" "cassandra_svc" {
-#  metadata {
-#    name      = "cassandra-svc"
-#    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-#  }
-
-#  secret {
-#    name = kubernetes_secret.cassandra_svc.metadata.0.name
-#  }
-#  depends_on = [kubernetes_namespace.mainnamespace]
-#}
-
 # this will have worklow permissions 
 resource "kubernetes_service_account" "argoevents-runsa" {
   metadata {
@@ -420,31 +366,8 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   depends_on = [kubernetes_namespace.argoevents]
 }
 
-##################
-# Install Cassandra
-##################
 
-resource "helm_release" "cassandra" {
-  name             = "cass-operator"
-  namespace        = "cass-operator"
-  create_namespace = true
-  repository       = "https://datastax.github.io/charts"
-  chart            = "cass-operator"
-
-  set {
-    name  = "clusterWideInstall"
-    value = true
-  }
-  depends_on = [local_file.kubeconfig]
-}
-
-data "kubectl_file_documents" "cassandra" {
-  content = templatefile("../../kubernetes_resources/cassandra.yml", {
-    secret                 = kubernetes_secret.cassandra_svc.metadata.0.name,
-    data_center            = var.data_center,
-    cassandra_cluster_name = var.cassandra_cluster_name
-  })
-}
+#### Data
 
 resource "kubernetes_config_map" "usefuldata" {
   metadata {
@@ -453,12 +376,10 @@ resource "kubernetes_config_map" "usefuldata" {
   }
 
   data = {
-    data_center            = var.data_center
-    cassandra_cluster_name = var.cassandra_cluster_name
-    port                   = "9042"
-    organization           = var.organization # may not need this, could pass this in
-    project                = var.project
-    org_bucket             = var.spark_storage_bucket_url
+    port         = "9042"
+    organization = var.organization # may not need this, could pass this in
+    project      = var.project
+    org_bucket   = var.spark_storage_bucket_url
     # add checkpoint location here...
     spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
@@ -472,12 +393,10 @@ resource "kubernetes_config_map" "usefuldataargo" {
   }
 
   data = {
-    data_center            = var.data_center
-    cassandra_cluster_name = var.cassandra_cluster_name
-    port                   = "9042"
-    organization           = var.organization
-    project                = var.project
-    org_bucket             = var.spark_storage_bucket_url
+    port         = "9042"
+    organization = var.organization
+    project      = var.project
+    org_bucket   = var.spark_storage_bucket_url
     # add checkpoint location here...
     spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
   }
@@ -485,12 +404,6 @@ resource "kubernetes_config_map" "usefuldataargo" {
   depends_on = [kubernetes_namespace.argoevents, kubernetes_namespace.mainnamespace]
 }
 
-resource "kubectl_manifest" "cassandra" {
-  count              = 3 # length(data.kubectl_file_documents.cassandra.documents)
-  yaml_body          = element(data.kubectl_file_documents.cassandra.documents, count.index)
-  override_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  depends_on         = [helm_release.cassandra]
-}
 
 ##################
 # Install Spark
@@ -521,6 +434,20 @@ resource "helm_release" "gloo" {
   create_namespace = true
   repository       = "https://storage.googleapis.com/solo-public-helm"
   chart            = "gloo"
+
+  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+}
+
+###############
+# Install cert-manager
+###############
+
+resource "helm_release" "cert-manager" {
+  name             = "jetstack"
+  namespace        = "cert-manager"
+  create_namespace = true
+  repository       = "https://charts.jetstack.io"
+  chart            = "cert-manager"
 
   depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
@@ -621,8 +548,6 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
     sparkserviceaccount       = kubernetes_service_account.spark.metadata.0.name
     firestoreserviceaccount   = kubernetes_service_account.firestore.metadata.0.name
-    cassandrasecret           = kubernetes_secret.cassandra_svc.metadata.0.name
-    cassandrasecretargo       = kubernetes_secret.cassandra_svcargo.metadata.0.name
     dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
     dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace                 = kubernetes_namespace.mainnamespace.metadata.0.name
@@ -637,27 +562,3 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
-
-### ##############
-## Install ESPv2
-#################
-#data "kubernetes_service" "argosensorip" {
-#  metadata {
-#    name      = "streamstatewebservice-eventsource-svc"
-#    namespace = kubernetes_namespace.argoevents.metadata.0.name
-#  }
-#  depends_on = [kubectl_manifest.pysparkeventworkflow]
-#}
-#data "kubectl_file_documents" "swagger" {
-#  content = templatefile("../../swagger/espv2.yml", {
-#    argo_host    = "${data.kubernetes_service.argosensorip.spec.0.cluster_ip}:12000"
-#    service_name = var.service_name
-#  })#
-
-#}
-#resource "kubectl_manifest" "swagger" {
-#  count              = 4
-#  yaml_body          = element(data.kubectl_file_documents.swagger.documents, count.index)
-#  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-#  depends_on         = [kubectl_manifest.pysparkeventworkflow]
-#}

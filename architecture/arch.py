@@ -4,7 +4,7 @@ from diagrams.aws.database import RDS
 from diagrams.aws.network import ELB
 from diagrams.onprem.queue import Kafka
 from diagrams.aws.compute import ECS, EKS, Lambda
-from diagrams.onprem.database import Cassandra
+from diagrams.gcp.database import Firestore
 from diagrams.onprem.analytics import Spark
 from diagrams.gcp.storage import Storage
 from diagrams.programming.language import Python
@@ -33,14 +33,14 @@ with Diagram("StreamState", show=False):
             code >> argo
             code >> argo
 
-        cassandra = Cassandra("Cache/upsert")
+        firestore = Firestore("Cache/upsert")
         spark_persist >> kafka_storage
         kafka_storage >> spark_reload
         kafka_input >> spark_state
         kafka_input >> spark_persist
-        spark_state >> cassandra
-        spark_reload >> cassandra
+        spark_state >> firestore
+        spark_reload >> firestore
         spark_state >> kafka_output
         spark_reload >> kafka_output
 
-    cassandra >> Python("python sdk")
+    firestore >> Python("python sdk")

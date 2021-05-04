@@ -61,16 +61,6 @@ variable "spark_storage_bucket_url" {
   type = string
 }
 
-variable "data_center" {
-  type    = string
-  default = "dc1"
-}
-
-variable "cassandra_cluster_name" {
-  type    = string
-  default = "cluster1"
-}
-
 variable "staticip_name" {
   type = string
 }

@@ -34,27 +34,6 @@ If anything hangs, you can delete the kubernetes module:
 
 * terraform state rm 'module.kubernetes-config'
 
-# Cassandra
-
-This is relevant if you really need to work directly with Cassandra; however the REST API client should be the primary way of interacting with Cassandra.
-
-https://docs.datastax.com/en/cass-operator/doc/cass-operator/cassOperatorConnectWithinK8sCluster.html
-
-* kubectl get secrets/cassandra-secret -n mainspark --template={{.data.password}} | base64 -d
-* kubectl exec -n mainspark -i -t -c cassandra cluster1-dc1-default-sts-0 -- /opt/cassandra/bin/cqlsh -u $(kubectl get secrets/cassandra-secret -n mainspark --template={{.data.username}} | base64 -d) -p $(kubectl get secrets/cassandra-secret -n mainspark --template={{.data.password}} | base64 -d)
-
-
-* CREATE KEYSPACE IF NOT EXISTS cycling WITH replication = { 'class' : 'NetworkTopologyStrategy', 'dc1' : '1' };
-* CREATE TABLE IF NOT EXISTS cycling.cyclist_semi_pro (
-   first_name text, 
-   last_name text, 
-   PRIMARY KEY (last_name));
-* INSERT INTO cycling.cyclist_semi_pro (first_name, last_name) VALUES ('Carlos', 'Perotti');
-
-
-* kubectl get pod cluster1-dc1-default-sts-0 --template='{{(index (index .spec.containers 0).ports 0).containerPort}}{{"\n"}}' -n mainspark
-* kubectl port-forward pod/cluster1-dc1-default-sts-0 30500:9042 -n mainspark
-
 
 # setup for deploy
 
@@ -69,8 +48,8 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 * cd ..
 
 * cd backendapp
-* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy:v0.1.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/cassandrapy:v0.1.0
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/firestoresetup -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/firestoresetup:v0.1.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/firestoresetup:v0.1.0
 * cd ..
 
 # setup spark history server
@@ -112,13 +91,6 @@ You may have to create a subfolder first (eg, /test)
 
 * echo {\"field1\": \"somevalue\"} > ./mytest1.json
 * gsutil cp ./mytest1.json gs://streamstate-sparkstorage-testorg/mytestapp/topic1
-
-# python consume cassandra
-
-* python3 -m venv env
-* source env/bin/activate
-* pip3 install -r ./pythonexample/requirements.txt
-* python3 pythonexample/connect_cassandra.py
 
 # Backend service service 
 
