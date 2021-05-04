@@ -1,10 +1,4 @@
 from typing import List
-
-# from provision_cassandra import (
-#    get_cassandra_session,
-#    create_schema,
-#    create_tracking_table,
-# )
 from provision_firestore import (
     create_schema,
 )
@@ -16,9 +10,6 @@ from streamstate_utils.k8s_utils import (
     get_project_from_config_map,
 )
 
-#    get_cassandra_inputs_from_config_map,
-#    get_organization_from_config_map,
-# )
 from streamstate_utils.firestore import open_firestore_connection
 from streamstate_utils.structs import TableStruct
 import json
