@@ -7,6 +7,9 @@ variable "namespace" {
 variable "project" {
   type = string
 }
+variable "staticip_name" {
+  type = string
+}
 variable "registryprefix" {
   type    = string                       # eg gcr.io
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
@@ -80,8 +83,6 @@ module "kubernetes-config" {
   org_registry             = module.serviceaccounts.org_registry
   spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
-  staticip_name            = module.gke-cluster.staticip_name
-
 }
 
 

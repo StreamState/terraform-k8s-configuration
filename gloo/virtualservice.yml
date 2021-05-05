@@ -41,5 +41,5 @@ spec:
             namespace: gloo-system
   ssl_config:
     secret_ref:
-      name: streamstatecert # letsencrypt-staging # I think this is right? from ClusterIssuer
-      namespace: gloo-system
+      name: streamstatecert-vdztr  #streamstatecert # letsencrypt-staging # I think this is right? from ClusterIssuer
+      namespace: cert-manager

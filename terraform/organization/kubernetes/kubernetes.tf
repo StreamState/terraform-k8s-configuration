@@ -456,7 +456,7 @@ resource "helm_release" "spark" {
     name  = "metrics.enable"
     value = true
   }
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+  #depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
 ###############
@@ -469,7 +469,7 @@ resource "helm_release" "gloo" {
   repository = "https://storage.googleapis.com/solo-public-helm"
   chart      = "gloo"
 
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+  #depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
 ###############
@@ -482,8 +482,11 @@ resource "helm_release" "cert-manager" {
   create_namespace = true
   repository       = "https://charts.jetstack.io"
   chart            = "cert-manager"
-
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+  set {
+    name  = "installCRDs"
+    value = true
+  }
+  #depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
 }
 
 
@@ -593,15 +596,6 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
 
 ## todo, maybe override namespace 
 
-data "kubectl_file_documents" "glooservice" {
-  content = file("../../gloo/virtualservice.yml")
-}
-
-resource "kubectl_manifest" "glooservice" {
-  count      = length(data.kubectl_file_documents.glooservice.documents)
-  yaml_body  = element(data.kubectl_file_documents.glooservice.documents, count.index)
-  depends_on = [kubectl_manifest.argoeventswebhook]
-}
 
 data "kubectl_file_documents" "certstaging" {
   content = templatefile("../../gloo/staging_issuer.yml", {
@@ -612,9 +606,8 @@ data "kubectl_file_documents" "certstaging" {
 resource "kubectl_manifest" "certstaging" {
   count      = 1
   yaml_body  = element(data.kubectl_file_documents.certstaging.documents, count.index)
-  depends_on = [kubectl_manifest.argoeventswebhook]
+  depends_on = [helm_release.cert-manager]
 }
-
 data "kubectl_file_documents" "cert" {
   content = file("../../gloo/certs.yml")
 }
@@ -622,5 +615,18 @@ data "kubectl_file_documents" "cert" {
 resource "kubectl_manifest" "cert" {
   count      = length(data.kubectl_file_documents.cert.documents)
   yaml_body  = element(data.kubectl_file_documents.cert.documents, count.index)
-  depends_on = [kubectl_manifest.argoeventswebhook]
+  depends_on = [kubectl_manifest.certstaging]
 }
+
+data "kubectl_file_documents" "glooservice" {
+  content = file("../../gloo/virtualservice.yml")
+}
+
+resource "kubectl_manifest" "glooservice" {
+  count      = length(data.kubectl_file_documents.glooservice.documents)
+  yaml_body  = element(data.kubectl_file_documents.glooservice.documents, count.index)
+  depends_on = [kubectl_manifest.cert]
+}
+
+
+

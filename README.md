@@ -68,13 +68,21 @@ To find webui url:
 
 # deploy workflow
 
+
+
 * kubectl  -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=streamstatewebservice -o name) 12000:12000 
 
 * curl -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" http://localhost:12000/build/container
 
 
+TODO!  Open question: do I actually need a static IP address once I get the streamstate url working?  It almost looks like I don't need a static ip.  I needed a static IP only when using a GCP ingress: https://github.com/StreamState/k8s_poc/blob/c6355c4df52b215ef27349f88a8cf6d300274223/argo/webhookinstall.yml#L137.  I do think I need it permanently or else every time I undo it will have to wait 48 hours to propogate.  However, I don't need to pass the value in to kubernetes...it will just use the hostname.
 
-curl  -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" 34.123.47.132/build/container
+TODO! I may need to use the "full" DNS host name (currently myzone.streamstate.org) rather than simply streamstate.org
+
+nslookup myzone.streamstate.org
+dig +trace myzone.streamstate.com
+
+curl  -H "Content-Type: application/json" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" 34.98.95.203/build/container
 
 # upload json to bucket
 

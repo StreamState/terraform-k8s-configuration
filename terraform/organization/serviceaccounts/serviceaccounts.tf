@@ -160,7 +160,6 @@ resource "google_project_iam_custom_role" "minimaldnsrole" {
     "dns.resourceRecordSets.delete",
     "dns.resourceRecordSets.get",
     "dns.resourceRecordSets.list",
-    "dns.resourceRecordSets.patch",
     "dns.managedZones.list",
   ]
   project = var.project

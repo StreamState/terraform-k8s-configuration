@@ -21,27 +21,43 @@ provider "google" {
   #zone    = "us-central1-c"
 }
 
+# Use firestore
+## apparently I need to enable (but not instantiate) app engine 
+## to use firestore from terraform
+resource "google_app_engine_application" "dummyapp" {
+  provider      = google-beta
+  location_id   = "us-central" # var.regio.1n
+  project       = var.project
+  database_type = "CLOUD_FIRESTORE"
+  #depends_on = [
+  #  google_project_service.firestore
+  #]
+}
+
 resource "google_project_service" "resource_manager" {
   project = var.project
   service = "cloudresourcemanager.googleapis.com"
 }
 
-resource "google_project_service" "endpoints" {
-  project = var.project
-  service = "endpoints.googleapis.com"
-}
 
 resource "google_project_service" "dns" {
-  project = var.project
-  service = "dns.googleapis.com"
-  disable_dependent_services=true
+  project                    = var.project
+  service                    = "dns.googleapis.com"
+  disable_dependent_services = true
+  depends_on                 = [google_project_service.resource_manager]
 }
 
-
+# enable firestore
 resource "google_project_service" "firestore" {
+  project                    = var.project
   service                    = "firestore.googleapis.com"
   disable_dependent_services = true
+  depends_on = [
+    google_project_service.resource_manager,
+    google_app_engine_application.dummyapp
+  ]
 }
+
 
 
 resource "google_project_service" "iam" {
@@ -73,5 +89,34 @@ resource "google_artifact_registry_repository" "orgrepo" {
   description   = "organization specific docker repo"
   format        = "DOCKER"
   depends_on    = [google_project_service.artifactregistry]
+}
+
+
+## need to manually reserve this at https://console.cloud.google.com/networking/addresses/add
+#locals {
+#  address = "35.227.205.126"
+#}
+resource "google_compute_global_address" "staticgkeip" {
+  name = "streamstate-global-ip"
+  #  address = local.address
+}
+
+
+resource "google_dns_managed_zone" "streamstate-zone" {
+  name        = "streamstate-zone"
+  dns_name    = "myzone.streamstate.org." #example-${random_id.rnd.hex}.com."
+  description = "streamstate zone"
+}
+resource "google_dns_record_set" "streamstate-recordset" {
+  provider     = google-beta
+  project      = var.project
+  managed_zone = google_dns_managed_zone.streamstate-zone.name
+  name         = "test-record.myzone.streamstate.org."
+  type         = "A"
+  rrdatas      = [google_compute_global_address.staticgkeip.address]
+  ttl          = 86400
+  depends_on = [
+    google_compute_global_address.staticgkeip
+  ]
 }
 
