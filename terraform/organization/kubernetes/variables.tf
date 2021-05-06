@@ -45,6 +45,9 @@ variable "firestore_svc_email" {
 variable "spark_gcs_svc_name" {
   type = string
 }
+variable "spark_gcs_svc_email" {
+  type = string
+}
 variable "spark_history_svc_email" {
   type = string
 }
@@ -65,5 +68,8 @@ variable "dns_svc_name" {
   type = string
 }
 variable "dns_svc_email" {
+  type = string
+}
+variable "staticipname" {
   type = string
 }

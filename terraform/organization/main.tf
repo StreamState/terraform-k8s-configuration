@@ -74,6 +74,7 @@ module "kubernetes-config" {
   docker_write_svc_email   = module.serviceaccounts.docker_write_svc_email
   docker_write_svc_name    = module.serviceaccounts.docker_write_svc_name
   spark_gcs_svc_name       = module.serviceaccounts.spark_gcs_svc_name
+  spark_gcs_svc_email      = module.serviceaccounts.spark_gcs_svc_email
   firestore_svc_name       = module.serviceaccounts.firestore_svc_name
   firestore_svc_email      = module.serviceaccounts.firestore_svc_email
   dns_svc_name             = module.serviceaccounts.dns_svc_name
@@ -83,6 +84,7 @@ module "kubernetes-config" {
   org_registry             = module.serviceaccounts.org_registry
   spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
+  staticipname             = var.staticip_name
 }
 
 

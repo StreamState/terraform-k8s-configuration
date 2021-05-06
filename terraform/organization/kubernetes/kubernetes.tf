@@ -253,31 +253,33 @@ resource "kubernetes_role_binding" "firestore" {
 }
 
 
-
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
 resource "kubernetes_service_account" "spark" {
   metadata {
     name      = "spark"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.spark_gcs_svc_email
+    }
   }
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
-## open question, should I use workload identity for creating folder or re-use the key?
-## need to create explicit account for spark rather than workload identity for spark operator
-resource "google_service_account_key" "sparkkey" {
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "spark" {
   service_account_id = var.spark_gcs_svc_name
-}
+  role               = "roles/iam.workloadIdentityUser"
 
-resource "kubernetes_secret" "spark-gcs-to-kubernetes" {
-  metadata {
-    name      = "spark-secret"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  }
-  data = {
-    "key.json" = base64decode(google_service_account_key.sparkkey.private_key)
-  }
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.spark.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_namespace.mainnamespace
+  ]
 }
-
 
 
 ## needed for operating spark resources
@@ -494,9 +496,8 @@ resource "helm_release" "cert-manager" {
 # Install Prometheus
 ##################
 resource "helm_release" "prometheus" {
-  name      = "prometheus"
-  namespace = kubernetes_namespace.monitoring.metadata.0.name
-  #create_namespace = true
+  name       = "prometheus"
+  namespace  = kubernetes_namespace.monitoring.metadata.0.name
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack" # apparently this includes the prometheus operator, while raw "prometheus" doesn't
 
@@ -619,11 +620,13 @@ resource "kubectl_manifest" "cert" {
 }
 
 data "kubectl_file_documents" "glooservice" {
-  content = file("../../gloo/virtualservice.yml")
+  content = templatefile("../../gloo/virtualservice.yml", {
+    staticipname = var.staticipname
+  })
 }
 
 resource "kubectl_manifest" "glooservice" {
-  count      = length(data.kubectl_file_documents.glooservice.documents)
+  count      = 1 #length(data.kubectl_file_documents.glooservice.documents)
   yaml_body  = element(data.kubectl_file_documents.glooservice.documents, count.index)
   depends_on = [kubectl_manifest.cert]
 }

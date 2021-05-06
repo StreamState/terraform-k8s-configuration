@@ -4,6 +4,9 @@ kind: VirtualService
 metadata:
   name: default
   namespace: gloo-system
+  ## this didn't work
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: ${staticipname} # not sure if this will work
   ownerReferences: []
 status:
   reportedBy: gateway
@@ -41,5 +44,5 @@ spec:
             namespace: gloo-system
   ssl_config:
     secret_ref:
-      name: streamstatecert-vdztr  #streamstatecert # letsencrypt-staging # I think this is right? from ClusterIssuer
-      namespace: cert-manager
+      name: streamstatecert  # streamstatecert-vdztr  #streamstatecert # letsencrypt-staging # I think this is right? from ClusterIssuer
+      namespace: gloo-system
