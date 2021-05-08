@@ -1,0 +1,56 @@
+apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
+kind: Ingress
+metadata:
+  name: helloweb
+  namespace: argo-events
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.global-static-ip-name: streamstate-global-ip
+    # networking.gke.io/managed-certificates: certificate-name-new
+
+    ## begin attempt at cert-manager
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    ## end attempt at cert-manager
+
+  labels:
+    app: hello
+spec:
+
+  ## begin attempt at cert-manager
+  tls:
+  - hosts: 
+    - streamstate.org
+    - myzone.streamstate.org
+    - test-record.myzone.streamstate.org
+    secretName: streamstatecert # automatically populates this, so can be anything
+  # - secretName: second-secret-name
+  backend: # default
+    serviceName: argo-server
+    servicePort: 2746
+  ## end attempt at cert-manager
+
+  rules:
+    - http:
+        paths:
+        - path: /*
+          backend:
+            serviceName: argo-server
+            servicePort: 2746
+        - path: /build/container
+          backend:
+            serviceName: argowebhook
+            servicePort: 12000
+        
+#---
+#apiVersion: networking.gke.io/v1
+#kind: ManagedCertificate
+#metadata:
+#  name: certificate-name-new
+#  namespace: argo-events
+#spec:
+#  domains:
+    #- streamstate.org
+    #- www.streamstate.org
+    #- myzone.streamstate.org
+#    - test-record.myzone.streamstate.org

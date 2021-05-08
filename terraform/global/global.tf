@@ -111,7 +111,7 @@ resource "google_dns_record_set" "streamstate-recordset" {
   provider     = google-beta
   project      = var.project
   managed_zone = google_dns_managed_zone.streamstate-zone.name
-  name         = "test-record.myzone.streamstate.org."
+  name         = "test-record.myzone.streamstate.org." # apparently this is the actual domain name :|
   type         = "A"
   rrdatas      = [google_compute_global_address.staticgkeip.address]
   ttl          = 86400

@@ -70,16 +70,16 @@ resource "kubernetes_namespace" "argoevents" {
   depends_on = [local_file.kubeconfig]
 }
 
-resource "kubernetes_namespace" "gloo" {
+resource "kubernetes_namespace" "monitoring" {
   metadata {
-    name = "gloo-system"
+    name = "monitoring"
   }
   depends_on = [local_file.kubeconfig]
 }
 
-resource "kubernetes_namespace" "monitoring" {
+resource "kubernetes_namespace" "cert-manager" {
   metadata {
-    name = "monitoring"
+    name = "cert-manager"
   }
   depends_on = [local_file.kubeconfig]
 }
@@ -172,7 +172,7 @@ resource "google_service_account_iam_binding" "firestore" {
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
 # this works with google service account binding to connect kubernetes and google accounts
-resource "kubernetes_service_account" "dns" {
+/*resource "kubernetes_service_account" "dns" {
   metadata {
     name      = "dns-solver"
     namespace = kubernetes_namespace.gloo.metadata.0.name
@@ -180,20 +180,23 @@ resource "kubernetes_service_account" "dns" {
       "iam.gke.io/gcp-service-account" = var.dns_svc_email
     }
   }
-  depends_on = [kubernetes_namespace.gloo]
-}
+  depends_on = [kubernetes_namespace.cert-manager]
+}*/
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
 # link service account and kubernetes service account
+locals {
+  dns_service_account = "cert-manager"
+}
 resource "google_service_account_iam_binding" "dns" {
   service_account_id = var.dns_svc_name
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.gloo.metadata.0.name}/${kubernetes_service_account.dns.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.cert-manager.metadata.0.name}/${local.dns_service_account}]",
   ]
   depends_on = [
-    kubernetes_namespace.gloo
+    helm_release.cert-manager //helm creates the service account for me
   ]
 }
 
@@ -458,37 +461,33 @@ resource "helm_release" "spark" {
     name  = "metrics.enable"
     value = true
   }
-  #depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+  depends_on = [local_file.kubeconfig]
 }
 
-###############
-# Install gloo
-###############
-resource "helm_release" "gloo" {
-  name      = "gloo"
-  namespace = kubernetes_namespace.gloo.metadata.0.name
-  # create_namespace = true
-  repository = "https://storage.googleapis.com/solo-public-helm"
-  chart      = "gloo"
-
-  #depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
-}
 
 ###############
 # Install cert-manager
 ###############
 
 resource "helm_release" "cert-manager" {
-  name             = "jetstack"
-  namespace        = "cert-manager"
-  create_namespace = true
-  repository       = "https://charts.jetstack.io"
-  chart            = "cert-manager"
+  name      = "jetstack"
+  namespace = "cert-manager"
+  # create_namespace = true
+  repository = "https://charts.jetstack.io"
+  chart      = "cert-manager"
   set {
     name  = "installCRDs"
     value = true
   }
-  #depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+  set {
+    name  = "serviceAccount.name"
+    value = local.dns_service_account
+  }
+  set {
+    name  = "serviceAccount.annotations.\"iam\\.gke\\.io/gcp-service-account\""
+    value = var.dns_svc_email
+  }
+  depends_on = [local_file.kubeconfig]
 }
 
 
@@ -597,7 +596,27 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
 
 ## todo, maybe override namespace 
 
+data "kubectl_file_documents" "cert" {
+  content = templatefile("../../gateway/certs.yml", {
+    project = var.project
+  })
+}
+resource "kubectl_manifest" "certs" {
+  count      = 1
+  yaml_body  = element(data.kubectl_file_documents.cert.documents, count.index)
+  depends_on = [helm_release.cert-manager]
+}
 
+data "kubectl_file_documents" "ingress" {
+  content = file("../../gateway/ingress.yml")
+}
+resource "kubectl_manifest" "ingress" {
+  count      = length(data.kubectl_file_documents.ingress.documents)
+  yaml_body  = element(data.kubectl_file_documents.ingress.documents, count.index)
+  depends_on = [helm_release.cert-manager]
+}
+
+/*
 data "kubectl_file_documents" "certstaging" {
   content = templatefile("../../gloo/staging_issuer.yml", {
     project = var.project
@@ -630,6 +649,6 @@ resource "kubectl_manifest" "glooservice" {
   yaml_body  = element(data.kubectl_file_documents.glooservice.documents, count.index)
   depends_on = [kubectl_manifest.cert]
 }
-
+*/
 
 

@@ -55,12 +55,12 @@ spec:
       endpoint: /build/example
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
-    readiness:
+    #readiness:
       # port to run HTTP server on
-      port: "12000"
+    #  port: "12000"
       # endpoint to listen to
-      endpoint: /
-      method: GET
+    #  endpoint: /
+    #  method: GET
       #authSecret:
       #  name: my-webhook-token
       #  key: my-token
@@ -84,13 +84,29 @@ spec:
 #        key: pk-key
 
 ---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: argowebhook
+  namespace: argo-events
+spec:
+  healthCheck:
+    checkIntervalSec: 15
+    port: 12000
+    type: HTTP
+    requestPath: /health
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: argowebhook
+  annotations:
+    # https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-features#1.16-gke.3+
+    cloud.google.com/backend-config: '{"default": "argowebhook"}'
   labels:
     service: argowebhook
 spec:
+  type: NodePort
   ports:
   - port: 12000
     protocol: TCP
