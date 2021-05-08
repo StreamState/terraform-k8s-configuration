@@ -10,7 +10,7 @@ metadata:
 
     ## begin attempt at cert-manager
     cert-manager.io/cluster-issuer: letsencrypt-staging
-    acme.cert-manager.io/http01-edit-in-place: "true"
+    # acme.cert-manager.io/http01-edit-in-place: "true"
     ## end attempt at cert-manager
 
   labels:
@@ -20,10 +20,11 @@ spec:
   ## begin attempt at cert-manager
   tls:
   - hosts: 
-    - streamstate.org
-    - myzone.streamstate.org
+    #- streamstate.org
+    #- '*.streamstate.org'
+    # - myzone.streamstate.org
     - test-record.myzone.streamstate.org
-    secretName: streamstatecert # automatically populates this, so can be anything
+    secretName: streamstatecert-staging # automatically populates this, so can be anything
   # - secretName: second-secret-name
   backend: # default
     serviceName: argo-server

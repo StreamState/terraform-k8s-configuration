@@ -484,7 +484,7 @@ resource "helm_release" "cert-manager" {
     value = local.dns_service_account
   }
   set {
-    name  = "serviceAccount.annotations.\"iam\\.gke\\.io/gcp-service-account\""
+    name  = "serviceAccount.annotations.iam\\.gke\\.io/gcp-service-account"
     value = var.dns_svc_email
   }
   depends_on = [local_file.kubeconfig]
