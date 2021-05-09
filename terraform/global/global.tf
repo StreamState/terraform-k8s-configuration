@@ -104,14 +104,14 @@ resource "google_compute_global_address" "staticgkeip" {
 
 resource "google_dns_managed_zone" "streamstate-zone" {
   name        = "streamstate-zone"
-  dns_name    = "myzone.streamstate.org." #example-${random_id.rnd.hex}.com."
+  dns_name    = "streamstate.org." #example-${random_id.rnd.hex}.com."
   description = "streamstate zone"
 }
-resource "google_dns_record_set" "streamstate-recordset" {
+resource "google_dns_record_set" "streamstate-recordset-a" {
   provider     = google-beta
   project      = var.project
   managed_zone = google_dns_managed_zone.streamstate-zone.name
-  name         = "test-record.myzone.streamstate.org." # apparently this is the actual domain name :|
+  name         = "*.streamstate.org." # apparently this is the actual domain name :|
   type         = "A"
   rrdatas      = [google_compute_global_address.staticgkeip.address]
   ttl          = 86400
@@ -120,3 +120,15 @@ resource "google_dns_record_set" "streamstate-recordset" {
   ]
 }
 
+resource "google_dns_record_set" "streamstate-recordset" {
+  provider     = google-beta
+  project      = var.project
+  managed_zone = google_dns_managed_zone.streamstate-zone.name
+  name         = "*.streamstate.org." # apparently this is the actual domain name :|
+  type         = "CAA"
+  rrdatas      = ["0 issue \"letsencrypt.org\"", "0 issue \"pki.goog\""]
+  ttl          = 86400
+  depends_on = [
+    google_compute_global_address.staticgkeip
+  ]
+}

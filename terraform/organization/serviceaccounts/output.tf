@@ -18,12 +18,6 @@ output "firestore_svc_name" {
 output "firestore_svc_email" {
   value = google_service_account.firestore.email
 }
-output "dns_svc_name" {
-  value = google_service_account.dns.name
-}
-output "dns_svc_email" {
-  value = google_service_account.dns.email
-}
 output "spark_history_svc_email" {
   value = google_service_account.spark-history.email
 }
