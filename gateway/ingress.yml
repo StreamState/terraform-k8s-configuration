@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
+kind: Ingress
+metadata:
+  name: helloweb
+  namespace: argo-events
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.global-static-ip-name: streamstate-global-ip
+    networking.gke.io/managed-certificates: certificate-name-new
+
+  labels:
+    app: hello
+spec:
+ 
+  backend: # default
+    serviceName: argo-server
+    servicePort: 2746
+  rules:
+    - http:
+        paths:
+        - path: /*
+          backend:
+            serviceName: argo-server
+            servicePort: 2746
+        - path: /build/container
+          backend:
+            serviceName: argowebhook
+            servicePort: 12000
+        
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: certificate-name-new
+  namespace: argo-events
+spec:
+  domains:
+   - myzone.streamstate.org 

@@ -76,6 +76,8 @@ resource "kubernetes_namespace" "monitoring" {
   }
   depends_on = [local_file.kubeconfig]
 }
+
+
 ##################
 # Map GCP service accounts to kubernetes service accounts
 ##################
@@ -164,7 +166,6 @@ resource "google_service_account_iam_binding" "firestore" {
 }
 
 
-
 # use this for running steps in argo
 resource "kubernetes_role" "argorules" {
   metadata {
@@ -219,31 +220,33 @@ resource "kubernetes_role_binding" "firestore" {
 }
 
 
-
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
 resource "kubernetes_service_account" "spark" {
   metadata {
     name      = "spark"
     namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.spark_gcs_svc_email
+    }
   }
   depends_on = [kubernetes_namespace.mainnamespace]
 }
 
-## open question, should I use workload identity for creating folder or re-use the key?
-## need to create explicit account for spark rather than workload identity for spark operator
-resource "google_service_account_key" "sparkkey" {
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "spark" {
   service_account_id = var.spark_gcs_svc_name
-}
+  role               = "roles/iam.workloadIdentityUser"
 
-resource "kubernetes_secret" "spark-gcs-to-kubernetes" {
-  metadata {
-    name      = "spark-secret"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
-  }
-  data = {
-    "key.json" = base64decode(google_service_account_key.sparkkey.private_key)
-  }
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.spark.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_namespace.mainnamespace
+  ]
 }
-
 
 
 ## needed for operating spark resources
@@ -422,44 +425,15 @@ resource "helm_release" "spark" {
     name  = "metrics.enable"
     value = true
   }
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
+  depends_on = [local_file.kubeconfig]
 }
-
-###############
-# Install gloo
-###############
-resource "helm_release" "gloo" {
-  name             = "gloo"
-  namespace        = "gloo-system"
-  create_namespace = true
-  repository       = "https://storage.googleapis.com/solo-public-helm"
-  chart            = "gloo"
-
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
-}
-
-###############
-# Install cert-manager
-###############
-
-resource "helm_release" "cert-manager" {
-  name             = "jetstack"
-  namespace        = "cert-manager"
-  create_namespace = true
-  repository       = "https://charts.jetstack.io"
-  chart            = "cert-manager"
-
-  depends_on = [local_file.kubeconfig] # needed to ensure that this gets destroyed in right order, dont think this works
-}
-
 
 ##################
 # Install Prometheus
 ##################
 resource "helm_release" "prometheus" {
-  name      = "prometheus"
-  namespace = kubernetes_namespace.monitoring.metadata.0.name
-  #create_namespace = true
+  name       = "prometheus"
+  namespace  = kubernetes_namespace.monitoring.metadata.0.name
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack" # apparently this includes the prometheus operator, while raw "prometheus" doesn't
 
@@ -523,18 +497,7 @@ resource "kubectl_manifest" "argoeventswebhook" {
   depends_on         = [kubectl_manifest.argoevents]
 }
 
-data "kubectl_file_documents" "glooservice" {
-  content = file("../../gloo/virtualservice.yml") #{
-  #staticipname = var.staticip_name
-  #})
-}
 
-resource "kubectl_manifest" "glooservice" {
-  count     = length(data.kubectl_file_documents.glooservice.documents)
-  yaml_body = element(data.kubectl_file_documents.glooservice.documents, count.index)
-  # override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on = [kubectl_manifest.argoeventswebhook]
-}
 
 
 data "kubectl_file_documents" "pysparkeventworkflow" {
@@ -561,4 +524,21 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
   yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.argoevents.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
+}
+
+
+###############
+# install certs and gateway
+##############
+
+
+data "kubectl_file_documents" "ingress" {
+  content = file("../../gateway/ingress.yml")
+}
+resource "kubectl_manifest" "ingress" {
+  count     = length(data.kubectl_file_documents.ingress.documents)
+  yaml_body = element(data.kubectl_file_documents.ingress.documents, count.index)
+  depends_on = [
+    kubectl_manifest.argoeventswebhook
+  ]
 }

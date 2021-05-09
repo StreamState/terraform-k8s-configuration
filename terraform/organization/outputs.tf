@@ -6,6 +6,3 @@ output "cluster_name" {
   value = module.gke-cluster.cluster_name
 }
 
-#output "swagger" {
-#  value = module.swagger.swagger
-#}

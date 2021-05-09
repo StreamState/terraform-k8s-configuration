@@ -206,10 +206,10 @@ spec:
                         template:
                           spec:
                             serviceAccountName: ${sparkserviceaccount}
-                            volumes:
-                            - name: secrets
-                              secret:
-                                secretName: spark-secret
+                            #volumes:
+                            #- name: secrets
+                            #  secret:
+                            #    secretName: spark-secret
                             containers:
                             - name: gcsfolder
                               image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
@@ -219,33 +219,15 @@ spec:
                                 "create_folder.py", 
                                 '{{inputs.parameters.appname}}', 
                                 "streamstate-sparkstorage-${organization}", 
-                                '{{inputs.parameters.inputs}}',
-                                "/mnt/secrets/key.json"
+                                '{{inputs.parameters.inputs}}'
                               ]
-                              volumeMounts:
-                              - name: secrets
-                                mountPath: "/mnt/secrets"
-                                readOnly: true
+                              #volumeMounts:
+                              #- name: secrets
+                              #  mountPath: "/mnt/secrets"
+                              #  readOnly: true
                             restartPolicy: Never
                         # backoffLimit: 4
-
-                #- name: gcsfolder
-
-
-                #- name: gcsfolder
-                #  inputs:
-                #    parameters:
-                #      - name: appname
-                #      - name: inputs
-                #  serviceAccount: ${sparkserviceaccount} # needed to have write access to gcs
-                #  container:
-                #    image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
-                #    imagePullPolicy: Always
-                #    command: [sh, -c]
-                #    args: 
-                #      - |
-                #        python3 create_folder.py {{inputs.parameters.appname}} streamstate-sparkstorage-${organization} '{{inputs.parameters.inputs}}'
-
+                
                 - name: create-docker-file
                   inputs:
                     parameters:
@@ -405,7 +387,6 @@ spec:
                           "fs.gs.project.id": ${project}
                           "fs.gs.system.bucket": "streamstate-sparkstorage-${organization}"  
                           "google.cloud.auth.service.account.enable": "true" 
-                          "google.cloud.auth.service.account.json.keyfile": "/mnt/secrets/key.json"
                           "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                           "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                         
@@ -425,21 +406,14 @@ spec:
                           coreRequest: 200m
                           memory: "512m"
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
-                          secrets:
-                          - name: "spark-secret" # Secret name as defined when creating a kubernetes secret, generated from spark-gcs
-                            path: "/mnt/secrets"
-                            secretType: GCPServiceAccount
                           envFrom:
                             - configMapRef:
-                                name: ${dataconfig} # add this from terraform
+                                name: ${dataconfig} 
                         executor:
                           instances: 1
                           cores: 1
                           memory: "512m"
-                          secrets:
-                          - name: "spark-secret" # Secret name as defined when creating a kubernetes secret
-                            path: "/mnt/secrets"
-                            secretType: GCPServiceAccount
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
                         monitoring: 
                           exposeDriverMetrics: true
                           exposeExecutorMetrics: true

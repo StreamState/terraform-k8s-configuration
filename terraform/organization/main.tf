@@ -7,6 +7,9 @@ variable "namespace" {
 variable "project" {
   type = string
 }
+variable "staticip_name" {
+  type = string
+}
 variable "registryprefix" {
   type    = string                       # eg gcr.io
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
@@ -53,11 +56,7 @@ module "serviceaccounts" {
   project       = var.project
   cluster_email = module.gke-cluster.cluster_email
 }
-#module "swagger" {
-#  source    = "./swagger"
-#  project   = var.project
-#  clusterip = module.gke-cluster.endpoint
-#}
+
 module "kubernetes-config" {
   source                   = "./kubernetes"
   cluster_name             = module.gke-cluster.cluster_name
@@ -71,6 +70,7 @@ module "kubernetes-config" {
   docker_write_svc_email   = module.serviceaccounts.docker_write_svc_email
   docker_write_svc_name    = module.serviceaccounts.docker_write_svc_name
   spark_gcs_svc_name       = module.serviceaccounts.spark_gcs_svc_name
+  spark_gcs_svc_email      = module.serviceaccounts.spark_gcs_svc_email
   firestore_svc_name       = module.serviceaccounts.firestore_svc_name
   firestore_svc_email      = module.serviceaccounts.firestore_svc_email
   spark_history_svc_email  = module.serviceaccounts.spark_history_svc_email
@@ -78,8 +78,7 @@ module "kubernetes-config" {
   org_registry             = module.serviceaccounts.org_registry
   spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
-  staticip_name            = module.gke-cluster.staticip_name
-
+  staticipname             = var.staticip_name
 }
 
 

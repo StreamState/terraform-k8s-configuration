@@ -58,6 +58,7 @@ resource "google_service_account" "firestore" {
   account_id   = "firestore-${var.organization}"
   display_name = "Firestore service account ${var.organization}"
 }
+
 resource "google_service_account" "spark-history" {
   project      = var.project
   account_id   = "spark-history-${var.organization}"
@@ -138,3 +139,5 @@ resource "google_storage_bucket_iam_member" "sparkhistoryread" {
   role   = "projects/${var.project}/roles/${google_project_iam_custom_role.readbucketrole.role_id}"
   member = "serviceAccount:${google_service_account.spark-history.email}"
 }
+
+
