@@ -542,3 +542,27 @@ resource "kubectl_manifest" "ingress" {
     kubectl_manifest.argoeventswebhook
   ]
 }
+
+
+## Have to set IAP in GCP console :(
+
+# https://cloud.google.com/iap/docs/enabling-kubernetes-howto#oauth-configure
+# make sure to select "external"
+
+/*
+data "kubectl_file_documents" "oauth" {
+  content = templatefile("../../gateway/oauth.yml", {
+    client_id     = google_iap_client.project_client.client_id,
+    client_secret = google_iap_client.project_client.secret
+  })
+}
+resource "kubectl_manifest" "oauth" {
+  count     = 1
+  yaml_body = element(data.kubectl_file_documents.oauth.documents, count.index)
+  depends_on = [
+    kubectl_manifest.argoeventswebhook
+  ]
+}*/
+
+
+

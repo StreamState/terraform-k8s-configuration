@@ -430,6 +430,10 @@ spec:
     port: 2746
     type: HTTP
     requestPath: /
+  #iap:
+  #  enabled: true
+  #  oauthclientCredentials:
+  #    secretName: iap-oauth-client-id
 ---
 apiVersion: v1
 kind: Service
@@ -477,7 +481,7 @@ spec:
       - args:
         - server
         - --namespaced
-        - --secure=false
+        - --secure=false # GKE should be automatically encrypting
         image: argoproj/argocli:v3.0.1
         name: argo-server
         ports:

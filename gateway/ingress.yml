@@ -1,13 +1,13 @@
 apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
 kind: Ingress
 metadata:
-  name: helloweb
+  name: streamstateingress
   namespace: argo-events
   annotations:
     kubernetes.io/ingress.class: gce
     kubernetes.io/ingress.global-static-ip-name: streamstate-global-ip
     networking.gke.io/managed-certificates: certificate-name-new
-
+    networking.gke.io/v1beta1.FrontendConfig: ingress-security-config
   labels:
     app: hello
 spec:
@@ -36,3 +36,14 @@ metadata:
 spec:
   domains:
    - myzone.streamstate.org 
+
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: ingress-security-config
+  namespace: argo-events
+spec:
+  # sslPolicy: gke-ingress-ssl-policy
+  redirectToHttps:
+    enabled: true
