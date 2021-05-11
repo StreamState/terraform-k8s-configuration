@@ -54,10 +54,10 @@ spec:
     port: 12000
     type: HTTP
     requestPath: /health
-  iap:
-    enabled: true
-    oauthclientCredentials:
-      secretName: iap-oauth-client-id
+  #iap:
+  #  enabled: true
+  #  oauthclientCredentials:
+  #    secretName: iap-oauth-client-id
 ---
 apiVersion: v1
 kind: Service

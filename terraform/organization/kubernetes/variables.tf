@@ -67,3 +67,10 @@ variable "spark_storage_bucket_url" {
 variable "staticipname" {
   type = string
 }
+//temporary, lets see if this actually works
+variable "client_id" {
+  type = string
+}
+variable "client_secret" {
+  type = string
+}

@@ -8,20 +8,22 @@ metadata:
     kubernetes.io/ingress.global-static-ip-name: streamstate-global-ip
     networking.gke.io/managed-certificates: certificate-name-new
     networking.gke.io/v1beta1.FrontendConfig: ingress-security-config
+    # https://github.com/argoproj/argo-workflows/blob/master/docs/argo-server.md#ingress
+    # ingress.kubernetes.io/rewrite-target: /$2
   labels:
     app: hello
 spec:
  
   backend: # default
     serviceName: argo-server
-    servicePort: 2746
+    servicePort: 2747
   rules:
     - http:
         paths:
-        - path: /*
+        - path: /* # path: /argo(/|$)(.*)
           backend:
             serviceName: argo-server
-            servicePort: 2746
+            servicePort: 2747
         - path: /build/container
           backend:
             serviceName: argowebhook
@@ -36,6 +38,7 @@ metadata:
 spec:
   domains:
    - myzone.streamstate.org 
+   # - streamstate.org # this still fails...
 
 ---
 apiVersion: networking.gke.io/v1beta1

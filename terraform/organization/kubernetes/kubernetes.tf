@@ -445,7 +445,7 @@ resource "helm_release" "prometheus" {
 # Install servicemonitor for spark
 ###################
 data "kubectl_file_documents" "sparkoperatorprometheus" {
-  content = templatefile("../../kubernetes_resources/prometheusservicemonitor.yml", {
+  content = templatefile("../../kubernetes_resources/prometheus_spark.yml", {
     operatornamespace   = helm_release.spark.metadata.0.namespace
     monitoringnamespace = kubernetes_namespace.monitoring.metadata.0.name
   })
@@ -461,7 +461,26 @@ resource "kubectl_manifest" "sparkoperatorprometheus" {
 ##################
 # Install Argo
 ##################
+resource "helm_release" "passwordgenerator" {
+  name       = "kubernetes-secret-generator"
+  namespace  = "argo-events" # dont see why it shouldn't be here
+  repository = "https://helm.mittwald.de"
+  chart      = "kubernetes-secret-generator"
+  depends_on = [kubernetes_namespace.argoevents]
+}
 
+data "kubectl_file_documents" "cookiesecret" {
+  content = templatefile("../../gateway/cookiesecret.yml", {
+    client_id     = base64encode(var.client_id),
+    client_secret = base64encode(var.client_secret)
+  })
+}
+resource "kubectl_manifest" "cookiesecret" {
+  count              = 1
+  yaml_body          = element(data.kubectl_file_documents.cookiesecret.documents, count.index)
+  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  depends_on         = [helm_release.passwordgenerator]
+}
 
 data "kubectl_file_documents" "argoworkflow" {
   content = file("../../argo/argoinstall.yml")
@@ -527,6 +546,22 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
 }
 
 
+###################
+# Install servicemonitor for argo
+###################
+data "kubectl_file_documents" "argoprometheus" {
+  content = templatefile("../../kubernetes_resources/prometheus_argo.yml", {
+    operatornamespace   = kubernetes_namespace.argoevents.metadata.0.name
+    monitoringnamespace = kubernetes_namespace.monitoring.metadata.0.name
+  })
+}
+resource "kubectl_manifest" "argoprometheus" {
+  count      = 2
+  yaml_body  = element(data.kubectl_file_documents.sparkoperatorargo.documents, count.index)
+  depends_on = [helm_release.prometheus, kubectl_manifest.pysparkeventworkflow]
+}
+
+
 ###############
 # install certs and gateway
 ##############
@@ -542,27 +577,3 @@ resource "kubectl_manifest" "ingress" {
     kubectl_manifest.argoeventswebhook
   ]
 }
-
-
-## Have to set IAP in GCP console :(
-
-# https://cloud.google.com/iap/docs/enabling-kubernetes-howto#oauth-configure
-# make sure to select "external"
-
-/*
-data "kubectl_file_documents" "oauth" {
-  content = templatefile("../../gateway/oauth.yml", {
-    client_id     = google_iap_client.project_client.client_id,
-    client_secret = google_iap_client.project_client.secret
-  })
-}
-resource "kubectl_manifest" "oauth" {
-  count     = 1
-  yaml_body = element(data.kubectl_file_documents.oauth.documents, count.index)
-  depends_on = [
-    kubectl_manifest.argoeventswebhook
-  ]
-}*/
-
-
-
