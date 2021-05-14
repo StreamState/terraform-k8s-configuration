@@ -13,15 +13,23 @@ resource "google_service_account" "cluster" {
 }
 
 
+locals {
+  gkeversion = "1.20.5-gke.2000"
+}
+
+
 
 
 # this should be at the organization level (each organization gets their own cluster)
 # what about loadbalancing and IP address?
 resource "google_container_cluster" "primary" {
-  project  = var.project
-  name     = "streamstatecluster-${var.organization}"
-  location = var.region
-
+  project            = var.project
+  name               = "streamstatecluster-${var.organization}"
+  location           = var.region
+  min_master_version = local.gkeversion
+  release_channel {
+    channel = "RAPID"
+  }
   # VPC-native
   network    = "default"
   subnetwork = "default"
@@ -47,6 +55,7 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   project    = var.project
   name       = "${var.project}pool-${var.organization}"
   location   = var.region
+  version    = google_container_cluster.primary.master_version
   cluster    = google_container_cluster.primary.name
   node_count = 1 # it keeps giving me 3 nodes though
   # initial_node_count = 2

@@ -430,10 +430,7 @@ spec:
     port: 2747
     type: HTTP
     requestPath: /ping
-  #iap:
-  #  enabled: true
-  #  oauthclientCredentials:
-  #    secretName: iap-oauth-client-id
+
 ---
 apiVersion: v1
 kind: Service
@@ -526,13 +523,15 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 20
         args:
-          - --provider=google
+          - --provider=oidc
+          - --oidc-issuer-url=https://dev-20490044.okta.com/oauth2/default
           - --reverse-proxy=true
           - --upstream=http://localhost:2746 # /ui/
-          - --cookie-secure
+          - --pass-access-token=true
           - --email-domain=*
+          - --skip-provider-button=true
           - --http-address=0.0.0.0:2747
-          - --redirect-url=https://myzone.streamstate.org/oauth2/callback
+          - --redirect-url=https://${organization}.streamstate.org/oauth2/callback
           - --pass-host-header
           # - --skip-auth-route=/ping # only skip readinessProbe?
         env:
@@ -576,6 +575,10 @@ spec:
     metadata:
       labels:
         app: workflow-controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9090"
     spec:
       containers:
       - args:

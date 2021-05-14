@@ -8,7 +8,7 @@ metadata:
 spec:
   namespaceSelector:
     matchNames: 
-      - ${operatornamespace}
+      - ${servicenamespace}
   selector:
     matchLabels:
       app: argo
@@ -20,7 +20,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: spark-svc-argo
-  namespace: ${operatornamespace}
+  namespace: ${servicenamespace}
   labels:
     app: argo
 spec:
