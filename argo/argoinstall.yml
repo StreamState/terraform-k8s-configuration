@@ -479,6 +479,9 @@ spec:
         - server
         - --namespaced
         - --secure=false # GKE should be automatically encrypting
+        env:
+        - name: BASE_HREF
+          value: /ui/ # see gateway/ingress.yml
         image: argoproj/argocli:v3.0.1
         name: argo-server
         # https://github.com/argoproj/argo-workflows/blob/master/docs/argo-server.md#ingress
@@ -526,13 +529,14 @@ spec:
           - --provider=oidc
           - --oidc-issuer-url=https://dev-20490044.okta.com/oauth2/default
           - --reverse-proxy=true
-          - --upstream=http://localhost:2746 # /ui/
+          - --upstream=http://localhost:2746
           - --pass-access-token=true
           - --email-domain=*
           - --skip-provider-button=true
           - --http-address=0.0.0.0:2747
           - --redirect-url=https://${organization}.streamstate.org/oauth2/callback
           - --pass-host-header
+          - --exclude-logging-path=/ping
           # - --skip-auth-route=/ping # only skip readinessProbe?
         env:
         - name: OAUTH2_PROXY_CLIENT_ID

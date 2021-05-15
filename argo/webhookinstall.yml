@@ -38,9 +38,13 @@ spec:
       # port to run HTTP server on
       port: "12000"
       # endpoint to listen to
-      endpoint: /container #/build/container
+      endpoint: /build/container #/build/container
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
+      # kubectl create secret generic streamstate-webhook-token --from-file=token=./token.txt
+      authSecret:
+        name: streamstate-webhook-token
+        key: token
 
 ---
 apiVersion: cloud.google.com/v1
@@ -54,10 +58,6 @@ spec:
     port: 12000
     type: HTTP
     requestPath: /health
-  #iap:
-  #  enabled: true
-  #  oauthclientCredentials:
-  #    secretName: iap-oauth-client-id
 ---
 apiVersion: v1
 kind: Service

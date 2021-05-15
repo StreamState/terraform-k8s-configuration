@@ -1,0 +1,14 @@
+{
+  "name": "adminapp",
+  "version": "1.0.0",
+  "description": "adminapi for dealing with api  keys in kubernetes",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Daniel Stahl",
+  "license": "ISC",
+  "dependencies": {
+    "@kubernetes/client-node": "^0.14.3"
+  }
+}

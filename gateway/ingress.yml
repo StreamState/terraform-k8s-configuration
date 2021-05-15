@@ -2,14 +2,11 @@ apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
 kind: Ingress
 metadata:
   name: streamstateingress
-  # namespace: argo-events
   annotations:
     kubernetes.io/ingress.class: gce
     kubernetes.io/ingress.global-static-ip-name: streamstate-global-ip
     networking.gke.io/managed-certificates: certificate-name-new
     networking.gke.io/v1beta1.FrontendConfig: ingress-security-config
-    # https://github.com/argoproj/argo-workflows/blob/master/docs/argo-server.md#ingress
-    ingress.kubernetes.io/rewrite-target: /$2
   labels:
     app: streamstateingress
 spec:
@@ -36,23 +33,21 @@ spec:
           backend:
             serviceName: grafana
             servicePort: 3001
+
 ---
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
   name: certificate-name-new
-  # namespace: argo-events
 spec:
   domains:
-   - testorg.streamstate.org 
+   - ${organization}.streamstate.org 
 
 ---
 apiVersion: networking.gke.io/v1beta1
 kind: FrontendConfig
 metadata:
   name: ingress-security-config
-  # namespace: argo-events
 spec:
-  # sslPolicy: gke-ingress-ssl-policy
   redirectToHttps:
     enabled: true

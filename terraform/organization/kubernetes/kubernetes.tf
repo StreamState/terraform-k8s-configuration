@@ -439,11 +439,11 @@ resource "helm_release" "spark" {
 # Install Password Generator
 ##################
 resource "helm_release" "passwordgenerator" {
-  name             = "kubernetes-secret-generator"
-  namespace        = kubernetes_namespace.serviceplane.metadata.0.name //"passwordgenerate-${var.organization}"
+  name      = "kubernetes-secret-generator"
+  namespace = kubernetes_namespace.serviceplane.metadata.0.name //"passwordgenerate-${var.organization}"
   //create_namespace = true
-  repository       = "https://helm.mittwald.de"
-  chart            = "kubernetes-secret-generator"
+  repository = "https://helm.mittwald.de"
+  chart      = "kubernetes-secret-generator"
   set {
     name  = "secretLength"
     value = 32
@@ -467,6 +467,16 @@ resource "kubectl_manifest" "oidcsecret" {
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
 }
+
+data "kubectl_file_documents" "token" {
+  content = file("../../gateway/token.yml")
+}
+resource "kubectl_manifest" "token" {
+  count              = length(data.kubectl_file_documents.token.documents)
+  yaml_body          = element(data.kubectl_file_documents.token.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on         = [helm_release.passwordgenerator]
+}
 /*
 data "kubectl_file_documents" "oidcsecretmonitoring" {
   content = templatefile("../../gateway/oidc.yml", {
@@ -480,8 +490,6 @@ resource "kubectl_manifest" "oidcsecretmonitoring" {
   override_namespace = kubernetes_namespace.monitoring.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
 }*/
-
-
 
 ##################
 # Install Prometheus
@@ -497,20 +505,10 @@ resource "kubectl_manifest" "prometheusconfigs" {
   # depends_on         = [helm_release.passwordgenerator]
 }
 resource "helm_release" "prometheus" {
-  name      = "prometheus"
-  namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  //namespace  = "monitoring-${var.organization}" //kubernetes_namespace.monitoring.metadata.0.name
+  name       = "prometheus"
+  namespace  = kubernetes_namespace.serviceplane.metadata.0.name
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "prometheus" # does not include prometheus operator
-  //create_namespace=true
-  /*set {
-    name= "kubeStateMetrics.enabled"
-    value=false
-  }
-  set {
-    name= "server.enabled"
-    value=false
-  }*/
   values = [
     "${templatefile("../../prometheus/prometheus_helm_values.yml", {
       organization = var.organization
@@ -540,28 +538,6 @@ resource "helm_release" "grafana" {
   ]
 }
 
-/*
-data "kubectl_path_documents" "prometheussetup" {
-  pattern = "../../kube-prometheus/manifests/setup/*.yaml"
-}
-
-resource "kubectl_manifest" "prometheussetup" {
-  count      = length(data.kubectl_path_documents.prometheussetup.documents)
-  yaml_body  = element(data.kubectl_path_documents.prometheussetup.documents, count.index)
-  depends_on = [kubernetes_namespace.argoevents, kubectl_manifest.oidcsecretargo]
-}
-
-data "kubectl_path_documents" "prometheusinstall" {
-  pattern = "../../kube-prometheus/manifests/*.yaml"
-}
-
-resource "kubectl_manifest" "prometheusinstall" {
-  count      = length(data.kubectl_path_documents.prometheusinstall.documents)
-  yaml_body  = element(data.kubectl_path_documents.prometheusinstall.documents, count.index)
-  depends_on = [kubectl_manifest.prometheussetup]
-}*/
-
-
 ###################
 # Install servicemonitor for spark
 ###################
@@ -585,28 +561,38 @@ resource "kubectl_manifest" "sparkoperatorprometheus" {
 # Install Argo
 ##################
 
-
+/*
 data "kubectl_file_documents" "argoworkflow" {
   content = templatefile("../../argo/argoinstall.yml", {
-    organization=var.organization
+    organization = var.organization
   })
+}*/
+
+//testing to see if I need manual count or if I can do length()
+data "kubectl_path_documents" "argoworkflow" {
+  pattern = "../../argo/argoinstall.yml"
+  vars = {
+    organization = var.organization
+  }
 }
 resource "kubectl_manifest" "argoworkflow" {
-  count              = 17 # length(data.kubectl_file_documents.argoworkflow.documents)
-  yaml_body          = element(data.kubectl_file_documents.argoworkflow.documents, count.index)
+  count              = length(data.kubectl_path_documents.argoworkflow.documents) # 17
+  yaml_body          = element(data.kubectl_path_documents.argoworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret]
 }
 
 data "kubectl_file_documents" "argoevents" {
-  content = file("../../argo/argoeventsinstall.yml")
+  content = templatefile("../../argo/argoeventsinstall.yml", {
+    servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
+  })
 }
 
 resource "kubectl_manifest" "argoevents" {
-  count              = length(data.kubectl_file_documents.argoevents.documents)
+  count              = 9 # length(data.kubectl_file_documents.argoevents.documents)
   yaml_body          = element(data.kubectl_file_documents.argoevents.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [kubectl_manifest.argoworkflow]
+  depends_on         = [kubectl_manifest.argoworkflow, kubernetes_namespace.serviceplane]
 }
 
 data "kubectl_file_documents" "argoeventswebhook" {
@@ -635,7 +621,6 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace                 = kubernetes_namespace.sparkplane.metadata.0.name
     monitoringnamespace       = kubernetes_namespace.serviceplane.metadata.0.name
-
   })
 }
 
