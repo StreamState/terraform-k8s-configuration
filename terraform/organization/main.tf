@@ -14,6 +14,16 @@ variable "registryprefix" {
   type    = string                       # eg gcr.io
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
 }
+
+//temporary, lets see if this actually works
+variable "client_id" {
+  type = string
+}
+
+variable "client_secret" {
+  type = string
+}
+
 # this is likely a per-organization bucket
 # TODO probably need to subsitute prefix at runtime
 # so each organization gets own "backend"
@@ -79,6 +89,8 @@ module "kubernetes-config" {
   spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
   staticipname             = var.staticip_name
+  client_id                = var.client_id
+  client_secret            = var.client_secret
 }
 
 

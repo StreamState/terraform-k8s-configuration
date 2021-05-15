@@ -31,57 +31,20 @@ metadata:
   labels:
     eventsource: streamstate
 spec:
-  # replicas: 3 # needed for HA
-  #selector:
-  #  matchLabels:
-  #    app: argobackend
-  #service:  # TODO, get more robust service
-  #  ports:
-  #    - port: 12000
-  #      targetPort: 12000
+  replicas: 3 # needed for HA
   webhook:
     # event-source can run multiple HTTP servers. Simply define a unique port to start a new HTTP server
     runcontainer:
       # port to run HTTP server on
       port: "12000"
       # endpoint to listen to
-      endpoint: /build/container
+      endpoint: /build/container #/build/container
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
-    example:
-      # port to run HTTP server on
-      port: "12000"
-      # endpoint to listen to
-      endpoint: /build/example
-      # HTTP request method to allow. In this case, only POST requests are accepted
-      method: POST
-    #readiness:
-      # port to run HTTP server on
-    #  port: "12000"
-      # endpoint to listen to
-    #  endpoint: /
-    #  method: GET
-      #authSecret:
-      #  name: my-webhook-token
-      #  key: my-token
-#    example-foo:
-#      port: "12000"
-#      endpoint: /example2
-#      method: POST
-
-# Uncomment to use secure webhook
-#    example-secure:
-#      port: "13000"
-#      endpoint: "/secure"
-#      method: "POST"
-#      # k8s secret that contains the cert
-#      serverCertSecret:
-#        name: my-secret
-#        key: cert-key
-#      # k8s secret that contains the private key
-#      serverKeySecret:
-#        name: my-secret
-#        key: pk-key
+      # kubectl create secret generic streamstate-webhook-token --from-file=token=./token.txt
+      authSecret:
+        name: streamstate-webhook-token
+        key: token
 
 ---
 apiVersion: cloud.google.com/v1

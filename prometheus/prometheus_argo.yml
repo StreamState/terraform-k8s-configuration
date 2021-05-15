@@ -1,17 +1,17 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: servicemonitor-sparkoperator
+  name: servicemonitor-argo
   namespace: ${monitoringnamespace}
   labels:
     release: prometheus # to connect back to main prometheus "hub"
 spec:
   namespaceSelector:
     matchNames: 
-      - ${operatornamespace}
+      - ${servicenamespace}
   selector:
     matchLabels:
-      app: spark-operator
+      app: argo
   endpoints:
   - targetPort: 10254 # todo, change 
 
@@ -19,15 +19,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: spark-svc-sparkoperator
-  namespace: ${operatornamespace}
+  name: spark-svc-argo
+  namespace: ${servicenamespace}
   labels:
-    app: spark-operator
+    app: argo
 spec:
   ports:
-    - name: metrics-sparkoperator
+    - name: metrics-argo
       port: 10254
       targetPort: 10254
       protocol: TCP
   selector:
-    app.kubernetes.io/name: spark-operator
+    deployment.kubernetes.io/name: workflow-controller 

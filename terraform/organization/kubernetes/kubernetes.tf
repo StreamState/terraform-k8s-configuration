@@ -56,27 +56,28 @@ resource "local_file" "kubeconfig" {
 ##################
 # Create Kubernetes resources
 ##################
-resource "kubernetes_namespace" "mainnamespace" {
+resource "kubernetes_namespace" "sparkplane" {
   metadata {
-    name = var.namespace
+    name = "${var.namespace}-${var.organization}"
   }
   depends_on = [local_file.kubeconfig]
 }
 
-resource "kubernetes_namespace" "argoevents" {
+resource "kubernetes_namespace" "serviceplane" {
   metadata {
-    name = "argo-events"
+    name = "serviceplane-${var.organization}"
   }
   depends_on = [local_file.kubeconfig]
 }
 
+/*
 resource "kubernetes_namespace" "monitoring" {
   metadata {
     name = "monitoring"
   }
   depends_on = [local_file.kubeconfig]
 }
-
+*/
 
 ##################
 # Map GCP service accounts to kubernetes service accounts
@@ -88,12 +89,12 @@ resource "kubernetes_namespace" "monitoring" {
 resource "kubernetes_service_account" "docker-cfg-write-events" {
   metadata {
     name      = "docker-cfg-write"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
     annotations = {
       "iam.gke.io/gcp-service-account" = var.docker_write_svc_email
     }
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -103,7 +104,7 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.argoevents.metadata.0.name}/${kubernetes_service_account.docker-cfg-write-events.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${kubernetes_service_account.docker-cfg-write-events.metadata.0.name}]",
   ]
   depends_on = [
     kubernetes_service_account.docker-cfg-write-events
@@ -115,12 +116,12 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
 resource "kubernetes_service_account" "monitoring" {
   metadata {
     name      = "monitoring"
-    namespace = kubernetes_namespace.monitoring.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
     annotations = {
       "iam.gke.io/gcp-service-account" = var.spark_history_svc_email
     }
   }
-  depends_on = [kubernetes_namespace.monitoring]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -130,7 +131,7 @@ resource "google_service_account_iam_binding" "monitoring" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.monitoring.metadata.0.name}/${kubernetes_service_account.monitoring.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${kubernetes_service_account.monitoring.metadata.0.name}]",
   ]
   depends_on = [
     kubernetes_service_account.monitoring
@@ -143,12 +144,12 @@ resource "google_service_account_iam_binding" "monitoring" {
 resource "kubernetes_service_account" "firestore" {
   metadata {
     name      = "firestore"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
     annotations = {
       "iam.gke.io/gcp-service-account" = var.firestore_svc_email
     }
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -158,10 +159,10 @@ resource "google_service_account_iam_binding" "firestore" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.argoevents.metadata.0.name}/${kubernetes_service_account.firestore.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${kubernetes_service_account.firestore.metadata.0.name}]",
   ]
   depends_on = [
-    kubernetes_namespace.argoevents
+    kubernetes_namespace.serviceplane
   ]
 }
 
@@ -170,7 +171,7 @@ resource "google_service_account_iam_binding" "firestore" {
 resource "kubernetes_role" "argorules" {
   metadata {
     name      = "argoroles"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   rule {
     api_groups = [""]
@@ -182,13 +183,13 @@ resource "kubernetes_role" "argorules" {
     resources  = ["workflows"]
     verbs      = ["get", "list"]
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 
 resource "kubernetes_role_binding" "dockerwrite" {
   metadata {
     name      = "dockerwriteargopermissions-role-binding"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -198,14 +199,14 @@ resource "kubernetes_role_binding" "dockerwrite" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
 }
 
 resource "kubernetes_role_binding" "firestore" {
   metadata {
     name      = "firestorepermissions-role-binding"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -215,7 +216,7 @@ resource "kubernetes_role_binding" "firestore" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.firestore.metadata.0.name
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
 }
 
@@ -225,12 +226,12 @@ resource "kubernetes_role_binding" "firestore" {
 resource "kubernetes_service_account" "spark" {
   metadata {
     name      = "spark"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
     annotations = {
       "iam.gke.io/gcp-service-account" = var.spark_gcs_svc_email
     }
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.sparkplane]
 }
 
 
@@ -241,10 +242,10 @@ resource "google_service_account_iam_binding" "spark" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.mainnamespace.metadata.0.name}/${kubernetes_service_account.spark.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.sparkplane.metadata.0.name}/${kubernetes_service_account.spark.metadata.0.name}]",
   ]
   depends_on = [
-    kubernetes_namespace.mainnamespace
+    kubernetes_namespace.sparkplane
   ]
 }
 
@@ -253,20 +254,20 @@ resource "google_service_account_iam_binding" "spark" {
 resource "kubernetes_role" "sparkrules" {
   metadata {
     name      = "sparkrules"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
   }
   rule {
     api_groups = [""]
     resources  = ["pods", "configmaps"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.sparkplane]
 }
 
 resource "kubernetes_role_binding" "sparkrules" {
   metadata {
     name      = "sparkrules-role-binding"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -276,9 +277,9 @@ resource "kubernetes_role_binding" "sparkrules" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.spark.metadata.0.name
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
   }
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.sparkplane]
 }
 
 
@@ -292,15 +293,15 @@ resource "kubernetes_role_binding" "sparkrules" {
 resource "kubernetes_service_account" "argoevents-runsa" {
   metadata {
     name      = "argoevents-runsa"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 
 resource "kubernetes_role_binding" "argoevents-runrb" {
   metadata {
     name      = "argoevents-runsa-role-binding"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -310,9 +311,9 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.argoevents-runsa.metadata.0.name
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 
 
@@ -320,10 +321,10 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
 resource "kubernetes_service_account" "argoevents-sparksubmit" {
   metadata {
     name      = "argoevents-sparksubmit"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   depends_on = [
-    kubernetes_namespace.argoevents
+    kubernetes_namespace.serviceplane
   ]
 }
 resource "kubernetes_cluster_role" "launchsparkoperator" {
@@ -350,7 +351,7 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
     resources  = ["jobs"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   metadata {
@@ -364,9 +365,9 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
-    namespace = kubernetes_namespace.argoevents.metadata.0.name # is this for the service account?  I think so...
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name # is this for the service account?  I think so...
   }
-  depends_on = [kubernetes_namespace.argoevents]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
 
 
@@ -375,7 +376,7 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
 resource "kubernetes_config_map" "usefuldata" {
   metadata {
     name      = "sparkjobdata"
-    namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
   }
 
   data = {
@@ -384,15 +385,15 @@ resource "kubernetes_config_map" "usefuldata" {
     project      = var.project
     org_bucket   = var.spark_storage_bucket_url
     # add checkpoint location here...
-    spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    spark_namespace = kubernetes_namespace.sparkplane.metadata.0.name
   }
 
-  depends_on = [kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.sparkplane]
 }
 resource "kubernetes_config_map" "usefuldataargo" {
   metadata {
     name      = "sparkjobdata"
-    namespace = kubernetes_namespace.argoevents.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
 
   data = {
@@ -401,16 +402,21 @@ resource "kubernetes_config_map" "usefuldataargo" {
     project      = var.project
     org_bucket   = var.spark_storage_bucket_url
     # add checkpoint location here...
-    spark_namespace = kubernetes_namespace.mainnamespace.metadata.0.name
+    spark_namespace = kubernetes_namespace.sparkplane.metadata.0.name
   }
 
-  depends_on = [kubernetes_namespace.argoevents, kubernetes_namespace.mainnamespace]
+  depends_on = [kubernetes_namespace.serviceplane, kubernetes_namespace.sparkplane]
 }
 
 
 ##################
 # Install Spark
 ##################
+##########
+# Todo, this should be one per cluster
+# We will be multi-tenant so this should be in its own environment
+# Move this to the "global" section of kuberentes
+##########
 resource "helm_release" "spark" {
   name             = "spark-operator"
   namespace        = "spark-operator"
@@ -423,29 +429,122 @@ resource "helm_release" "spark" {
   }
   set {
     name  = "metrics.enable"
-    value = true
+    value = false //local prometheus shouldn't scrape global operator
   }
   depends_on = [local_file.kubeconfig]
 }
 
+
+##################
+# Install Password Generator
+##################
+resource "helm_release" "passwordgenerator" {
+  name      = "kubernetes-secret-generator"
+  namespace = kubernetes_namespace.serviceplane.metadata.0.name //"passwordgenerate-${var.organization}"
+  //create_namespace = true
+  repository = "https://helm.mittwald.de"
+  chart      = "kubernetes-secret-generator"
+  set {
+    name  = "secretLength"
+    value = 32
+  }
+  set {
+    name  = "watchNamespace"
+    value = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+data "kubectl_file_documents" "oidcsecret" {
+  content = templatefile("../../gateway/oidc.yml", {
+    client_id     = base64encode(var.client_id),
+    client_secret = base64encode(var.client_secret)
+  })
+}
+resource "kubectl_manifest" "oidcsecret" {
+  count              = 1
+  yaml_body          = element(data.kubectl_file_documents.oidcsecret.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on         = [helm_release.passwordgenerator]
+}
+
+data "kubectl_file_documents" "token" {
+  content = file("../../gateway/token.yml")
+}
+resource "kubectl_manifest" "token" {
+  count              = length(data.kubectl_file_documents.token.documents)
+  yaml_body          = element(data.kubectl_file_documents.token.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on         = [helm_release.passwordgenerator]
+}
+/*
+data "kubectl_file_documents" "oidcsecretmonitoring" {
+  content = templatefile("../../gateway/oidc.yml", {
+    client_id     = base64encode(var.client_id),
+    client_secret = base64encode(var.client_secret)
+  })
+}
+resource "kubectl_manifest" "oidcsecretmonitoring" {
+  count              = 1
+  yaml_body          = element(data.kubectl_file_documents.oidcsecretmonitoring.documents, count.index)
+  override_namespace = kubernetes_namespace.monitoring.metadata.0.name
+  depends_on         = [helm_release.passwordgenerator]
+}*/
+
 ##################
 # Install Prometheus
 ##################
+
+data "kubectl_file_documents" "prometheusconfigs" {
+  content = file("../../prometheus/configs.yml")
+}
+resource "kubectl_manifest" "prometheusconfigs" {
+  count              = length(data.kubectl_file_documents.prometheusconfigs.documents)
+  yaml_body          = element(data.kubectl_file_documents.prometheusconfigs.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  # depends_on         = [helm_release.passwordgenerator]
+}
 resource "helm_release" "prometheus" {
   name       = "prometheus"
-  namespace  = kubernetes_namespace.monitoring.metadata.0.name
+  namespace  = kubernetes_namespace.serviceplane.metadata.0.name
   repository = "https://prometheus-community.github.io/helm-charts"
-  chart      = "kube-prometheus-stack" # apparently this includes the prometheus operator, while raw "prometheus" doesn't
-
-  depends_on = [kubernetes_service_account.monitoring]
+  chart      = "prometheus" # does not include prometheus operator
+  values = [
+    "${templatefile("../../prometheus/prometheus_helm_values.yml", {
+      organization = var.organization
+    })}"
+  ]
+  depends_on = [
+    kubernetes_namespace.serviceplane,
+    kubectl_manifest.prometheusconfigs,
+    kubectl_manifest.oidcsecret
+  ]
 }
 
+resource "helm_release" "grafana" {
+  name       = "grafana"
+  namespace  = kubernetes_namespace.serviceplane.metadata.0.name
+  repository = "https://grafana.github.io/helm-charts"
+  chart      = "grafana" # does not include prometheus operator
+  values = [
+    "${templatefile("../../prometheus/grafana_helm_values.yml", {
+      organization = var.organization
+    })}"
+  ]
+  depends_on = [
+    kubernetes_namespace.serviceplane,
+    kubectl_manifest.prometheusconfigs,
+    kubectl_manifest.oidcsecret
+  ]
+}
 
 ###################
 # Install servicemonitor for spark
 ###################
+
+/*
 data "kubectl_file_documents" "sparkoperatorprometheus" {
-  content = templatefile("../../kubernetes_resources/prometheusservicemonitor.yml", {
+  content = templatefile("../../kubernetes_resources/prometheus_spark.yml", {
     operatornamespace   = helm_release.spark.metadata.0.namespace
     monitoringnamespace = kubernetes_namespace.monitoring.metadata.0.name
   })
@@ -453,8 +552,8 @@ data "kubectl_file_documents" "sparkoperatorprometheus" {
 resource "kubectl_manifest" "sparkoperatorprometheus" {
   count      = 2
   yaml_body  = element(data.kubectl_file_documents.sparkoperatorprometheus.documents, count.index)
-  depends_on = [helm_release.prometheus, helm_release.spark]
-}
+  depends_on = [kubectl_manifest.prometheusinstall, helm_release.spark]
+}*/
 
 
 
@@ -462,43 +561,50 @@ resource "kubectl_manifest" "sparkoperatorprometheus" {
 # Install Argo
 ##################
 
-
+/*
 data "kubectl_file_documents" "argoworkflow" {
-  content = file("../../argo/argoinstall.yml")
+  content = templatefile("../../argo/argoinstall.yml", {
+    organization = var.organization
+  })
+}*/
+
+//testing to see if I need manual count or if I can do length()
+data "kubectl_path_documents" "argoworkflow" {
+  pattern = "../../argo/argoinstall.yml"
+  vars = {
+    organization = var.organization
+  }
 }
 resource "kubectl_manifest" "argoworkflow" {
-  count              = length(data.kubectl_file_documents.argoworkflow.documents)
-  yaml_body          = element(data.kubectl_file_documents.argoworkflow.documents, count.index)
-  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on         = [kubernetes_namespace.argoevents]
+  count              = length(data.kubectl_path_documents.argoworkflow.documents) # 17
+  yaml_body          = element(data.kubectl_path_documents.argoworkflow.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on         = [kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret]
 }
 
 data "kubectl_file_documents" "argoevents" {
-  content = file("../../argo/argoeventsinstall.yml")
+  content = templatefile("../../argo/argoeventsinstall.yml", {
+    servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
+  })
 }
 
 resource "kubectl_manifest" "argoevents" {
-  count              = length(data.kubectl_file_documents.argoevents.documents)
+  count              = 9 # length(data.kubectl_file_documents.argoevents.documents)
   yaml_body          = element(data.kubectl_file_documents.argoevents.documents, count.index)
-  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
-  depends_on         = [kubectl_manifest.argoworkflow]
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on         = [kubectl_manifest.argoworkflow, kubernetes_namespace.serviceplane]
 }
 
 data "kubectl_file_documents" "argoeventswebhook" {
-  content = file("../../argo/webhookinstall.yml") #{
-  #staticipname = var.staticip_name
-  #})
+  content = file("../../argo/webhookinstall.yml")
 }
 
 resource "kubectl_manifest" "argoeventswebhook" {
   count              = length(data.kubectl_file_documents.argoeventswebhook.documents)
   yaml_body          = element(data.kubectl_file_documents.argoeventswebhook.documents, count.index)
-  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubectl_manifest.argoevents]
 }
-
-
-
 
 data "kubectl_file_documents" "pysparkeventworkflow" {
   content = templatefile("../../argo/pysparkworkflow.yml", {
@@ -513,18 +619,34 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     firestoreserviceaccount   = kubernetes_service_account.firestore.metadata.0.name
     dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
     dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
-    namespace                 = kubernetes_namespace.mainnamespace.metadata.0.name
-    monitoringnamespace       = kubernetes_namespace.monitoring.metadata.0.name
-
+    namespace                 = kubernetes_namespace.sparkplane.metadata.0.name
+    monitoringnamespace       = kubernetes_namespace.serviceplane.metadata.0.name
   })
 }
 
 resource "kubectl_manifest" "pysparkeventworkflow" {
   count              = 1
   yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
-  override_namespace = kubernetes_namespace.argoevents.metadata.0.name
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
+
+
+###################
+# Install servicemonitor for argo
+###################
+/*
+data "kubectl_file_documents" "argoprometheus" {
+  content = templatefile("../../prometheus/prometheus_argo.yml", {
+    servicenamespace    = kubernetes_namespace.serviceplane.metadata.0.name
+    monitoringnamespace = kubernetes_namespace.serviceplane.metadata.0.name
+  })
+}
+resource "kubectl_manifest" "argoprometheus" {
+  count      = 2
+  yaml_body  = element(data.kubectl_file_documents.argoprometheus.documents, count.index)
+  depends_on = [helm_release.prometheus, kubectl_manifest.pysparkeventworkflow]
+}*/
 
 
 ###############
@@ -533,11 +655,14 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
 
 
 data "kubectl_file_documents" "ingress" {
-  content = file("../../gateway/ingress.yml")
+  content = templatefile("../../gateway/ingress.yml", {
+    organization = var.organization
+  })
 }
 resource "kubectl_manifest" "ingress" {
-  count     = length(data.kubectl_file_documents.ingress.documents)
-  yaml_body = element(data.kubectl_file_documents.ingress.documents, count.index)
+  count              = 3 #length(data.kubectl_file_documents.ingress.documents)
+  yaml_body          = element(data.kubectl_file_documents.ingress.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on = [
     kubectl_manifest.argoeventswebhook
   ]
