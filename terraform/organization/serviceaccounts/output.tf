@@ -34,3 +34,10 @@ output "spark_history_bucket_url" {
 output "spark_storage_bucket_url" {
   value = google_storage_bucket.sparkstorage.url
 }
+
+output "dns_svc_name" {
+  value = google_service_account.dns.name
+}
+output "dns_svc_email" {
+  value = google_service_account.dns.email
+}

@@ -492,6 +492,70 @@ resource "kubectl_manifest" "oidcsecretmonitoring" {
 }*/
 
 ##################
+# Install Nginx
+##################
+# Todo, this should be installed cluster wide
+resource "helm_release" "nginx" {
+  name             = "nginx-ingress"
+  namespace        = "nginx"
+  create_namespace = true
+  #repository       = "https://helm.nginx.com/stable"
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  #chart      = "nginx-ingress"
+  chart = "ingress-nginx"
+  set {
+    name = "controller.service.loadBalancerIP"
+    # TODO! this may need to be a regional static rather than global
+    # yes, needs to be regional
+    value = var.staticip_address
+  }
+  set {
+    name  = "rbac.create"
+    value = true
+  }
+}
+
+##################
+# install cert manager
+##################
+# shoudl this be installed once per cluster?
+
+locals {
+  dns_service_account = "cert-manager"
+}
+resource "helm_release" "certmanager" {
+  name      = "cert-manager"
+  namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  //create_namespace = true
+  repository = "https://charts.jetstack.io"
+  chart      = "cert-manager"
+  set {
+    name  = "installCRDs"
+    value = true
+  }
+  set {
+    name  = "serviceAccount.name"
+    value = local.dns_service_account
+  }
+  set {
+    name  = "serviceAccount.annotations.iam\\.gke\\.io/gcp-service-account"
+    value = var.dns_svc_email
+  }
+}
+
+resource "google_service_account_iam_binding" "dns" {
+  service_account_id = var.dns_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${local.dns_service_account}]",
+  ]
+  depends_on = [
+    helm_release.certmanager //helm creates the service account for me
+  ]
+}
+
+##################
 # Install Prometheus
 ##################
 
@@ -582,15 +646,22 @@ resource "kubectl_manifest" "argoworkflow" {
   depends_on         = [kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret]
 }
 
+/*
 data "kubectl_file_documents" "argoevents" {
   content = templatefile("../../argo/argoeventsinstall.yml", {
     servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
   })
-}
+}*/
 
+data "kubectl_path_documents" "argoevents" {
+  pattern = "../../argo/argoeventsinstall.yml"
+  vars = {
+    servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+}
 resource "kubectl_manifest" "argoevents" {
-  count              = 9 # length(data.kubectl_file_documents.argoevents.documents)
-  yaml_body          = element(data.kubectl_file_documents.argoevents.documents, count.index)
+  count              = 9 # length(data.kubectl_path_documents.argoevents.documents)
+  yaml_body          = element(data.kubectl_path_documents.argoevents.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubectl_manifest.argoworkflow, kubernetes_namespace.serviceplane]
 }
@@ -606,8 +677,16 @@ resource "kubectl_manifest" "argoeventswebhook" {
   depends_on         = [kubectl_manifest.argoevents]
 }
 
-data "kubectl_file_documents" "pysparkeventworkflow" {
-  content = templatefile("../../argo/pysparkworkflow.yml", {
+/*
+data "kubectl_path_documents" "argoworkflow" {
+  pattern = "../../argo/argoeventsinstall.yml"
+  vars = {
+    servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+}*/
+data "kubectl_path_documents" "pysparkeventworkflow" {
+  pattern = "../../argo/pysparkworkflow.yml"
+  vars = {
     project                   = var.project,
     organization              = var.organization
     dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
@@ -621,12 +700,12 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace                 = kubernetes_namespace.sparkplane.metadata.0.name
     monitoringnamespace       = kubernetes_namespace.serviceplane.metadata.0.name
-  })
+  }
 }
 
 resource "kubectl_manifest" "pysparkeventworkflow" {
-  count              = 1
-  yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
+  count              = 1 # length(data.kubectl_path_documents.pysparkeventworkflow.documents)
+  yaml_body          = element(data.kubectl_path_documents.pysparkeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
@@ -653,15 +732,24 @@ resource "kubectl_manifest" "argoprometheus" {
 # install certs and gateway
 ##############
 
+data "kubectl_path_documents" "ingress" {
+  pattern = "../../gateway/ingress.yml"
+  vars = {
+    organization = var.organization
+    # project      = var.project
+  }
 
+}
+/*
 data "kubectl_file_documents" "ingress" {
   content = templatefile("../../gateway/ingress.yml", {
-    organization = var.organization
+    organization = var.organization,
+    #staticipname = var.staticip_name
   })
-}
+}*/
 resource "kubectl_manifest" "ingress" {
-  count              = 3 #length(data.kubectl_file_documents.ingress.documents)
-  yaml_body          = element(data.kubectl_file_documents.ingress.documents, count.index)
+  count              = length(data.kubectl_path_documents.ingress.documents)
+  yaml_body          = element(data.kubectl_path_documents.ingress.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on = [
     kubectl_manifest.argoeventswebhook

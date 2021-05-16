@@ -537,7 +537,6 @@ spec:
           - --redirect-url=https://${organization}.streamstate.org/oauth2/callback
           - --pass-host-header
           - --exclude-logging-path=/ping
-          # - --skip-auth-route=/ping # only skip readinessProbe?
         env:
         - name: OAUTH2_PROXY_CLIENT_ID
           valueFrom:

@@ -6,6 +6,8 @@ variable "cluster_id" {
   type = string
 }
 
+
+
 variable "cluster_endpoint" {
   type = string
 }
@@ -64,13 +66,30 @@ variable "spark_storage_bucket_url" {
   type = string
 }
 
+/*
 variable "staticipname" {
   type = string
 }
+*/
+variable "staticip_address" {
+  type = string
+}
+
+
+variable "dns_svc_name" {
+  type = string
+}
+variable "dns_svc_email" {
+  type = string
+}
+
 //temporary, lets see if this actually works
+//It does work!  Need to figure out what to make
+//this programtic for organizations
 variable "client_id" {
   type = string
 }
 variable "client_secret" {
   type = string
 }
+

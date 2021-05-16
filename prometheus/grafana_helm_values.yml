@@ -8,10 +8,6 @@ service:
 # https://grafana.com/tutorials/run-grafana-behind-a-proxy/
 # gateway/ingress.yml
 grafana.ini:
-  server:
-    domain: ${organization}.streamstate.org 
-    root_url: https://${organization}.streamstate.org/grafana/
-    serve_from_sub_path: true
   auth:
     anonymous:
       enabled: true
@@ -40,7 +36,6 @@ extraContainers: |
       - --redirect-url=https://${organization}.streamstate.org/oauth2/callback
       - --pass-host-header
       - --exclude-logging-path=/ping
-      # - --skip-auth-route=/ping # only skip readinessProbe?
     env:
     - name: OAUTH2_PROXY_CLIENT_ID
       valueFrom:

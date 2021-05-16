@@ -127,3 +127,15 @@ kubectl run -it \
 --serviceaccount spark \
 --namespace mainspark \
 workload-identity-test
+
+
+kubectl run -it \
+--image google/cloud-sdk:slim \
+--serviceaccount cert-manager \
+--namespace serviceplane-testorg \
+workload-identity-test
+
+
+gcloud auth list
+
+kubectl get certificaterequest -n serviceplane-testorg
