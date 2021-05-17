@@ -1,7 +1,49 @@
 kubeStateMetrics:
   enabled: false
 server:
+  baseURL: /monitoring/ # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
+  sidecarContainers:
+    reverseproxy:
+      image: quay.io/oauth2-proxy/oauth2-proxy:v7.1.3
+      ports:
+      - containerPort: 9091
+        name: web
+      readinessProbe:
+        httpGet:
+          path: /ping
+          port: 9091
+          scheme: HTTP
+        initialDelaySeconds: 10
+        periodSeconds: 20
+      args:
+        - --provider=oidc
+        - --oidc-issuer-url=https://dev-20490044.okta.com/oauth2/default
+        - --reverse-proxy=true
+        - --upstream=http://localhost:9090 
+        - --pass-access-token=true
+        - --email-domain=*
+        - --skip-provider-button=true
+        - --http-address=0.0.0.0:9091
+        - --redirect-url=https://${organization}.streamstate.org/monitoring/oauth2/callback
+        - --pass-host-header
+        - --exclude-logging-path=/ping
+      env:
+      - name: OAUTH2_PROXY_CLIENT_ID
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-proxy-config
+            key: client-id
+      - name: OAUTH2_PROXY_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-proxy-config
+            key: client-secret
+
+      - name: OAUTH2_PROXY_COOKIE_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-proxy-config
+            key: cookie-secret
   service:
     type: NodePort
-    servicePort: 9090
-  baseUrl: /monitoring
+    servicePort: 9091

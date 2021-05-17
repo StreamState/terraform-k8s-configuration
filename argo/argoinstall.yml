@@ -418,6 +418,19 @@ data:
       podGC:
         strategy: OnPodCompletion
 
+
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: argoserver
+spec:
+  healthCheck:
+    checkIntervalSec: 15
+    port: 2747
+    type: HTTP
+    requestPath: /ping
+
 ---
 apiVersion: v1
 kind: Service
@@ -426,8 +439,8 @@ metadata:
 spec:
   ports:
   - name: web
-    port: 2746
-    targetPort: 2746
+    port: 2747
+    targetPort: 2747
   type: NodePort 
   selector:
     app: argo-server
@@ -468,16 +481,6 @@ spec:
           value: /ui/ # see gateway/ingress.yml https://github.com/argoproj/argo-workflows/blob/master/docs/argo-server.md#ingress
         image: argoproj/argocli:v3.0.1
         name: argo-server
-        ports:
-        - containerPort: 2746
-          name: web
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 2746
-            scheme: HTTP
-          initialDelaySeconds: 10
-          periodSeconds: 20
         securityContext:
           capabilities:
             drop:
@@ -492,6 +495,50 @@ spec:
           limits:
             cpu: 500m
             memory: 128Mi
+      - name: reverseproxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:v7.1.3
+        ports:
+        - containerPort: 2747
+          name: web
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 2747
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        args:
+          - --provider=oidc
+          - --oidc-issuer-url=https://dev-20490044.okta.com/oauth2/default
+          - --reverse-proxy=true
+          - --upstream=http://localhost:2746
+          - --pass-access-token=true
+          - --email-domain=*
+          - --skip-provider-button=true
+          - --http-address=0.0.0.0:2747
+          - --redirect-url=https://${organization}.streamstate.org/ui/oauth2/callback
+          - --pass-host-header
+          - --exclude-logging-path=/ping
+        env:
+        - name: OAUTH2_PROXY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy-config
+              key: client-id
+          # value: <Client ID>
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy-config
+              key: client-secret
+          #value: <Client Secret>
+        # docker run -ti --rm python:3-alpine python -c 'import secrets,base64; print(base64.b64encode(base64.b64encode(secrets.token_bytes(16))));'
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy-config
+              key: cookie-secret
+          # value: SECRET
       nodeSelector:
         kubernetes.io/os: linux
       securityContext:

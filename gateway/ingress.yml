@@ -6,9 +6,6 @@ metadata:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$scheme://$best_http_host$request_uri"
-    nginx.ingress.kubernetes.io/auth-url: "https://testorg.streamstate.org/oauth2/auth"
-    #nginx.ingress.kubernetes.io/auth-signin: "https://testorg.streamstate.org/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
     cert-manager.io/issuer: "letsencrypt-prod" # "letsencrypt-staging"
     acme.cert-manager.io/http01-edit-in-place: "true"
   labels:
@@ -16,16 +13,16 @@ metadata:
 spec:
   tls: # < placing a host in the TLS config will indicate a certificate should be created
   - hosts:
-    - testorg.streamstate.org
+    - ${organization}.streamstate.org
     secretName: streamstate-internal-cert # < cert-manager will store the created certificate in this secret
   rules:
-    - host: testorg.streamstate.org
+    - host: ${organization}.streamstate.org
       http:
         paths:
         - path: /ui(/|$)(.*)
           backend:
             serviceName: argo-server
-            servicePort: 2746
+            servicePort: 2747
         - path: /build(/|$)(.*)
           backend:
             serviceName: argowebhook
@@ -33,33 +30,8 @@ spec:
         - path: /monitoring(/|$)(.*)
           backend:
             serviceName: prometheus-server 
-            servicePort: 9090
+            servicePort: 9091
         - path: /grafana(/|$)(.*)
           backend:
             serviceName: grafana
-            servicePort: 3000
----
-apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
-kind: Ingress
-metadata:
-  name: oauth2-proxy
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    certmanager.k8s.io/issuer: "letsencrypt-prod"
-    acme.cert-manager.io/http01-edit-in-place: "true"
-  labels:
-    app: oauth2-proxy
-spec:
-  tls: # < placing a host in the TLS config will indicate a certificate should be created
-  - hosts:
-    - testorg.streamstate.org
-    secretName: streamstate-oauth-cert # < cert-manager will store the created certificate in this secret
-  rules:
-    - host: testorg.streamstate.org
-      http:
-        paths:
-        - path: /
-          backend:
-            serviceName: oauth2-reverse-proxy
-            servicePort: 4180
-        
+            servicePort: 3001

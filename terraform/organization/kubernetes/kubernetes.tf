@@ -558,8 +558,8 @@ resource "kubectl_manifest" "certs" {
   count              = length(data.kubectl_path_documents.certs.documents) # 17
   yaml_body          = element(data.kubectl_path_documents.certs.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [
-    kubernetes_namespace.serviceplane, 
+  depends_on = [
+    kubernetes_namespace.serviceplane,
     helm_release.certmanager
   ]
 }
@@ -704,6 +704,7 @@ resource "helm_release" "oauth2proxy" {
   depends_on=[kubectl_manifest.ingress]
 }*/
 
+/*
 data "kubectl_path_documents" "oauth2" {
   pattern = "../../gateway/oauth2.yml"
   vars = {
@@ -718,7 +719,7 @@ resource "kubectl_manifest" "oauth2" {
   depends_on = [
     kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret
   ]
-}
+}*/
 
 
 ###############
@@ -740,7 +741,7 @@ resource "kubectl_manifest" "ingress" {
     kubectl_manifest.argoeventswebhook,
     helm_release.grafana,
     helm_release.prometheus,
-    kubectl_manifest.oauth2
+    #kubectl_manifest.oauth2
   ]
 }
 
