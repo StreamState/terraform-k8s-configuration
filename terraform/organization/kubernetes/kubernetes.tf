@@ -534,7 +534,7 @@ resource "helm_release" "certmanager" {
     value = var.dns_svc_email
   }
 }
-
+## TODO is this even needed anymore?
 resource "google_service_account_iam_binding" "dns" {
   service_account_id = var.dns_svc_name
   role               = "roles/iam.workloadIdentityUser"
