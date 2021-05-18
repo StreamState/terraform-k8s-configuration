@@ -6,12 +6,21 @@ service:
 # https://grafana.com/tutorials/run-grafana-behind-a-proxy/
 # gateway/ingress.yml
 grafana.ini:
-  auth:
-    anonymous:
+  auth.anonymous:
       enabled: true
   server:
+    server:
+    domain: ${organization}.streamstate.org 
+    root_url: https://${organization}.streamstate.org/grafana/
     serve_from_sub_path: true
-    root_url: https://testorg.streamstate.org/grafana
-
+datasources: 
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-server.serviceplane-${organization}.svc.cluster.local:9090/prometheus
+      access: proxy
+      isDefault: true
 rbac:
   namespaced: true

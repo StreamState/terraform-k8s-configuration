@@ -493,8 +493,7 @@ resource "helm_release" "nginx" {
   chart = "ingress-nginx"
   set {
     name = "controller.service.loadBalancerIP"
-    # TODO! this may need to be a regional static rather than global
-    # yes, needs to be regional
+    # needs to be regional, didn't work with global
     value = var.staticip_address
   }
   set {
@@ -558,8 +557,8 @@ resource "kubectl_manifest" "certs" {
   count              = length(data.kubectl_path_documents.certs.documents) # 17
   yaml_body          = element(data.kubectl_path_documents.certs.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [
-    kubernetes_namespace.serviceplane, 
+  depends_on = [
+    kubernetes_namespace.serviceplane,
     helm_release.certmanager
   ]
 }
@@ -578,6 +577,8 @@ resource "helm_release" "prometheus" {
   values = [
     "${templatefile("../../prometheus/prometheus_helm_values.yml", {
       organization = var.organization
+      serviceplane = kubernetes_namespace.serviceplane.metadata.0.name
+      sparkplane   = kubernetes_namespace.sparkplane.metadata.0.name
     })}"
   ]
   depends_on = [

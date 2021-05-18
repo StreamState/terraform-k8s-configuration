@@ -29,18 +29,16 @@ spec:
           - --provider=oidc
           - --oidc-issuer-url=https://dev-20490044.okta.com/oauth2/default
           - --reverse-proxy=true
-          - --upstream=http://argo-server.serviceplane-testorg.svc.cluster.local:2746 # since nginx strips it
-          - --upstream=http://prometheus-server.serviceplane-testorg.svc.cluster.local:9090/graph # since nginx strips...
-          - --upstream=http://grafana.serviceplane-testorg.svc.cluster.local:3000/login # since nginx strips...
           - --pass-access-token=true
           - --email-domain=*
           - --skip-provider-button=true
           - --http-address=0.0.0.0:4180
-          #- --redirect-url=https://testorg.streamstate.org/oauth2/callback
+          - --redirect-url=https://testorg.streamstate.org/oauth2/callback
           - --pass-host-header
           - --exclude-logging-path=/ping
           - --whitelist-domain=*.streamstate.org
           - --cookie-domain=*.streamstate.org
+          - --upstream=file:///dev/null
         env:
         - name: OAUTH2_PROXY_CLIENT_ID
           valueFrom:
@@ -54,7 +52,6 @@ spec:
               name: oauth2-proxy-config
               key: client-secret
           #value: <Client Secret>
-        # docker run -ti --rm python:3-alpine python -c 'import secrets,base64; print(base64.b64encode(base64.b64encode(secrets.token_bytes(16))));'
         - name: OAUTH2_PROXY_COOKIE_SECRET
           valueFrom:
             secretKeyRef:
