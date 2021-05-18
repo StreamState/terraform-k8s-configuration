@@ -7,8 +7,8 @@ server:
   namespaces:
     - ${serviceplane}
     - ${sparkplane}
-  baseURL: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
-  prefixURL: /monitoring # https://github.com/helm/charts/issues/16995#issuecomment-781314770
+  baseURL: /monitoring/ #https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
+  prefixURL: /monitoring/ # https://github.com/helm/charts/issues/16995#issuecomment-781314770
 
 serverFiles:
   prometheus.yml:

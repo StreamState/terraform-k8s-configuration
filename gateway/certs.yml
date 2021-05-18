@@ -41,3 +41,7 @@ spec:
     - http01:
         ingress:
           class: nginx
+    #- dns01:
+    #    cloudDNS:
+    #      # The ID of the GCP project
+    #      project: ${project}

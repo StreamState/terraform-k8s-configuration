@@ -551,6 +551,7 @@ data "kubectl_path_documents" "certs" {
   pattern = "../../gateway/certs.yml"
   vars = {
     organization = var.organization
+    project      = var.project
   }
 }
 resource "kubectl_manifest" "certs" {
@@ -691,19 +692,7 @@ resource "kubectl_manifest" "pysparkeventworkflow" {
 ###################
 # install oauth2-proxy
 ###################
-/*
-resource "helm_release" "oauth2proxy" {
-  name="oauth2-proxy"
-  repository="https://oauth2-proxy.github.io/manifests"
-  chart = "oauth2-proxy"
-  namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  values = [
-    "${templatefile("../../gateway/oauth2_values.yml", {
-      organization = var.organization
-    })}"
-  ]
-  depends_on=[kubectl_manifest.ingress]
-}*/
+
 
 data "kubectl_path_documents" "oauth2" {
   pattern = "../../gateway/oauth2.yml"
@@ -720,6 +709,23 @@ resource "kubectl_manifest" "oauth2" {
     kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret
   ]
 }
+
+###################
+# install main ui
+###################
+
+data "kubectl_file_documents" "mainui" {
+  content = file("../../adminapp/deployment.yml")
+}
+resource "kubectl_manifest" "mainui" {
+  count              = length(data.kubectl_file_documents.mainui.documents)
+  yaml_body          = element(data.kubectl_file_documents.mainui.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on = [
+    kubernetes_namespace.serviceplane
+  ]
+}
+
 
 
 ###############
