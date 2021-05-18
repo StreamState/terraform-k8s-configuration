@@ -10,9 +10,17 @@ grafana.ini:
     domain: ${organization}.streamstate.org 
     root_url: https://${organization}.streamstate.org/grafana/
     serve_from_sub_path: true
-  auth:
-    anonymous:
-      enabled: true
+  auth.anonymous:
+    enabled: true
+datasources: 
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-server.serviceplane-${organization}.svc.cluster.local:9090/prometheus
+      access: proxy
+      isDefault: true
 extraContainers: |
   - name: reverseproxy
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.1.3

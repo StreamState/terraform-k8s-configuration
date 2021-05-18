@@ -117,7 +117,12 @@ The backend for provisioning new jobs
 * kubectl port-forward svc/prometheus-grafana  -n monitoring 8000:80
 
 Grafana password:
-* kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode
+* kubectl get secret --namespace serviceplane-testorg grafana -o jsonpath="{.data.admin-password}" | base64 --decode
+
+Argo workflow grafana: https://grafana.com/grafana/dashboards/13927
+
+
+
 
 
 # test workload identity

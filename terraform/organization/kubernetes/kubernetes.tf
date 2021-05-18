@@ -578,10 +578,12 @@ resource "helm_release" "prometheus" {
   values = [
     "${templatefile("../../prometheus/prometheus_helm_values.yml", {
       organization = var.organization
+      serviceplane = kubernetes_namespace.serviceplane.metadata.0.name
+      sparkplane   = kubernetes_namespace.sparkplane.metadata.0.name
     })}"
   ]
   depends_on = [
-    kubernetes_namespace.serviceplane
+    kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret
   ]
 }
 
@@ -596,7 +598,7 @@ resource "helm_release" "grafana" {
     })}"
   ]
   depends_on = [
-    kubernetes_namespace.serviceplane,
+    kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret
   ]
 }
 
@@ -633,7 +635,7 @@ resource "kubectl_manifest" "argoworkflow" {
   count              = length(data.kubectl_path_documents.argoworkflow.documents) # 17
   yaml_body          = element(data.kubectl_path_documents.argoworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [kubernetes_namespace.serviceplane]
+  depends_on         = [kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret]
 }
 
 
