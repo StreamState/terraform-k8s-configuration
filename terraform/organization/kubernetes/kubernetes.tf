@@ -370,6 +370,82 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
+##### Prometheus
+
+#resource "kubernetes_service_account" "prometheusserver" {
+#  metadata {
+#    name      = "prometheusserver-sa"
+#    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+#  }
+#  depends_on = [kubernetes_namespace.serviceplane]
+#}
+# serviceplane namespace
+resource "kubernetes_cluster_role" "prometheusclusterrole" {
+  metadata {
+    name = "prometheusrole"
+    #namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["nodes", "nodes/proxy", "nodes/metrics", "services", "endpoints", "pods"]
+    verbs      = ["get", "list", "watch"]
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["configmaps"]
+    verbs      = ["get"]
+  }
+  rule {
+    api_groups = ["networking.k8s.io"]
+    resources  = ["ingresses"]
+    verbs      = ["get", "list", "watch"]
+  }
+  rule {
+    non_resource_urls = ["/metrics"]
+    verbs             = ["get"]
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+# serviceplane namespace
+#resource "kubernetes_role_binding" "prometheusserviceplane" {
+#  metadata {
+#    name      = "prometheusrolebinding"
+#    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+#  }
+#  role_ref {
+#    api_group = "rbac.authorization.k8s.io"
+#    kind      = "ClusterRole"
+#    name      = kubernetes_cluster_role.prometheusclusterrole.metadata.0.name
+#  }
+#  subject {
+#    kind      = "ServiceAccount"
+#    name      = kubernetes_service_account.prometheusserver.metadata.0.name
+#    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+#  }
+#  depends_on = [kubernetes_service_account.prometheusserver]
+#}
+
+# spark namespace
+#resource "kubernetes_role_binding" "prometheussparkplane" {
+#  metadata {
+#    name      = "prometheusrolebinding"
+#    namespace = kubernetes_namespace.sparkplane.metadata.0.name
+#  }
+#  role_ref {
+#    api_group = "rbac.authorization.k8s.io"
+#    kind      = "ClusterRole"
+#    name      = kubernetes_cluster_role.prometheusclusterrole.metadata.0.name
+#  }
+#  subject {
+#    kind      = "ServiceAccount"
+#    name      = kubernetes_service_account.prometheusserver.metadata.0.name
+#    namespace = kubernetes_namespace.serviceplane.metadata.0.name # only one service account needed, put in serviceplane namespace
+#  }
+#  depends_on = [
+#    kubernetes_namespace.sparkplane,
+#    kubernetes_service_account.prometheusserver
+#  ]
+#}
 
 #### Data
 
@@ -577,13 +653,16 @@ resource "helm_release" "prometheus" {
   chart      = "prometheus" # does not include prometheus operator
   values = [
     "${templatefile("../../prometheus/prometheus_helm_values.yml", {
-      organization = var.organization
-      serviceplane = kubernetes_namespace.serviceplane.metadata.0.name
-      sparkplane   = kubernetes_namespace.sparkplane.metadata.0.name
+      organization          = var.organization
+      serviceplane          = kubernetes_namespace.serviceplane.metadata.0.name
+      sparkplane            = kubernetes_namespace.sparkplane.metadata.0.name
+      prometheusclusterrole = kubernetes_cluster_role.prometheusclusterrole.metadata.0.name
     })}"
   ]
   depends_on = [
-    kubernetes_namespace.serviceplane
+    kubernetes_namespace.serviceplane,
+    kubernetes_namespace.sparkplane,
+    kubernetes_cluster_role.prometheusclusterrole
   ]
 }
 

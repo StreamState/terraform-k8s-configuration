@@ -13,9 +13,9 @@ resource "google_service_account" "cluster" {
 }
 
 
-locals {
-  gkeversion = "1.20.5-gke.2000"
-}
+#locals {
+#  gkeversion = "1.20.6-gke.2000"
+#}
 
 
 
@@ -23,12 +23,12 @@ locals {
 # this should be at the organization level (each organization gets their own cluster)
 # what about loadbalancing and IP address?
 resource "google_container_cluster" "primary" {
-  project            = var.project
-  name               = "streamstatecluster-${var.organization}"
-  location           = var.region
-  min_master_version = local.gkeversion
+  project  = var.project
+  name     = "streamstatecluster-${var.organization}"
+  location = var.region
+  # min_master_version = local.gkeversion
   release_channel {
-    channel = "RAPID"
+    channel = "REGULAR"
   }
   # VPC-native
   network    = "default"

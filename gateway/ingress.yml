@@ -37,10 +37,10 @@ spec:
           backend:
             serviceName: argowebhook
             servicePort: 12000
-        - path: /monitoring(/|$)(.*)
+        - path: /monitoring(/|$)(.*) 
           backend:
             serviceName: prometheus-server 
-            servicePort: 9090
+            servicePort: 80
         - path: /grafana(/|$)(.*)
           backend:
             serviceName: grafana
