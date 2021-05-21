@@ -1,17 +1,16 @@
 kubeStateMetrics:
   enabled: false
+
 alertmanager:
+  enabled: false
   useClusterRole: false
-  #useExistingRole: ${prometheusclusterrole}
-  # useExistingRole: false # set to name of role?
-  # baseURL: "http://localhost:9093"
 
 server:
-  useExistingClusterRoleName: ${prometheusclusterrole}
+  #useExistingClusterRoleName: ${prometheusclusterrole}
 
-  namespaces:
-    - ${serviceplane}
-    - ${sparkplane}
+  #namespaces:
+  #  - ${serviceplane}
+  #  - ${sparkplane}
   
   baseURL: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
   extraArgs:

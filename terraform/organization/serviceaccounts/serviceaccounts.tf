@@ -141,7 +141,7 @@ resource "google_storage_bucket_iam_member" "sparkhistoryread" {
 }
 
 
-
+/*
 resource "random_id" "sa" {
   //keepers = {
   # Generate a new id each time we switch to a new AMI id
@@ -154,13 +154,13 @@ resource "random_string" "sa" {
   length  = 16
   special = false
   upper   = false
-}
+}*/
 //TODO should this be once per cluster?? (yes)
 //need to create "random" id on each service account creation
 // see https://github.com/jetstack/cert-manager/issues/2069#issuecomment-531428320
 resource "google_service_account" "dns" {
   project      = var.project
-  account_id   = "dns-${random_string.sa.id}"
+  account_id   = "dns-${var.organization}" # ${random_string.sa.id}"
   display_name = "DNS solver for ${var.organization}"
 }
 
@@ -185,6 +185,6 @@ resource "google_project_iam_custom_role" "minimaldnsrole" {
 ## ugh, it is...I needed admin role for it to work...
 resource "google_project_iam_member" "minimaldnsrole" {
   project = var.project
-  role    = "roles/dns.admin" #"projects/${var.project}/roles/${google_project_iam_custom_role.minimaldnsrole.role_id}"
+  role    = "roles/dns.admin" # "projects/${var.project}/roles/${google_project_iam_custom_role.minimaldnsrole.role_id}"
   member  = "serviceAccount:${google_service_account.dns.email}"
 }
