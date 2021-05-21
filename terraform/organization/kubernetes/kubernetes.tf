@@ -380,14 +380,47 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
 #  depends_on = [kubernetes_namespace.serviceplane]
 #}
 # serviceplane namespace
+
+locals {
+  prometheusrole = "prometheusrole"
+}
+
+data "kubectl_path_documents" "prometheusclusterrole" {
+  pattern = "../../prometheus/clusterrole.yml"
+  vars = {
+    rolename  = local.prometheusrole
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+}
+resource "kubectl_manifest" "prometheusclusterrole" {
+  count              = 1 #length(data.kubectl_path_documents.prometheusclusterrole.documents)
+  yaml_body          = element(data.kubectl_path_documents.prometheusclusterrole.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on = [
+    kubernetes_namespace.serviceplane
+  ]
+}
+/*
 resource "kubernetes_cluster_role" "prometheusclusterrole" {
   metadata {
     name = "prometheusrole"
+    labels=[
+      "app=prometheus"
+    ]
     #namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   rule {
     api_groups = [""]
-    resources  = ["nodes", "nodes/proxy", "nodes/metrics", "services", "endpoints", "pods"]
+    resources  = [
+      "nodes", 
+      "nodes/proxy", 
+      "nodes/metrics", 
+      "services", 
+      "endpoints", 
+      "pods", 
+      "ingresses", 
+      "configmaps"
+    ]
     verbs      = ["get", "list", "watch"]
   }
   rule {
@@ -396,8 +429,8 @@ resource "kubernetes_cluster_role" "prometheusclusterrole" {
     verbs      = ["get"]
   }
   rule {
-    api_groups = ["networking.k8s.io"]
-    resources  = ["ingresses"]
+    api_groups = ["networking.k8s.io", "extensions"]
+    resources  = ["ingresses", "ingresses/status"]
     verbs      = ["get", "list", "watch"]
   }
   rule {
@@ -405,7 +438,8 @@ resource "kubernetes_cluster_role" "prometheusclusterrole" {
     verbs             = ["get"]
   }
   depends_on = [kubernetes_namespace.serviceplane]
-}
+}*/
+
 # serviceplane namespace
 #resource "kubernetes_role_binding" "prometheusserviceplane" {
 #  metadata {
@@ -594,10 +628,16 @@ locals {
 resource "helm_release" "certmanager" {
   name      = "cert-manager"
   namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  //create_namespace = true
+
   repository = "https://charts.jetstack.io"
   chart      = "cert-manager"
-  set {
+  values = [
+    "${templatefile("../../gateway/certmanager.yml", {
+      serviceaccountname     = local.dns_service_account
+      gcpserviceaccountemail = var.dns_svc_email
+    })}"
+  ]
+  /*set {
     name  = "installCRDs"
     value = true
   }
@@ -605,12 +645,17 @@ resource "helm_release" "certmanager" {
     name  = "serviceAccount.name"
     value = local.dns_service_account
   }
+  
+  set {
+    name= "extraArgs"
+    value= "{--issuer-ambient-credentials=true, --cluster-issuer-ambient-credentials=true}"
+  }
   set {
     name  = "serviceAccount.annotations.iam\\.gke\\.io/gcp-service-account"
     value = var.dns_svc_email
-  }
+  }*/
+  ## TODO is this even needed anymore? yes, if using dns in cert issuer
 }
-## TODO is this even needed anymore?
 resource "google_service_account_iam_binding" "dns" {
   service_account_id = var.dns_svc_name
   role               = "roles/iam.workloadIdentityUser"
@@ -656,13 +701,13 @@ resource "helm_release" "prometheus" {
       organization          = var.organization
       serviceplane          = kubernetes_namespace.serviceplane.metadata.0.name
       sparkplane            = kubernetes_namespace.sparkplane.metadata.0.name
-      prometheusclusterrole = kubernetes_cluster_role.prometheusclusterrole.metadata.0.name
+      prometheusclusterrole = local.prometheusrole # kubernetes_cluster_role.prometheusclusterrole.metadata.0.name
     })}"
   ]
   depends_on = [
     kubernetes_namespace.serviceplane,
     kubernetes_namespace.sparkplane,
-    kubernetes_cluster_role.prometheusclusterrole
+    kubectl_manifest.prometheusclusterrole
   ]
 }
 

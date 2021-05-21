@@ -2,20 +2,18 @@ kubeStateMetrics:
   enabled: false
 alertmanager:
   useClusterRole: false
+  #useExistingRole: ${prometheusclusterrole}
   # useExistingRole: false # set to name of role?
   # baseURL: "http://localhost:9093"
 
 server:
   useExistingClusterRoleName: ${prometheusclusterrole}
-  #service:
-    #type: NodePort
-    #servicePort: 9090
+
   namespaces:
     - ${serviceplane}
     - ${sparkplane}
   
   baseURL: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
-  #prefixURL: / # this is really only used for readiness probe...this does NOT set route-prefix #https://github.com/helm/charts/issues/16995#issuecomment-781314770
   extraArgs:
     # blank since "monitoring" prefix will be stripped by nginx
     web.route-prefix: / # https://prometheus.io/docs/guides/tls-encryption/
