@@ -117,7 +117,7 @@ The backend for provisioning new jobs
 * kubectl port-forward svc/prometheus-grafana  -n monitoring 8000:80
 
 Grafana password:
-* kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode
+* kubectl get secret --namespace serviceplane-testorg grafana -o jsonpath="{.data.admin-password}" | base64 --decode
 
 
 # test workload identity
@@ -127,3 +127,15 @@ kubectl run -it \
 --serviceaccount spark \
 --namespace mainspark \
 workload-identity-test
+
+
+kubectl run -it \
+--image google/cloud-sdk:slim \
+--serviceaccount cert-manager \
+--namespace serviceplane-testorg \
+workload-identity-test
+
+
+gcloud auth list
+
+kubectl get certificaterequest -n serviceplane-testorg

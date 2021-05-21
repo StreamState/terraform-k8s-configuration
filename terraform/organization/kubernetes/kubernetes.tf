@@ -370,6 +370,47 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
+##### Prometheus
+
+/*
+resource "kubernetes_cluster_role" "prometheusclusterrole" {
+  metadata {
+    name = "prometheusrole"
+    labels=[
+      "app=prometheus"
+    ]
+    #namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+  rule {
+    api_groups = [""]
+    resources  = [
+      "nodes", 
+      "nodes/proxy", 
+      "nodes/metrics", 
+      "services", 
+      "endpoints", 
+      "pods", 
+      "ingresses", 
+      "configmaps"
+    ]
+    verbs      = ["get", "list", "watch"]
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["configmaps"]
+    verbs      = ["get"]
+  }
+  rule {
+    api_groups = ["networking.k8s.io", "extensions"]
+    resources  = ["ingresses", "ingresses/status"]
+    verbs      = ["get", "list", "watch"]
+  }
+  rule {
+    non_resource_urls = ["/metrics"]
+    verbs             = ["get"]
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}*/
 
 #### Data
 
@@ -477,33 +518,110 @@ resource "kubectl_manifest" "token" {
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
 }
-/*
-data "kubectl_file_documents" "oidcsecretmonitoring" {
-  content = templatefile("../../gateway/oidc.yml", {
-    client_id     = base64encode(var.client_id),
-    client_secret = base64encode(var.client_secret)
-  })
+
+
+##################
+# Install Nginx
+##################
+# Todo, this should be installed cluster wide
+resource "helm_release" "nginx" {
+  name             = "nginx-ingress"
+  namespace        = "nginx"
+  create_namespace = true
+  #repository       = "https://helm.nginx.com/stable"
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  #chart      = "nginx-ingress"
+  chart = "ingress-nginx"
+  set {
+    name = "controller.service.loadBalancerIP"
+    # needs to be regional, didn't work with global
+    value = var.staticip_address
+  }
+  set {
+    name  = "rbac.create"
+    value = true
+  }
 }
-resource "kubectl_manifest" "oidcsecretmonitoring" {
-  count              = 1
-  yaml_body          = element(data.kubectl_file_documents.oidcsecretmonitoring.documents, count.index)
-  override_namespace = kubernetes_namespace.monitoring.metadata.0.name
-  depends_on         = [helm_release.passwordgenerator]
-}*/
+
+
+
+
+##################
+# install cert manager
+##################
+# shoudl this be installed once per cluster?
+## I believe so, yes.  Then each organization
+# gets their own Issuer
+
+locals {
+  dns_service_account = "cert-manager"
+}
+resource "helm_release" "certmanager" {
+  name      = "cert-manager"
+  namespace = kubernetes_namespace.serviceplane.metadata.0.name
+
+  repository = "https://charts.jetstack.io"
+  chart      = "cert-manager"
+  values = [
+    "${templatefile("../../gateway/certmanager.yml", {
+      serviceaccountname     = local.dns_service_account
+      gcpserviceaccountemail = var.dns_svc_email
+    })}"
+  ]
+  /*set {
+    name  = "installCRDs"
+    value = true
+  }
+  set {
+    name  = "serviceAccount.name"
+    value = local.dns_service_account
+  }
+  
+  set {
+    name= "extraArgs"
+    value= "{--issuer-ambient-credentials=true, --cluster-issuer-ambient-credentials=true}"
+  }
+  set {
+    name  = "serviceAccount.annotations.iam\\.gke\\.io/gcp-service-account"
+    value = var.dns_svc_email
+  }*/
+  ## TODO is this even needed anymore? yes, if using dns in cert issuer
+}
+resource "google_service_account_iam_binding" "dns" {
+  service_account_id = var.dns_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${local.dns_service_account}]",
+  ]
+  depends_on = [
+    helm_release.certmanager //helm creates the service account for me
+  ]
+}
+
+data "kubectl_path_documents" "certs" {
+  pattern = "../../gateway/certs.yml"
+  vars = {
+    organization = var.organization
+    project      = var.project
+  }
+}
+resource "kubectl_manifest" "certs" {
+  count              = length(data.kubectl_path_documents.certs.documents) # 17
+  yaml_body          = element(data.kubectl_path_documents.certs.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on = [
+    kubernetes_namespace.serviceplane,
+    helm_release.certmanager
+  ]
+}
+
+
 
 ##################
 # Install Prometheus
 ##################
 
-data "kubectl_file_documents" "prometheusconfigs" {
-  content = file("../../prometheus/configs.yml")
-}
-resource "kubectl_manifest" "prometheusconfigs" {
-  count              = length(data.kubectl_file_documents.prometheusconfigs.documents)
-  yaml_body          = element(data.kubectl_file_documents.prometheusconfigs.documents, count.index)
-  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  # depends_on         = [helm_release.passwordgenerator]
-}
 resource "helm_release" "prometheus" {
   name       = "prometheus"
   namespace  = kubernetes_namespace.serviceplane.metadata.0.name
@@ -511,13 +629,16 @@ resource "helm_release" "prometheus" {
   chart      = "prometheus" # does not include prometheus operator
   values = [
     "${templatefile("../../prometheus/prometheus_helm_values.yml", {
-      organization = var.organization
+      organization          = var.organization
+      serviceplane          = kubernetes_namespace.serviceplane.metadata.0.name
+      sparkplane            = kubernetes_namespace.sparkplane.metadata.0.name
+      prometheusclusterrole = "notused" # kubernetes_cluster_role.prometheusclusterrole.metadata.0.name
     })}"
   ]
   depends_on = [
     kubernetes_namespace.serviceplane,
-    kubectl_manifest.prometheusconfigs,
-    kubectl_manifest.oidcsecret
+    kubernetes_namespace.sparkplane,
+    # kubectl_manifest.prometheusclusterrole
   ]
 }
 
@@ -533,8 +654,6 @@ resource "helm_release" "grafana" {
   ]
   depends_on = [
     kubernetes_namespace.serviceplane,
-    kubectl_manifest.prometheusconfigs,
-    kubectl_manifest.oidcsecret
   ]
 }
 
@@ -561,14 +680,6 @@ resource "kubectl_manifest" "sparkoperatorprometheus" {
 # Install Argo
 ##################
 
-/*
-data "kubectl_file_documents" "argoworkflow" {
-  content = templatefile("../../argo/argoinstall.yml", {
-    organization = var.organization
-  })
-}*/
-
-//testing to see if I need manual count or if I can do length()
 data "kubectl_path_documents" "argoworkflow" {
   pattern = "../../argo/argoinstall.yml"
   vars = {
@@ -579,18 +690,19 @@ resource "kubectl_manifest" "argoworkflow" {
   count              = length(data.kubectl_path_documents.argoworkflow.documents) # 17
   yaml_body          = element(data.kubectl_path_documents.argoworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret]
+  depends_on         = [kubernetes_namespace.serviceplane]
 }
 
-data "kubectl_file_documents" "argoevents" {
-  content = templatefile("../../argo/argoeventsinstall.yml", {
+
+data "kubectl_path_documents" "argoevents" {
+  pattern = "../../argo/argoeventsinstall.yml"
+  vars = {
     servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
-  })
+  }
 }
-
 resource "kubectl_manifest" "argoevents" {
-  count              = 9 # length(data.kubectl_file_documents.argoevents.documents)
-  yaml_body          = element(data.kubectl_file_documents.argoevents.documents, count.index)
+  count              = 9 # length(data.kubectl_path_documents.argoevents.documents)
+  yaml_body          = element(data.kubectl_path_documents.argoevents.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubectl_manifest.argoworkflow, kubernetes_namespace.serviceplane]
 }
@@ -606,8 +718,9 @@ resource "kubectl_manifest" "argoeventswebhook" {
   depends_on         = [kubectl_manifest.argoevents]
 }
 
-data "kubectl_file_documents" "pysparkeventworkflow" {
-  content = templatefile("../../argo/pysparkworkflow.yml", {
+data "kubectl_path_documents" "pysparkeventworkflow" {
+  pattern = "../../argo/pysparkworkflow.yml"
+  vars = {
     project                   = var.project,
     organization              = var.organization
     dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
@@ -621,49 +734,75 @@ data "kubectl_file_documents" "pysparkeventworkflow" {
     dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace                 = kubernetes_namespace.sparkplane.metadata.0.name
     monitoringnamespace       = kubernetes_namespace.serviceplane.metadata.0.name
-  })
+  }
 }
 
 resource "kubectl_manifest" "pysparkeventworkflow" {
-  count              = 1
-  yaml_body          = element(data.kubectl_file_documents.pysparkeventworkflow.documents, count.index)
+  count              = 1 # length(data.kubectl_path_documents.pysparkeventworkflow.documents)
+  yaml_body          = element(data.kubectl_path_documents.pysparkeventworkflow.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
 
+###################
+# install oauth2-proxy
+###################
+
+
+data "kubectl_path_documents" "oauth2" {
+  pattern = "../../gateway/oauth2.yml"
+  vars = {
+    organization = var.organization
+    # project      = var.project
+  }
+}
+resource "kubectl_manifest" "oauth2" {
+  count              = length(data.kubectl_path_documents.oauth2.documents)
+  yaml_body          = element(data.kubectl_path_documents.oauth2.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on = [
+    kubernetes_namespace.serviceplane, kubectl_manifest.oidcsecret
+  ]
+}
 
 ###################
-# Install servicemonitor for argo
+# install main ui
 ###################
-/*
-data "kubectl_file_documents" "argoprometheus" {
-  content = templatefile("../../prometheus/prometheus_argo.yml", {
-    servicenamespace    = kubernetes_namespace.serviceplane.metadata.0.name
-    monitoringnamespace = kubernetes_namespace.serviceplane.metadata.0.name
-  })
+
+data "kubectl_file_documents" "mainui" {
+  content = file("../../adminapp/deployment.yml")
 }
-resource "kubectl_manifest" "argoprometheus" {
-  count      = 2
-  yaml_body  = element(data.kubectl_file_documents.argoprometheus.documents, count.index)
-  depends_on = [helm_release.prometheus, kubectl_manifest.pysparkeventworkflow]
-}*/
+resource "kubectl_manifest" "mainui" {
+  count              = length(data.kubectl_file_documents.mainui.documents)
+  yaml_body          = element(data.kubectl_file_documents.mainui.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on = [
+    kubernetes_namespace.serviceplane
+  ]
+}
+
 
 
 ###############
-# install certs and gateway
+# install gateway
 ##############
 
-
-data "kubectl_file_documents" "ingress" {
-  content = templatefile("../../gateway/ingress.yml", {
+data "kubectl_path_documents" "ingress" {
+  pattern = "../../gateway/ingress.yml"
+  vars = {
     organization = var.organization
-  })
+    # project      = var.project
+  }
 }
 resource "kubectl_manifest" "ingress" {
-  count              = 3 #length(data.kubectl_file_documents.ingress.documents)
-  yaml_body          = element(data.kubectl_file_documents.ingress.documents, count.index)
+  count              = length(data.kubectl_path_documents.ingress.documents)
+  yaml_body          = element(data.kubectl_path_documents.ingress.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on = [
-    kubectl_manifest.argoeventswebhook
+    kubectl_manifest.argoeventswebhook,
+    helm_release.grafana,
+    helm_release.prometheus,
+    kubectl_manifest.oauth2
   ]
 }
+

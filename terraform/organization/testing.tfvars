@@ -1,4 +1,5 @@
 organization  = "testorg"
 namespace     = "mainspark"
 project       = "streamstatetest"
-staticip_name = "streamstate-global-ip"
+//staticip_name = "streamstate-global-ip"
+staticip_address = "146.148.69.175" # regional "34.98.95.203"

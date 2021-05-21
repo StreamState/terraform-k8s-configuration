@@ -7,7 +7,11 @@ variable "namespace" {
 variable "project" {
   type = string
 }
-variable "staticip_name" {
+
+/*variable "staticip_name" {
+  type = string
+}*/
+variable "staticip_address" {
   type = string
 }
 variable "registryprefix" {
@@ -88,9 +92,12 @@ module "kubernetes-config" {
   org_registry             = module.serviceaccounts.org_registry
   spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
-  staticipname             = var.staticip_name
-  client_id                = var.client_id
-  client_secret            = var.client_secret
+  //staticipname             = var.staticip_name
+  client_id        = var.client_id
+  client_secret    = var.client_secret
+  staticip_address = var.staticip_address
+  dns_svc_name     = module.serviceaccounts.dns_svc_name
+  dns_svc_email    = module.serviceaccounts.dns_svc_email
 }
 
 

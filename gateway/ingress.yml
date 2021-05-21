@@ -3,51 +3,76 @@ kind: Ingress
 metadata:
   name: streamstateingress
   annotations:
-    kubernetes.io/ingress.class: gce
-    kubernetes.io/ingress.global-static-ip-name: streamstate-global-ip
-    networking.gke.io/managed-certificates: certificate-name-new
-    networking.gke.io/v1beta1.FrontendConfig: ingress-security-config
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/auth-response-headers: Authorization
+    nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
+    nginx.ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      auth_request_set $name_upstream_1 $upstream_cookie__oauth2_proxy_1;
+      access_by_lua_block {
+        if ngx.var.name_upstream_1 ~= "" then
+          ngx.header["Set-Cookie"] = "_oauth2_proxy_1=" .. ngx.var.name_upstream_1 .. ngx.var.auth_cookie:match("(; .*)")
+        end
+      }
+    cert-manager.io/issuer: "letsencrypt-prod" # "letsencrypt-staging"
+    acme.cert-manager.io/http01-edit-in-place: "true"
   labels:
     app: streamstateingress
 spec:
- 
-  backend: # default
-    serviceName: argo-server
-    servicePort: 2747
+  tls: # < placing a host in the TLS config will indicate a certificate should be created
+  - hosts:
+    - ${organization}.streamstate.org
+    secretName: streamstate-internal-cert # < cert-manager will store the created certificate in this secret
   rules:
-    - http:
+    - host: testorg.streamstate.org
+      http:
         paths:
-        - path: /ui/*
+        - path: /ui(/|$)(.*)
           backend:
             serviceName: argo-server
-            servicePort: 2747
-        - path: /build/*
+            servicePort: 2746
+        - path: /build(/|$)(.*)
           backend:
             serviceName: argowebhook
             servicePort: 12000
-        - path: /monitoring/*
+        - path: /monitoring(/|$)(.*) 
           backend:
             serviceName: prometheus-server 
-            servicePort: 9091
-        - path: /grafana/*
+            servicePort: 80
+        - path: /grafana(/|$)(.*)
           backend:
             serviceName: grafana
-            servicePort: 3001
-
+            servicePort: 3000 
+        - path: /
+          backend:
+            serviceName: mainui 
+            servicePort: 80
 ---
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: certificate-name-new
-spec:
-  domains:
-   - ${organization}.streamstate.org 
 
----
-apiVersion: networking.gke.io/v1beta1
-kind: FrontendConfig
+apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
+kind: Ingress
 metadata:
-  name: ingress-security-config
+  name: oauth2-proxy
+  annotations:
+    kubernetes.io/ingress.class: nginx 
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    # no need to annotate with cert-manager.io/issuer: "letsencrypt-prod"
+    # since the secret is already generated.  Just re-use the secret
+  labels:
+    app: oauth2-proxy
 spec:
-  redirectToHttps:
-    enabled: true
+  tls: # < placing a host in the TLS config will indicate a certificate should be created
+  - hosts:
+    - ${organization}.streamstate.org
+    secretName: streamstate-internal-cert # < already generated
+  rules:
+    - host: ${organization}.streamstate.org
+      http:
+        paths:
+        - path: /oauth2
+          backend:
+            serviceName: oauth2-reverse-proxy
+            servicePort: 4180
+        

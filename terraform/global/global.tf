@@ -92,15 +92,15 @@ resource "google_artifact_registry_repository" "orgrepo" {
 }
 
 
-## need to manually reserve this at https://console.cloud.google.com/networking/addresses/add
-#locals {
-#  address = "35.227.205.126"
-#}
 resource "google_compute_global_address" "staticgkeip" {
   name = "streamstate-global-ip"
   #  address = local.address
 }
 
+resource "google_compute_address" "staticgkeregionalip" {
+  name = "streamstate-regional-ip"
+  #  address = local.address
+}
 
 resource "google_dns_managed_zone" "streamstate-zone" {
   name        = "streamstate-zone"
@@ -113,10 +113,14 @@ resource "google_dns_record_set" "streamstate-recordset-a" {
   managed_zone = google_dns_managed_zone.streamstate-zone.name
   name         = "*.streamstate.org." # apparently this is the actual domain name :|
   type         = "A"
-  rrdatas      = [google_compute_global_address.staticgkeip.address]
-  ttl          = 86400
+  rrdatas = [
+    #google_compute_global_address.staticgkeip.address,
+    google_compute_address.staticgkeregionalip.address
+  ]
+  ttl = 86400
   depends_on = [
-    google_compute_global_address.staticgkeip
+    #google_compute_global_address.staticgkeip,
+    google_compute_address.staticgkeregionalip
   ]
 }
 
@@ -129,6 +133,7 @@ resource "google_dns_record_set" "streamstate-recordset" {
   rrdatas      = ["0 issue \"letsencrypt.org\"", "0 issue \"pki.goog\""]
   ttl          = 86400
   depends_on = [
-    google_compute_global_address.staticgkeip
+    #google_compute_global_address.staticgkeip,
+    google_compute_address.staticgkeregionalip
   ]
 }
