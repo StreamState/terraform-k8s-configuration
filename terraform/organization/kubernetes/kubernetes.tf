@@ -721,9 +721,9 @@ resource "kubectl_manifest" "argoeventswebhook" {
 data "kubectl_path_documents" "pysparkeventworkflow" {
   pattern = "../../argo/pysparkworkflow.yml"
   vars = {
-    project                   = var.project,
+    project                   = var.project
     organization              = var.organization
-    dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
+    dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
     registry                  = var.org_registry
     registryprefix            = var.registryprefix
     runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
@@ -769,12 +769,17 @@ resource "kubectl_manifest" "oauth2" {
 # install main ui
 ###################
 
-data "kubectl_file_documents" "mainui" {
-  content = file("../../adminapp/deployment.yml")
+data "kubectl_path_documents" "mainui" {
+  pattern = "../../adminapp/deployment.yml"
+  vars = {
+    registryprefix = var.registryprefix
+    project        = var.project
+    namespace      = kubernetes_namespace.serviceplane.metadata.0.name
+  }
 }
 resource "kubectl_manifest" "mainui" {
-  count              = length(data.kubectl_file_documents.mainui.documents)
-  yaml_body          = element(data.kubectl_file_documents.mainui.documents, count.index)
+  count              = 5 # length(data.kubectl_path_documents.mainui.documents)
+  yaml_body          = element(data.kubectl_path_documents.mainui.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on = [
     kubernetes_namespace.serviceplane
@@ -802,7 +807,8 @@ resource "kubectl_manifest" "ingress" {
     kubectl_manifest.argoeventswebhook,
     helm_release.grafana,
     helm_release.prometheus,
-    kubectl_manifest.oauth2
+    kubectl_manifest.oauth2,
+    kubectl_manifest.mainui
   ]
 }
 
