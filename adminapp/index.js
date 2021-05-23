@@ -21,6 +21,10 @@ fastify.post('/rotate', (req, reply) => {
         })
 })
 
+fastify.get('/rotate', (req, reply) => {
+    return reply.send({ hello: "world" })
+})
+
 fastify.listen(process.env.PORT, '0.0.0.0').then((address) => {
     console.log(`Server running at ${address}`);
 })
@@ -32,7 +36,7 @@ const createNewSecret = () => {
     const b64secret = base64.encode(secretText)
     const namespace = process.env.NAMESPACE // "systemplane-testorg" //get from env variable
     const metadata = { name: "streamstate-webhook-token", namespace }
-    const data = { 'key': b64secret }
+    const data = { 'token': b64secret }
     let secret = new k8s.V1Secret() //(api_version, data, kind, metadata)
     secret.kind = "Secret"
     secret.apiVersion = 'v1'

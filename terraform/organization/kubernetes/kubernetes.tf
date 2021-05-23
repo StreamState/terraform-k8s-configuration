@@ -509,6 +509,7 @@ resource "kubectl_manifest" "oidcsecret" {
   depends_on         = [helm_release.passwordgenerator]
 }
 
+/*
 data "kubectl_file_documents" "token" {
   content = file("../../gateway/token.yml")
 }
@@ -517,7 +518,7 @@ resource "kubectl_manifest" "token" {
   yaml_body          = element(data.kubectl_file_documents.token.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
-}
+}*/
 
 
 ##################
@@ -532,15 +533,12 @@ resource "helm_release" "nginx" {
   repository = "https://kubernetes.github.io/ingress-nginx"
   #chart      = "nginx-ingress"
   chart = "ingress-nginx"
-  set {
-    name = "controller.service.loadBalancerIP"
-    # needs to be regional, didn't work with global
-    value = var.staticip_address
-  }
-  set {
-    name  = "rbac.create"
-    value = true
-  }
+
+  values = [
+    "${templatefile("../../gateway/nginx.yml", {
+      static_ip_address = var.staticip_address
+    })}"
+  ]
 }
 
 
@@ -568,23 +566,6 @@ resource "helm_release" "certmanager" {
       gcpserviceaccountemail = var.dns_svc_email
     })}"
   ]
-  /*set {
-    name  = "installCRDs"
-    value = true
-  }
-  set {
-    name  = "serviceAccount.name"
-    value = local.dns_service_account
-  }
-  
-  set {
-    name= "extraArgs"
-    value= "{--issuer-ambient-credentials=true, --cluster-issuer-ambient-credentials=true}"
-  }
-  set {
-    name  = "serviceAccount.annotations.iam\\.gke\\.io/gcp-service-account"
-    value = var.dns_svc_email
-  }*/
   ## TODO is this even needed anymore? yes, if using dns in cert issuer
 }
 resource "google_service_account_iam_binding" "dns" {

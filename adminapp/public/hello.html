@@ -1,7 +1,7 @@
 <html>
 <script type="text/javascript">
     function rotate() {
-        fetch('/rotate', { method: 'POST', credentials: "same-origin" })
+        fetch('/api/rotate', { method: 'POST', credentials: "same-origin" })
             .then(response => response.json())
             .then(data => alert(data.secret))
     }
