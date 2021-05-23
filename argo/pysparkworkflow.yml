@@ -107,22 +107,7 @@ spec:
                       template: build-docker-image
                       dependencies: [builddocker]
 
-                    - name: runservicemonitor
-                      template: servicemonitor
-                      arguments:
-                        parameters: 
-                          - name: appname
-                            value: "{{inputs.parameters.appname}}"
-                      dependencies: [deploydocker, runfirestoresetup]
-
-                    - name: runservice
-                      template: service
-                      arguments:
-                        parameters: 
-                         - name: appname
-                           value: "{{inputs.parameters.appname}}"
-                      dependencies: [deploydocker, runfirestoresetup]
-
+                   
                     - name: createfolder
                       template: gcsfolder
                       arguments:
@@ -154,7 +139,6 @@ spec:
                          - name: table
                            value: "{{inputs.parameters.table}}"
                       dependencies: [createfolder, deploydocker, runfirestoresetup]
-                    
 
                 - name: mypy
                   inputs:
@@ -286,58 +270,6 @@ spec:
                     source: | 
                       python3 entrypoint.py '{{inputs.parameters.appname}}' '{{inputs.parameters.table}}'
                   
-                - name: service
-                  serviceAccountName: ${sparksubmitserviceaccount}
-                  inputs:
-                    parameters:
-                      - name: appname
-                  resource:
-                    action: apply
-                    manifest: |
-                      apiVersion: v1
-                      kind: Service
-                      metadata:
-                        name: spark-svc-{{inputs.parameters.appname}}
-                        namespace: ${namespace}
-                        labels:
-                          app: {{inputs.parameters.appname}}
-                      spec:
-                        ports:
-                          - name: metrics-{{inputs.parameters.appname}}
-                            port: 8090
-                            targetPort: 8090
-                            protocol: TCP
-                        selector:
-                          sparkoperator.k8s.io/app-name: {{inputs.parameters.appname}}
-
-                - name: servicemonitor
-                  serviceAccountName: ${sparksubmitserviceaccount}
-                  inputs:
-                    parameters:
-                      - name: appname
-                  resource:
-                    action: apply
-                    successCondition: status.succeeded > 0
-                    failureCondition: status.failed > 1
-                    manifest: |
-                      apiVersion: monitoring.coreos.com/v1
-                      kind: ServiceMonitor
-                      metadata:
-                        name: servicemonitor-{{inputs.parameters.appname}}
-                        namespace: ${monitoringnamespace}
-                        labels:
-                          release: prometheus
-                      spec:
-                        namespaceSelector:
-                          matchNames: 
-                            - ${namespace}
-                        selector:
-                          matchLabels:
-                            app: {{inputs.parameters.appname}}
-                        endpoints:
-                        - port: metrics-{{inputs.parameters.appname}}
-
-
                   #todo, loop this for each topic.  see, eg, https://github.com/argoproj/argo-workflows/blob/master/examples/loops.yaml
                 - name: sparksubmit
                   serviceAccountName: ${sparksubmitserviceaccount}

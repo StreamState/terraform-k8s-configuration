@@ -1,4 +1,4 @@
-apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
+apiVersion: networking.k8s.io/v1 #beta1 # extensions/v1beta1
 kind: Ingress
 metadata:
   name: streamstateingress
@@ -16,7 +16,7 @@ metadata:
           ngx.header["Set-Cookie"] = "_oauth2_proxy_1=" .. ngx.var.name_upstream_1 .. ngx.var.auth_cookie:match("(; .*)")
         end
       }
-    cert-manager.io/issuer: "letsencrypt-prod" # "letsencrypt-staging"
+    cert-manager.io/issuer: "letsencrypt-staging" # "letsencrypt-staging"
     acme.cert-manager.io/http01-edit-in-place: "true"
   labels:
     app: streamstateingress
@@ -26,32 +26,149 @@ spec:
     - ${organization}.streamstate.org
     secretName: streamstate-internal-cert # < cert-manager will store the created certificate in this secret
   rules:
-    - host: testorg.streamstate.org
+    - host: ${organization}.streamstate.org
       http:
         paths:
         - path: /ui(/|$)(.*)
+          pathType: Prefix
           backend:
-            serviceName: argo-server
-            servicePort: 2746
-        - path: /build(/|$)(.*)
-          backend:
-            serviceName: argowebhook
-            servicePort: 12000
+            service:
+              name: argo-server
+              port: 
+                number: 2746
         - path: /monitoring(/|$)(.*) 
+          pathType: Prefix
           backend:
-            serviceName: prometheus-server 
-            servicePort: 80
+            service:
+              name: prometheus-server 
+              port: 
+                number: 80
         - path: /grafana(/|$)(.*)
+          pathType: Prefix
           backend:
-            serviceName: grafana
-            servicePort: 3000 
+            service:
+              name: grafana
+              port: 
+                number: 3000
+        - path: /api(/|$)(.*) # post to /api/rotate, for example
+          pathType: Prefix
+          backend:
+            service:
+              name: mainui
+              port: 
+                number: 80
+---
+apiVersion: networking.k8s.io/v1 
+kind: Ingress
+metadata:
+  name: streamstateingressargo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+  labels:
+    app: streamstateingressargo
+spec:
+  tls: 
+  - hosts:
+    - ${organization}.streamstate.org
+    secretName: streamstate-internal-cert # < 
+  rules:
+    - host: ${organization}.streamstate.org
+      http:
+        paths:
+        - path: /build/container
+          pathType: Prefix
+          backend:
+            service:
+              name: argowebhook
+              port: 
+                number: 12000
+# ---
+# apiVersion: networking.k8s.io/v1 
+# kind: Ingress
+# metadata:
+#   name: streamstateingresssecret
+#   annotations:
+#     kubernetes.io/ingress.class: nginx
+#     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#     nginx.ingress.kubernetes.io/auth-response-headers: Authorization
+#     nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
+#     nginx.ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
+#     nginx.ingress.kubernetes.io/configuration-snippet: |
+#       auth_request_set $name_upstream_1 $upstream_cookie__oauth2_proxy_1;
+#       access_by_lua_block {
+#         if ngx.var.name_upstream_1 ~= "" then
+#           ngx.header["Set-Cookie"] = "_oauth2_proxy_1=" .. ngx.var.name_upstream_1 .. ngx.var.auth_cookie:match("(; .*)")
+#         end
+#       }
+#     acme.cert-manager.io/http01-edit-in-place: "true"
+#   labels:
+#     app: streamstateingresssecret
+# spec:
+#   tls: 
+#   - hosts:
+#     - ${organization}.streamstate.org
+#     secretName: streamstate-internal-cert # < 
+#   rules:
+#     - host: ${organization}.streamstate.org
+#       http:
+#         paths:
+#         - path: /rotate
+#           pathType: Prefix
+#           backend:
+#             service:
+#               name: mainui
+#               port: 
+#                 number: 80
+---
+apiVersion: networking.k8s.io/v1 
+kind: Ingress
+metadata:
+  name: streamstateingressstatic
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/auth-response-headers: Authorization
+    nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
+    nginx.ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_cache static-cache;
+      proxy_cache_valid 404 10m;
+      proxy_cache_use_stale error timeout updating http_404 http_500 http_502 http_503 http_504;
+      auth_request_set $name_upstream_1 $upstream_cookie__oauth2_proxy_1;
+      proxy_cache_bypass $http_x_purge;
+      add_header X-Cache-Status $upstream_cache_status;
+      access_by_lua_block {
+        if ngx.var.name_upstream_1 ~= "" then
+          ngx.header["Set-Cookie"] = "_oauth2_proxy_1=" .. ngx.var.name_upstream_1 .. ngx.var.auth_cookie:match("(; .*)")
+        end
+      }
+    acme.cert-manager.io/http01-edit-in-place: "true"
+  labels:
+    app: streamstateingressstatic
+spec:
+  tls: # < placing a host in the TLS config will indicate a certificate should be created
+  - hosts:
+    - ${organization}.streamstate.org
+    secretName: streamstate-internal-cert # < already generated
+  rules:
+    - host: ${organization}.streamstate.org
+      http:
+        paths:
         - path: /
+          pathType: Prefix
           backend:
-            serviceName: mainui 
-            servicePort: 80
+            service:
+              name: mainui
+              port: 
+                number: 80
+
 ---
 
-apiVersion: networking.k8s.io/v1beta1 # extensions/v1beta1
+apiVersion: networking.k8s.io/v1 #beta1 # extensions/v1beta1
 kind: Ingress
 metadata:
   name: oauth2-proxy
@@ -72,7 +189,10 @@ spec:
       http:
         paths:
         - path: /oauth2
+          pathType: Prefix
           backend:
-            serviceName: oauth2-reverse-proxy
-            servicePort: 4180
+            service:
+              name: oauth2-reverse-proxy
+              port:
+                number: 4180
         

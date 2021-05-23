@@ -509,6 +509,7 @@ resource "kubectl_manifest" "oidcsecret" {
   depends_on         = [helm_release.passwordgenerator]
 }
 
+/*
 data "kubectl_file_documents" "token" {
   content = file("../../gateway/token.yml")
 }
@@ -517,7 +518,7 @@ resource "kubectl_manifest" "token" {
   yaml_body          = element(data.kubectl_file_documents.token.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
-}
+}*/
 
 
 ##################
@@ -532,15 +533,12 @@ resource "helm_release" "nginx" {
   repository = "https://kubernetes.github.io/ingress-nginx"
   #chart      = "nginx-ingress"
   chart = "ingress-nginx"
-  set {
-    name = "controller.service.loadBalancerIP"
-    # needs to be regional, didn't work with global
-    value = var.staticip_address
-  }
-  set {
-    name  = "rbac.create"
-    value = true
-  }
+
+  values = [
+    "${templatefile("../../gateway/nginx.yml", {
+      static_ip_address = var.staticip_address
+    })}"
+  ]
 }
 
 
@@ -568,23 +566,6 @@ resource "helm_release" "certmanager" {
       gcpserviceaccountemail = var.dns_svc_email
     })}"
   ]
-  /*set {
-    name  = "installCRDs"
-    value = true
-  }
-  set {
-    name  = "serviceAccount.name"
-    value = local.dns_service_account
-  }
-  
-  set {
-    name= "extraArgs"
-    value= "{--issuer-ambient-credentials=true, --cluster-issuer-ambient-credentials=true}"
-  }
-  set {
-    name  = "serviceAccount.annotations.iam\\.gke\\.io/gcp-service-account"
-    value = var.dns_svc_email
-  }*/
   ## TODO is this even needed anymore? yes, if using dns in cert issuer
 }
 resource "google_service_account_iam_binding" "dns" {
@@ -721,9 +702,9 @@ resource "kubectl_manifest" "argoeventswebhook" {
 data "kubectl_path_documents" "pysparkeventworkflow" {
   pattern = "../../argo/pysparkworkflow.yml"
   vars = {
-    project                   = var.project,
+    project                   = var.project
     organization              = var.organization
-    dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name,
+    dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
     registry                  = var.org_registry
     registryprefix            = var.registryprefix
     runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
@@ -769,12 +750,17 @@ resource "kubectl_manifest" "oauth2" {
 # install main ui
 ###################
 
-data "kubectl_file_documents" "mainui" {
-  content = file("../../adminapp/deployment.yml")
+data "kubectl_path_documents" "mainui" {
+  pattern = "../../adminapp/deployment.yml"
+  vars = {
+    registryprefix = var.registryprefix
+    project        = var.project
+    namespace      = kubernetes_namespace.serviceplane.metadata.0.name
+  }
 }
 resource "kubectl_manifest" "mainui" {
-  count              = length(data.kubectl_file_documents.mainui.documents)
-  yaml_body          = element(data.kubectl_file_documents.mainui.documents, count.index)
+  count              = 5 # length(data.kubectl_path_documents.mainui.documents)
+  yaml_body          = element(data.kubectl_path_documents.mainui.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on = [
     kubernetes_namespace.serviceplane
@@ -802,7 +788,8 @@ resource "kubectl_manifest" "ingress" {
     kubectl_manifest.argoeventswebhook,
     helm_release.grafana,
     helm_release.prometheus,
-    kubectl_manifest.oauth2
+    kubectl_manifest.oauth2,
+    kubectl_manifest.mainui
   ]
 }
 

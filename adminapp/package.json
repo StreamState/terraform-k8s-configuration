@@ -10,7 +10,9 @@
   "license": "ISC",
   "dependencies": {
     "@kubernetes/client-node": "^0.14.3",
+    "base-64": "^1.0.0",
     "fastify": "^3.15.1",
-    "fastify-static": "^4.2.2"
+    "fastify-static": "^4.2.2",
+    "uuid": "^3.4.0"
   }
 }
