@@ -98,6 +98,8 @@ module "kubernetes-config" {
   staticip_address = var.staticip_address
   dns_svc_name     = module.serviceaccounts.dns_svc_name
   dns_svc_email    = module.serviceaccounts.dns_svc_email
+  argo_svc_name    = module.serviceaccounts.argo_svc_name
+  argo_svc_email   = module.serviceaccounts.argo_svc_email
 }
 
 

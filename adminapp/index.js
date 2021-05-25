@@ -34,10 +34,10 @@ fastify.get('/', (req, reply) => {
 const createNewSecret = () => {
     const secretText = uuidv4()
     const b64secret = base64.encode(secretText)
-    const namespace = process.env.NAMESPACE // "systemplane-testorg" //get from env variable
+    const namespace = process.env.NAMESPACE
     const metadata = { name: "streamstate-webhook-token", namespace }
     const data = { 'token': b64secret }
-    let secret = new k8s.V1Secret() //(api_version, data, kind, metadata)
+    let secret = new k8s.V1Secret()
     secret.kind = "Secret"
     secret.apiVersion = 'v1'
     secret.metadata = metadata

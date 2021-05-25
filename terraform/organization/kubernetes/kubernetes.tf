@@ -113,9 +113,9 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
 # this works with google service account binding to connect kubernetes and google accounts
-resource "kubernetes_service_account" "monitoring" {
+resource "kubernetes_service_account" "spark-history" {
   metadata {
-    name      = "monitoring"
+    name      = "spark-history"
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
     annotations = {
       "iam.gke.io/gcp-service-account" = var.spark_history_svc_email
@@ -126,15 +126,15 @@ resource "kubernetes_service_account" "monitoring" {
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
 # link service account and kubernetes service account
-resource "google_service_account_iam_binding" "monitoring" {
+resource "google_service_account_iam_binding" "spark-history" {
   service_account_id = var.spark_history_svc_name
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${kubernetes_service_account.monitoring.metadata.0.name}]",
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${kubernetes_service_account.spark-history.metadata.0.name}]",
   ]
   depends_on = [
-    kubernetes_service_account.monitoring
+    kubernetes_service_account.spark-history
   ]
 }
 
@@ -250,6 +250,7 @@ resource "google_service_account_iam_binding" "spark" {
 }
 
 
+
 ## needed for operating spark resources
 resource "kubernetes_role" "sparkrules" {
   metadata {
@@ -282,6 +283,33 @@ resource "kubernetes_role_binding" "sparkrules" {
   depends_on = [kubernetes_namespace.sparkplane]
 }
 
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
+resource "kubernetes_service_account" "argo" {
+  metadata {
+    name      = "argo-new" # TODO, change this to argo once we move to helm chart for argo
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.argo_svc_email
+    }
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "argo" {
+  service_account_id = var.argo_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${kubernetes_service_account.argo.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_namespace.serviceplane
+  ]
+}
 
 
 
@@ -475,6 +503,74 @@ resource "helm_release" "spark" {
   depends_on = [local_file.kubeconfig]
 }
 
+##################
+# Install Spark History
+##################
+resource "helm_release" "sparkhistory" { # todo, override "loadbalancer" 
+  name      = "spark-history-server"
+  namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  #create_namespace = true
+  repository = "https://charts.helm.sh/stable"
+  chart      = "spark-history-server"
+  values = [
+    "${templatefile("../../monitoring/sparkhistory.yml", {
+      project               = var.project
+      sparkhistoryname      = kubernetes_service_account.spark-history.metadata.0.name
+      sparkhistorybucketurl = var.spark_history_bucket_url
+      organization          = var.organization
+    })}"
+  ]
+
+  # set {
+  #   name  = "serviceAccount.create"
+  #   value = "false"
+  # }
+  # set {
+  #   name  = "serviceAccount.name"
+  #   value = kubernetes_service_account.spark-history.metadata.0.name
+  # }
+  # set {
+  #   name  = "gcs.logDirectory"
+  #   value = var.spark_history_bucket_url
+  # }
+  # set {
+  #   name  = "gcs.enableGCS" # I added permission to the spark history bucket to the kubernetes cluster service account
+  #   value = "true"
+  # }
+  # set {
+  #   name  = "gcs.enableIAM"
+  #   value = "true"
+  # }
+  # set {
+  #   name  = "pvc.enablePVC"
+  #   value = "false"
+  # }
+  # set {
+  #   name  = "nfs.enableExampleNFS"
+  #   value = "false"
+  # }
+  # set {
+  #   name  = "image.repository"
+  #   value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkhistory"
+  # }
+  # set {
+  #   name  = "image.tag"
+  #   value = "v0.2.0"
+  # }
+  # set {
+  #   name  = "image.pullPolicy"
+  #   value = "IfNotPresent"
+  # }
+  # set {
+  #   name  = "service.type"
+  #   value = "NodePort"
+  # }
+  # set {
+  #   name  = "environment.SPARK_PUBLIC_DNS"
+  #   value = "https://${var.organization}.streamstate.org/sparkhistory/"
+  # }
+  depends_on = [kubernetes_service_account.spark-history]
+}
 
 ##################
 # Install Password Generator
@@ -509,7 +605,7 @@ resource "kubectl_manifest" "oidcsecret" {
   depends_on         = [helm_release.passwordgenerator]
 }
 
-/*
+
 data "kubectl_file_documents" "token" {
   content = file("../../gateway/token.yml")
 }
@@ -518,7 +614,7 @@ resource "kubectl_manifest" "token" {
   yaml_body          = element(data.kubectl_file_documents.token.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
-}*/
+}
 
 
 ##################
@@ -603,13 +699,14 @@ resource "kubectl_manifest" "certs" {
 # Install Prometheus
 ##################
 
+## waiting on https://github.com/prometheus-community/helm-charts/issues/969
 resource "helm_release" "prometheus" {
   name       = "prometheus"
   namespace  = kubernetes_namespace.serviceplane.metadata.0.name
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "prometheus" # does not include prometheus operator
   values = [
-    "${templatefile("../../prometheus/prometheus_helm_values.yml", {
+    "${templatefile("../../monitoring/prometheus_helm_values.yml", {
       organization          = var.organization
       serviceplane          = kubernetes_namespace.serviceplane.metadata.0.name
       sparkplane            = kubernetes_namespace.sparkplane.metadata.0.name
@@ -627,9 +724,10 @@ resource "helm_release" "grafana" {
   name       = "grafana"
   namespace  = kubernetes_namespace.serviceplane.metadata.0.name
   repository = "https://grafana.github.io/helm-charts"
-  chart      = "grafana" # does not include prometheus operator
+  chart      = "grafana"
+  version    = "6.1.16" # see https://github.com/grafana/helm-charts/issues/200#issuecomment-775572514
   values = [
-    "${templatefile("../../prometheus/grafana_helm_values.yml", {
+    "${templatefile("../../monitoring/grafana_helm_values.yml", {
       organization = var.organization
     })}"
   ]
@@ -715,6 +813,8 @@ data "kubectl_path_documents" "pysparkeventworkflow" {
     dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace                 = kubernetes_namespace.sparkplane.metadata.0.name
     monitoringnamespace       = kubernetes_namespace.serviceplane.metadata.0.name
+    spark_history_bucket_url  = var.spark_history_bucket_url
+    spark_storage_bucket_url  = var.spark_storage_bucket_url
   }
 }
 

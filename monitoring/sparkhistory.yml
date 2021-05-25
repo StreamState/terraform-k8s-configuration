@@ -1,0 +1,22 @@
+serviceAccount:
+  create: false
+  name: ${sparkhistoryname}
+gcs:
+  logDirectory: ${sparkhistorybucketurl}
+  enableGCS: true
+  enableIAM: true
+pvc:
+  enablePVC: false
+
+nfs:
+  enableExampleNFS: false
+
+image:
+  repository: us-central1-docker.pkg.dev/${project}/${project}/sparkhistory
+  tag: v0.2.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+environment:
+  SPARK_PUBLIC_DNS: https://${organization}.streamstate.org/sparkhistory/

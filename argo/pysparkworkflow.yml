@@ -190,10 +190,6 @@ spec:
                         template:
                           spec:
                             serviceAccountName: ${sparkserviceaccount}
-                            #volumes:
-                            #- name: secrets
-                            #  secret:
-                            #    secretName: spark-secret
                             containers:
                             - name: gcsfolder
                               image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
@@ -205,10 +201,6 @@ spec:
                                 "streamstate-sparkstorage-${organization}", 
                                 '{{inputs.parameters.inputs}}'
                               ]
-                              #volumeMounts:
-                              #- name: secrets
-                              #  mountPath: "/mnt/secrets"
-                              #  readOnly: true
                             restartPolicy: Never
                         # backoffLimit: 4
                 
@@ -295,7 +287,7 @@ spec:
                     # of the resource (not just labels). Multiple AND conditions can be represented by comma
                     # delimited expressions.
                     # For more details: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-                    successCondition: status.succeeded > 0
+                    successCondition: "ok" # will this work? :)  status.succeeded > 0
                     failureCondition: status.failed > 1
                     manifest: |               #put your kubernetes spec here
                       apiVersion: "sparkoperator.k8s.io/v1beta2"
@@ -308,6 +300,8 @@ spec:
                           spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
                           spark.jars.repositories: "https://packages.confluent.io/maven"
                           spark.jars.ivy: "/tmp/ivy"
+                          spark.eventLog.enabled: "true" # spark history
+                          spark.eventLog.dir: ${spark_history_bucket_url}
                         type: Python
                         pythonVersion: "3"
                         mode: cluster
@@ -324,7 +318,7 @@ spec:
                         
                         arguments:
                           - '{{inputs.parameters.appname}}'
-                          - 'gs://streamstate-sparkstorage-${organization}'
+                          - '${spark_storage_bucket_url}'
                           - '{{inputs.parameters.table}}'
                           - '{{inputs.parameters.outputs}}'
                           - '{{inputs.parameters.fileinfo}}'

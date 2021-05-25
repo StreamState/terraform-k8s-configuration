@@ -41,3 +41,10 @@ output "dns_svc_name" {
 output "dns_svc_email" {
   value = google_service_account.dns.email
 }
+
+output "argo_svc_name" {
+  value = google_service_account.argo.name
+}
+output "argo_svc_email" {
+  value = google_service_account.argo.email
+}

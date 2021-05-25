@@ -29,6 +29,14 @@ resource "google_storage_bucket" "sparkhistory" {
   uniform_bucket_level_access = true
 }
 
+# organization specific argo logs
+resource "google_storage_bucket" "argologs" {
+  project                     = var.project
+  name                        = "streamstate-argologs-${var.organization}"
+  location                    = "US"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+}
 
 ##################
 # Service accounts in google, to be mapped to kuberenetes secrets
@@ -51,6 +59,13 @@ resource "google_service_account" "spark-gcs" {
   account_id   = "spark-gcs-${var.organization}"
   display_name = "Spark Service account ${var.organization}"
 }
+
+resource "google_service_account" "argo" {
+  project      = var.project
+  account_id   = "argo-${var.organization}"
+  display_name = "Argo service account for ${var.organization}"
+}
+
 ## needed for the initial write to firestore from argo events
 ## run in argo-events namespace instead of sparkmain
 resource "google_service_account" "firestore" {
@@ -112,6 +127,12 @@ resource "google_storage_bucket_iam_member" "sparkhistoryadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
+resource "google_storage_bucket_iam_member" "argologadmin" {
+  bucket = google_storage_bucket.argologs.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.argo.email}"
+}
+
 # artifact read access to cluster service account to read docker containers
 resource "google_artifact_registry_repository_iam_member" "clusterread" {
   provider   = google-beta
@@ -141,20 +162,6 @@ resource "google_storage_bucket_iam_member" "sparkhistoryread" {
 }
 
 
-/*
-resource "random_id" "sa" {
-  //keepers = {
-  # Generate a new id each time we switch to a new AMI id
-  // ami_id = "${var.ami_id}"
-  //}
-  //prefix="dns-solver-${var.organization}"
-  byte_length = 8
-}
-resource "random_string" "sa" {
-  length  = 16
-  special = false
-  upper   = false
-}*/
 //TODO should this be once per cluster?? (yes)
 //need to create "random" id on each service account creation
 // see https://github.com/jetstack/cert-manager/issues/2069#issuecomment-531428320
@@ -164,23 +171,6 @@ resource "google_service_account" "dns" {
   display_name = "DNS solver for ${var.organization}"
 }
 
-/*
-resource "google_project_iam_custom_role" "minimaldnsrole" {
-  role_id     = "dnsrole"
-  title       = "access cloud dns"
-  description = "Provides minimal access to use cloud dns"
-  permissions = [
-    "dns.changes.create",
-    "dns.changes.get",
-    "dns.changes.list",
-    "dns.resourceRecordSets.create",
-    "dns.resourceRecordSets.delete",
-    "dns.resourceRecordSets.get",
-    "dns.resourceRecordSets.list",
-    "dns.managedZones.list",
-  ]
-  project = var.project
-}*/
 ## TODO, just a test to see if minimal access is incorrect
 ## ugh, it is...I needed admin role for it to work...
 resource "google_project_iam_member" "minimaldnsrole" {
