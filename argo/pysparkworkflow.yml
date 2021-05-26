@@ -302,6 +302,7 @@ spec:
                           spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
                           spark.eventLog.dir: ${spark_history_bucket_url}
+                          spark.sql.streaming.metricsEnabled: "true"
                         type: Python
                         pythonVersion: "3"
                         mode: cluster

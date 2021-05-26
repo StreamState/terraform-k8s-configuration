@@ -18,5 +18,6 @@ image:
 
 service:
   type: NodePort
+  
 environment:
   SPARK_PUBLIC_DNS: https://${organization}.streamstate.org/sparkhistory/

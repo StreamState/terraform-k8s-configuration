@@ -720,12 +720,13 @@ resource "helm_release" "prometheus" {
   ]
 }
 
+# still having issues with preinstalled charts, see https://github.com/grafana/helm-charts/issues/200#issuecomment-775572514
 resource "helm_release" "grafana" {
   name       = "grafana"
   namespace  = kubernetes_namespace.serviceplane.metadata.0.name
   repository = "https://grafana.github.io/helm-charts"
   chart      = "grafana"
-  version    = "6.1.16" # see https://github.com/grafana/helm-charts/issues/200#issuecomment-775572514
+  version    = "6.9.1"
   values = [
     "${templatefile("../../monitoring/grafana_helm_values.yml", {
       organization = var.organization
