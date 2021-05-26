@@ -1,0 +1,50 @@
+service:
+  type: NodePort
+  port: 3000
+  targetPort: 3000
+
+# https://grafana.com/tutorials/run-grafana-behind-a-proxy/
+# gateway/ingress.yml
+grafana.ini:
+  auth.anonymous:
+      enabled: true
+  server:
+    server:
+    domain: ${organization}.streamstate.org 
+    root_url: https://${organization}.streamstate.org/grafana/
+    serve_from_sub_path: true
+datasources: 
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-server.serviceplane-${organization}.svc.cluster.local # :9090
+      access: proxy
+      isDefault: true
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder:
+        type: file
+        disableDeletion: true
+        editable: false
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+dashboards:
+  default:
+    argo:
+      gnetId: 13927
+      revision: 2
+      datasource: Prometheus
+    spark:
+      gnetId: 7890
+      revision: 4
+      datasource: Prometheus
+rbac:
+  namespaced: true

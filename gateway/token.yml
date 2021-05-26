@@ -1,0 +1,10 @@
+# this is a "dummy" token to give streamstate-webhook-token
+# something to do on initial startup.  otherwise argowebhook
+# won't install properly
+apiVersion: v1
+kind: Secret
+metadata:
+  name: streamstate-webhook-token
+  annotations:
+    secret-generator.v1.mittwald.de/autogenerate: token
+data: 

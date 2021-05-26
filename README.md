@@ -64,12 +64,6 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 
 Unfortunately, this requires root access, but just for spark history which has very minimal permissions
 
-# argo helps
-
-To find webui url:
-* kubectl port-forward svc/argo-server -n argo-events 2746:2746
-
-Or, simply go to https://myzone.streamstate.org.
 
 # deploy workflow
 
@@ -78,6 +72,10 @@ Get token from mainui, then
 
 * curl  -H "Content-Type: application/json" -H "Authorization: Bearer [token]" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container
 
+
+
+
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer 61070371-03b5-47ff-a88a-5f009844552a" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
 
 
 # upload json to bucket
@@ -138,3 +136,21 @@ workload-identity-test
 gcloud auth list
 
 kubectl get certificaterequest -n serviceplane-testorg
+
+
+curl -skf \
+--connect-timeout 60 \
+--max-time 60 \
+-H "Accept: application/json" \
+-H "Content-Type: application/json;charset=UTF-8" \
+  "https://grafana.com/api/dashboards/7890/revisions/4/download" | sed '/-- .* --/! s/"datasource":.*,/"datasource": "Prometheus",/g'\
+> "spark.json"
+
+
+curl -skf \
+--connect-timeout 60 \
+--max-time 60 \
+-H "Accept: application/json" \
+-H "Content-Type: application/json;charset=UTF-8" \
+  "https://grafana.com/api/dashboards/13927/revisions/2/download" | sed '/-- .* --/! s/"datasource":.*,/"datasource": "Prometheus",/g'\
+> "argo.json"
