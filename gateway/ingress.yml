@@ -33,7 +33,7 @@ spec:
           pathType: Prefix
           backend:
             service:
-              name: argo-server
+              name: argoworkflow-argo-workflows-server
               port: 
                 number: 2746
         - path: /monitoring(/|$)(.*) 
@@ -57,7 +57,7 @@ spec:
               name: mainui
               port: 
                 number: 80
-        - path: /
+        - path: /sparkhistory
           pathType: Prefix
           backend:
             service:

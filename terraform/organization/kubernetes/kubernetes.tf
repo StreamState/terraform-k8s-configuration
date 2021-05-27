@@ -288,7 +288,7 @@ resource "kubernetes_role_binding" "sparkrules" {
 # this works with google service account binding to connect kubernetes and google accounts
 resource "kubernetes_service_account" "argo" {
   metadata {
-    name      = "argo-new" # TODO, change this to argo once we move to helm chart for argo
+    name      = "argo-workflow"
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
     annotations = {
       "iam.gke.io/gcp-service-account" = var.argo_svc_email
@@ -318,13 +318,14 @@ resource "google_service_account_iam_binding" "argo" {
 ##################
 
 # this will have worklow permissions 
+/*
 resource "kubernetes_service_account" "argoevents-runsa" {
   metadata {
     name      = "argoevents-runsa"
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   depends_on = [kubernetes_namespace.serviceplane]
-}
+}*/
 
 resource "kubernetes_role_binding" "argoevents-runrb" {
   metadata {
@@ -338,7 +339,7 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    name      = kubernetes_service_account.argo.metadata.0.name
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   depends_on = [kubernetes_namespace.serviceplane]
@@ -726,10 +727,11 @@ resource "helm_release" "grafana" {
   namespace  = kubernetes_namespace.serviceplane.metadata.0.name
   repository = "https://grafana.github.io/helm-charts"
   chart      = "grafana"
-  version    = "6.9.1"
+  # version    = "6.9.1"
   values = [
     "${templatefile("../../monitoring/grafana_helm_values.yml", {
-      organization = var.organization
+      organization  = var.organization
+      DS_PROMETHEUS = "Prometheus"
     })}"
   ]
   depends_on = [
@@ -760,32 +762,40 @@ resource "kubectl_manifest" "sparkoperatorprometheus" {
 # Install Argo
 ##################
 
-data "kubectl_path_documents" "argoworkflow" {
-  pattern = "../../argo/argoinstall.yml"
-  vars = {
-    organization = var.organization
-  }
-}
-resource "kubectl_manifest" "argoworkflow" {
-  count              = length(data.kubectl_path_documents.argoworkflow.documents) # 17
-  yaml_body          = element(data.kubectl_path_documents.argoworkflow.documents, count.index)
-  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [kubernetes_namespace.serviceplane]
+resource "helm_release" "argoworkflow" {
+  name       = "argoworkflow"
+  namespace  = kubernetes_namespace.serviceplane.metadata.0.name
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-workflows"
+  values = [
+    "${templatefile("../../argo/argoworkflow_helm_values.yml", {
+      organization   = var.organization
+      serviceaccount = kubernetes_service_account.argo.metadata.0.name # does this matter? or is it overwritten when using it in the pysparkworkflow.yml?
+      namespace      = kubernetes_namespace.serviceplane.metadata.0.name
+    })}"
+  ]
+  depends_on = [
+    kubernetes_namespace.serviceplane,
+  ]
 }
 
 
-data "kubectl_path_documents" "argoevents" {
-  pattern = "../../argo/argoeventsinstall.yml"
-  vars = {
-    servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
-  }
+resource "helm_release" "argoevents" {
+  name       = "argoevents"
+  namespace  = kubernetes_namespace.serviceplane.metadata.0.name
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-events"
+  values = [
+    "${templatefile("../../argo/argoevents_helm_values.yml", {
+      namespace = kubernetes_namespace.serviceplane.metadata.0.name
+    })}"
+  ]
+  depends_on = [
+    kubernetes_namespace.serviceplane,
+    helm_release.argoworkflow
+  ]
 }
-resource "kubectl_manifest" "argoevents" {
-  count              = 9 # length(data.kubectl_path_documents.argoevents.documents)
-  yaml_body          = element(data.kubectl_path_documents.argoevents.documents, count.index)
-  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [kubectl_manifest.argoworkflow, kubernetes_namespace.serviceplane]
-}
+
 
 data "kubectl_file_documents" "argoeventswebhook" {
   content = file("../../argo/webhookinstall.yml")
@@ -795,7 +805,7 @@ resource "kubectl_manifest" "argoeventswebhook" {
   count              = length(data.kubectl_file_documents.argoeventswebhook.documents)
   yaml_body          = element(data.kubectl_file_documents.argoeventswebhook.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [kubectl_manifest.argoevents]
+  depends_on         = [helm_release.argoevents]
 }
 
 data "kubectl_path_documents" "pysparkeventworkflow" {
@@ -806,7 +816,7 @@ data "kubectl_path_documents" "pysparkeventworkflow" {
     dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
     registry                  = var.org_registry
     registryprefix            = var.registryprefix
-    runserviceaccount         = kubernetes_service_account.argoevents-runsa.metadata.0.name
+    runserviceaccount         = kubernetes_service_account.argo.metadata.0.name
     sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
     sparkserviceaccount       = kubernetes_service_account.spark.metadata.0.name
     firestoreserviceaccount   = kubernetes_service_account.firestore.metadata.0.name
