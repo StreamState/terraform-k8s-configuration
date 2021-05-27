@@ -69,6 +69,6 @@ spec:
   - name: web
     port: 4180
     targetPort: 4180
-  type: NodePort 
+  type: ClusterIP 
   selector:
     app: oauth2-reverse-proxy

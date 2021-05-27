@@ -44,32 +44,17 @@ spec:
       # kubectl create secret generic streamstate-webhook-token --from-file=token=./token.txt
       authSecret:
         name: streamstate-webhook-token
-        key: token # todo, change this to "token"
+        key: token 
 
----
-apiVersion: cloud.google.com/v1
-kind: BackendConfig
-metadata:
-  name: argowebhook
-  namespace: argo-events
-spec:
-  healthCheck:
-    checkIntervalSec: 15
-    port: 12000
-    type: HTTP
-    requestPath: /health
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: argowebhook
-  annotations:
-    # https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-features#1.16-gke.3+
-    cloud.google.com/backend-config: '{"default": "argowebhook"}'
   labels:
     service: argowebhook
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
   - port: 12000
     protocol: TCP

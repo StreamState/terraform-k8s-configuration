@@ -17,7 +17,7 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  type: NodePort
-  
+  type: ClusterIP
+
 environment:
   SPARK_PUBLIC_DNS: https://${organization}.streamstate.org/sparkhistory/
