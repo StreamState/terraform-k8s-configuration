@@ -1,4 +1,4 @@
-ARG SPARK_IMAGE=gcr.io/spark-operator/spark:v3.0.0-hadoop3
+ARG SPARK_IMAGE=gcr.io/spark-operator/spark:v3.1.1-hadoop3
 FROM ${SPARK_IMAGE}
 # Switch to user root so we can add addtional jars and configuration files.
 USER root

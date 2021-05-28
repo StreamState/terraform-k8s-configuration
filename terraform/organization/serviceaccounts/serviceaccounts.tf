@@ -133,6 +133,18 @@ resource "google_storage_bucket_iam_member" "argologadmin" {
   member = "serviceAccount:${google_service_account.argo.email}"
 }
 
+resource "google_storage_bucket_iam_member" "argologfirestore" {
+  bucket = google_storage_bucket.argologs.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.firestore.email}"
+}
+
+resource "google_storage_bucket_iam_member" "argologdockerwrite" {
+  bucket = google_storage_bucket.argologs.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.docker-write.email}"
+}
+
 # artifact read access to cluster service account to read docker containers
 resource "google_artifact_registry_repository_iam_member" "clusterread" {
   provider   = google-beta

@@ -1,5 +1,5 @@
 from streamstate_utils.gcs_create_folder import create_gcs_folders
-from streamstate_utils.structs import OutputStruct, FileStruct, InputStruct
+from streamstate_utils.structs import InputStruct
 import sys
 import marshmallow_dataclass
 import json

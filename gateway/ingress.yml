@@ -1,4 +1,4 @@
-apiVersion: networking.k8s.io/v1 #beta1 # extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: streamstateingress
@@ -30,35 +30,38 @@ spec:
       http:
         paths:
         - path: /ui(/|$)(.*)
-          pathType: Prefix
+          #pathType: Prefix
           backend:
-            service:
-              name: argoworkflow-argo-workflows-server
-              port: 
-                number: 2746
+            #service:
+            serviceName: argoworkflow-argo-workflows-server
+            servicePort: 2746
+            #    number: 2746
         - path: /monitoring(/|$)(.*) 
-          pathType: Prefix
+          #pathType: Prefix
           backend:
-            service:
-              name: prometheus-server 
-              port: 
-                number: 80
+            #service:
+            serviceName: prometheus-server 
+            servicePort: 80
+                #number: 80
         - path: /grafana(/|$)(.*)
-          pathType: Prefix
+         # pathType: Prefix
           backend:
-            service:
-              name: grafana
-              port: 
-                number: 3000
+            serviceName: grafana
+            servicePort: 3000
+              #name: grafana
+              #port: 
+              #  number: 3000
         - path: /api(/|$)(.*) # post to /api/rotate, for example
-          pathType: Prefix
+          #pathType: Prefix
           backend:
-            service:
-              name: mainui
-              port: 
-                number: 80
+            serviceName: mainui
+            servicePort: 80
+            #service:
+              #name: mainui
+              #port: 
+              #  number: 80
 ---
-apiVersion: networking.k8s.io/v1 #beta1 # extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: streamstatesparkhistory
@@ -103,14 +106,16 @@ spec:
       http:
         paths:
         - path: /sparkhistory/?(.*)
-          pathType: Prefix
+          #pathType: Prefix
           backend:
-            service:
-              name: spark-history-server 
-              port:
-                number: 18080
+            serviceName: spark-history-server
+            servicePort: 18080 
+            #service:
+            #  name: spark-history-server 
+            #  port:
+            #    number: 18080
 ---
-apiVersion: networking.k8s.io/v1 
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: streamstateingressargo
@@ -130,14 +135,16 @@ spec:
       http:
         paths:
         - path: /build/container
-          pathType: Prefix
+          #pathType: Prefix
           backend:
-            service:
-              name: argowebhook
-              port: 
-                number: 12000
+            serviceName: argowebhook
+            servicePort: 12000
+            #service:
+              #name: argowebhook
+              #port: 
+              #  number: 12000
 ---
-apiVersion: networking.k8s.io/v1 
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: streamstateingressstatic
@@ -174,15 +181,18 @@ spec:
       http:
         paths:
         - path: /
-          pathType: Prefix
           backend:
-            service:
-              name: mainui
-              port: 
-                number: 80
+            serviceName: mainui
+            servicePort: 80
+          #pathType: Prefix
+          #backend:
+          #  service:
+          #    name: mainui
+          #    port: 
+          #      number: 80
 
 ---
-apiVersion: networking.k8s.io/v1 #beta1 # extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: oauth2-proxy
@@ -203,10 +213,13 @@ spec:
       http:
         paths:
         - path: /oauth2
-          pathType: Prefix
           backend:
-            service:
-              name: oauth2-reverse-proxy
-              port:
-                number: 4180
+            serviceName: oauth2-reverse-proxy
+            servicePort: 4180
+          #pathType: Prefix
+          #backend:
+          #  service:
+          #    name: oauth2-reverse-proxy
+          #    port:
+           #     number: 4180
         
