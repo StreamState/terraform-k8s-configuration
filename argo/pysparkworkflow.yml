@@ -117,11 +117,6 @@ spec:
                           - name: inputs
                             value: "{{inputs.parameters.inputs}}"
                       dependencies: [runmypy, rununittests]
-
-                    - name: createsparkhistoryfolder
-                      template: sparkhistoryfolder
-                      dependencies: [runmypy, rununittests]
-
                     - name: runspark
                       template: sparksubmit
                       arguments:
@@ -146,7 +141,6 @@ spec:
                         - createfolder
                         - deploydocker
                         - runfirestoresetup
-                        - createsparkhistoryfolder
 
                 - name: mypy
                   inputs:
@@ -212,34 +206,6 @@ spec:
                             restartPolicy: Never
                         # backoffLimit: 4
                 
-                - name: sparkhistoryfolder
-                  serviceAccountName: ${runserviceaccount}
-                  resource:
-                    action: create
-                    successCondition: status.succeeded > 0
-                    failureCondition: status.failed > 1
-                    manifest: |
-                      apiVersion: batch/v1
-                      kind: Job
-                      metadata:
-                        generateName: sparkhistoryfolder-
-                        namespace: ${namespace}
-                      spec:
-                        template:
-                          spec:
-                            serviceAccountName: ${sparkserviceaccount}
-                            containers:
-                            - name: sparkhistory
-                              image: google/cloud-sdk:slim
-                              imagePullPolicy: IfNotPresent
-                              command: [sh, -c]
-                              args: 
-                                - |
-                                  touch spark-history-server
-                                  gsutil cp spark-history-server ${spark_storage_bucket_url}/spark-history-server/
-                            restartPolicy: Never
-                        # backoffLimit: 4
-
                 - name: create-docker-file
                   inputs:
                     parameters:

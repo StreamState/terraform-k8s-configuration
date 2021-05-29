@@ -20,6 +20,12 @@ resource "google_storage_bucket" "sparkstorage" {
   uniform_bucket_level_access = true
 }
 
+resource "google_storage_bucket_object" "sparkhistory" {
+  name    = "spark-history-server/"
+  content = ""
+  bucket  = google_storage_bucket.sparkstorage.name
+}
+
 # organization specific history server
 #resource "google_storage_bucket" "sparkhistory" {
 #  project                     = var.project
