@@ -2,7 +2,7 @@ serviceAccount:
   create: false
   name: ${sparkhistoryname}
 gcs:
-  logDirectory: ${sparkhistorybucketurl}
+  logDirectory: ${sparkhistorybucketurl}/spark-history-server/
   enableGCS: true
   enableIAM: true
 pvc:

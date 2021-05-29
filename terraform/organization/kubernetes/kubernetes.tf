@@ -510,7 +510,7 @@ resource "helm_release" "sparkhistory" { # todo, override "loadbalancer"
     "${templatefile("../../monitoring/sparkhistory.yml", {
       project               = var.project
       sparkhistoryname      = kubernetes_service_account.spark-history.metadata.0.name
-      sparkhistorybucketurl = var.spark_history_bucket_url
+      sparkhistorybucketurl = var.spark_storage_bucket_url
       organization          = var.organization
     })}"
   ]
@@ -811,13 +811,13 @@ data "kubectl_path_documents" "pysparkeventworkflow" {
     registryprefix    = var.registryprefix
     runserviceaccount = kubernetes_service_account.argo.metadata.0.name
     # sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
-    sparkserviceaccount      = kubernetes_service_account.spark.metadata.0.name
-    firestoreserviceaccount  = kubernetes_service_account.firestore.metadata.0.name
-    dataconfig               = kubernetes_config_map.usefuldata.metadata.0.name
-    dataconfigargo           = kubernetes_config_map.usefuldataargo.metadata.0.name
-    namespace                = kubernetes_namespace.sparkplane.metadata.0.name
-    monitoringnamespace      = kubernetes_namespace.serviceplane.metadata.0.name
-    spark_history_bucket_url = var.spark_history_bucket_url
+    sparkserviceaccount     = kubernetes_service_account.spark.metadata.0.name
+    firestoreserviceaccount = kubernetes_service_account.firestore.metadata.0.name
+    dataconfig              = kubernetes_config_map.usefuldata.metadata.0.name
+    dataconfigargo          = kubernetes_config_map.usefuldataargo.metadata.0.name
+    namespace               = kubernetes_namespace.sparkplane.metadata.0.name
+    monitoringnamespace     = kubernetes_namespace.serviceplane.metadata.0.name
+    #spark_history_bucket_url = var.spark_history_bucket_url
     spark_storage_bucket_url = var.spark_storage_bucket_url
   }
 }
