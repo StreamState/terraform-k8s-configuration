@@ -93,13 +93,15 @@ module "kubernetes-config" {
   #spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
   //staticipname             = var.staticip_name
-  client_id        = var.client_id
-  client_secret    = var.client_secret
-  staticip_address = var.staticip_address
-  dns_svc_name     = module.serviceaccounts.dns_svc_name
-  dns_svc_email    = module.serviceaccounts.dns_svc_email
-  argo_svc_name    = module.serviceaccounts.argo_svc_name
-  argo_svc_email   = module.serviceaccounts.argo_svc_email
+  spark_history_name = module.serviceaccounts.spark_history_name
+  checkpoint_name    = module.serviceaccounts.checkpoint_name
+  client_id          = var.client_id
+  client_secret      = var.client_secret
+  staticip_address   = var.staticip_address
+  dns_svc_name       = module.serviceaccounts.dns_svc_name
+  dns_svc_email      = module.serviceaccounts.dns_svc_email
+  argo_svc_name      = module.serviceaccounts.argo_svc_name
+  argo_svc_email     = module.serviceaccounts.argo_svc_email
 }
 
 

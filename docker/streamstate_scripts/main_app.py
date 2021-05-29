@@ -1,20 +1,11 @@
 from pyspark.sql import SparkSession, DataFrame
-from typing import List, Dict, Tuple
+from typing import List
 import sys
-from streamstate_utils.pyspark_utils import (
-    map_avro_to_spark_schema,
-)
-from streamstate_utils.cassandra_utils import (
-    get_cassandra_inputs_from_config_map,
-    get_cassandra_outputs_from_config_map,
-)
+from streamstate_utils.firestore import get_firestore_inputs_from_config_map
 from streamstate_utils.generic_wrapper import (
-    file_wrapper,
-    write_console,
     kafka_wrapper,
     write_wrapper,
-    set_cassandra,
-    write_cassandra,
+    write_firestore,
     write_kafka,
 )
 
@@ -23,34 +14,35 @@ import json
 import os
 from streamstate_utils.structs import (
     OutputStruct,
-    FileStruct,
-    CassandraInputStruct,
-    CassandraOutputStruct,
     KafkaStruct,
     InputStruct,
+    FirestoreOutputStruct,
+    TableStruct,
 )
 import marshmallow_dataclass
 
 
 def kafka_source_wrapper(
     app_name: str,
+    bucket: str,
     input: List[InputStruct],
     output: OutputStruct,
-    files: FileStruct,
-    cassandra_input: CassandraInputStruct,
-    cassandra_output: CassandraOutputStruct,
+    firestore: FirestoreOutputStruct,
+    table: TableStruct,
+    # files: FileStruct,
     kafka: KafkaStruct,
+    checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    set_cassandra(cassandra_input, spark)
+    # set_cassandra(cassandra_input, spark)
     df = kafka_wrapper(app_name, kafka.brokers, process, input, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
         write_kafka(batch_df, kafka, output)
-        write_cassandra(batch_df, cassandra_output)
+        write_firestore(batch_df, firestore, table)
 
-    write_wrapper(df, output, dual_write)
+    write_wrapper(df, output, os.path.join(bucket, checkpoint_location), dual_write)
 
 
 # examples
@@ -70,32 +62,32 @@ if __name__ == "__main__":
     [
         _,
         app_name,
+        bucket,  # bucket name including gs://
         output_struct,
-        file_struct,
+        table_struct,
         kafka_struct,
         input_struct,
+        checkpoint_location,
         version,  ## todo, is this the best way? (probably)
     ] = sys.argv
+    table_schema = marshmallow_dataclass.class_schema(TableStruct)()
     output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = output_schema.load(json.loads(output_struct))
-    file_schema = marshmallow_dataclass.class_schema(FileStruct)()
-    file_info = file_schema.load(json.loads(file_struct))
-    cassandra_input = get_cassandra_inputs_from_config_map()
-    cassandra_output = get_cassandra_outputs_from_config_map(app_name, version)
     kafka_info = marshmallow_dataclass.class_schema(KafkaStruct)().load(
         json.loads(kafka_struct)
     )
-
+    firestore = get_firestore_inputs_from_config_map(app_name, version)
     input_schema = marshmallow_dataclass.class_schema(InputStruct)()
-
+    table_info = table_schema.load(json.loads(table_struct))
     input_info = [input_schema.load(v) for v in json.loads(input_struct)]
 
     kafka_source_wrapper(
         app_name,
+        bucket,
         input_info,
         output_info,
-        file_info,
-        cassandra_input,
-        cassandra_output,
+        firestore,
+        table_info,
         kafka_info,
+        checkpoint_location,
     )

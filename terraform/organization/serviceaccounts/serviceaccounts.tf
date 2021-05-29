@@ -22,7 +22,12 @@ resource "google_storage_bucket" "sparkstorage" {
 
 resource "google_storage_bucket_object" "sparkhistory" {
   name    = "spark-history-server/"
-  content = ""
+  content = "helloworld"
+  bucket  = google_storage_bucket.sparkstorage.name
+}
+resource "google_storage_bucket_object" "checkpoint" {
+  name    = "checkpoint/"
+  content = "helloworld"
   bucket  = google_storage_bucket.sparkstorage.name
 }
 

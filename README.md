@@ -78,7 +78,7 @@ Get token from mainui, then
 
 
 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer e06d1231-29c2-4e4c-ace7-a12b26d05e14" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer dc6e8ed1-47ef-44ee-aaf3-daca07601d49" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
 
 
 # upload json to bucket
@@ -144,3 +144,24 @@ gcloud projects get-iam-policy streamstatetest  \
 --flatten="bindings[].members" \
 --format='table(bindings.role)' \
 --filter="bindings.members:spark-gcs-testorg@streamstatetest.iam.gserviceaccount.com"
+
+
+kubectl run -it \
+--image us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0 \
+--serviceaccount spark \
+--namespace mainspark-testorg 
+
+
+../bin/spark-submit \
+      --class \
+      org.apache.spark.deploy.PythonRunner \
+      replay_app.py \
+      mytestapp \
+      gs://streamstate-sparkstorage-testorg \
+      {"primary_keys":["field1"],"output_schema":[{"name":"field1","type":"string"}]} \
+      {"mode":"append","processing_time":"2 seconds"} \
+      {"max_file_age":"2d"} \
+      {"brokers":"broker1,broker2"} \
+      [{"topic":"topic1","sample":[{"field1":"somevalue"}],"schema":[{"name":"field1","type":"string"}]}] \
+      checkpoint/ \
+      1

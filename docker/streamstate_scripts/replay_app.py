@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession, DataFrame
-from typing import List, Dict, Tuple
+from typing import List
 import sys
 from streamstate_utils.firestore import get_firestore_inputs_from_config_map
 
@@ -40,9 +40,8 @@ def replay_from_file(
     files: FileStruct,
     table: TableStruct,
     firestore: FirestoreOutputStruct,
-    # cassandra_input: CassandraInputStruct,
-    # cassandra_output: CassandraOutputStruct,
     kafka: KafkaStruct,
+    checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     # set_cassandra(cassandra_input, spark)
@@ -53,9 +52,9 @@ def replay_from_file(
         # todo, uncomment this
         # write_kafka(batch_df, kafka, output)
         write_firestore(batch_df, firestore, table)
-        # write_cassandra(batch_df, cassandra_output)
 
-    write_wrapper(df, output, dual_write)
+    print(os.path.join(bucket, checkpoint_location))
+    write_wrapper(df, output, os.path.join(bucket, checkpoint_location), dual_write)
 
 
 # examples
@@ -82,6 +81,7 @@ if __name__ == "__main__":
         file_struct,
         kafka_struct,
         input_struct,
+        checkpoint_location,
         version,
     ] = sys.argv
     table_schema = marshmallow_dataclass.class_schema(TableStruct)()
@@ -108,4 +108,5 @@ if __name__ == "__main__":
         # cassandra_input,
         # cassandra_output,
         kafka_info,
+        checkpoint_location,
     )
