@@ -27,9 +27,16 @@ output "spark_history_svc_name" {
 output "org_registry" {
   value = google_artifact_registry_repository.orgrepo.name
 }
-output "spark_history_bucket_url" {
-  value = google_storage_bucket.sparkhistory.url
+
+output "spark_history_name" {
+  value = google_storage_bucket_object.sparkhistory.name
 }
+output "checkpoint_name" {
+  value = google_storage_bucket_object.checkpoint.name
+}
+#output "spark_history_bucket_url" {
+#  value = google_storage_bucket.sparkhistory.url
+#}
 
 output "spark_storage_bucket_url" {
   value = google_storage_bucket.sparkstorage.url

@@ -318,14 +318,7 @@ resource "google_service_account_iam_binding" "argo" {
 ##################
 
 # this will have worklow permissions 
-/*
-resource "kubernetes_service_account" "argoevents-runsa" {
-  metadata {
-    name      = "argoevents-runsa"
-    namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  }
-  depends_on = [kubernetes_namespace.serviceplane]
-}*/
+
 
 resource "kubernetes_role_binding" "argoevents-runrb" {
   metadata {
@@ -345,8 +338,7 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
-
-
+/*
 resource "kubernetes_service_account" "argoevents-sparksubmit" {
   metadata {
     name      = "argoevents-sparksubmit"
@@ -356,6 +348,9 @@ resource "kubernetes_service_account" "argoevents-sparksubmit" {
     kubernetes_namespace.serviceplane
   ]
 }
+*/
+
+# Todo, define this once for the whole cluster
 resource "kubernetes_cluster_role" "launchsparkoperator" {
   metadata {
     name = "launchsparkoperator-role"
@@ -363,11 +358,6 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
   rule {
     api_groups = ["sparkoperator.k8s.io"]
     resources  = ["sparkapplications"]
-    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
-  }
-  rule {
-    api_groups = ["monitoring.coreos.com"]
-    resources  = ["prometheuses", "servicemonitors"]
     verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
   rule {
@@ -382,9 +372,12 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
   }
   depends_on = [kubernetes_namespace.serviceplane]
 }
-resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
+
+# This is per organization
+resource "kubernetes_role_binding" "launchsparkoperator" {
   metadata {
-    name = "launchspark-role-binding"
+    name      = "launchspark-role-binding"
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -393,7 +386,7 @@ resource "kubernetes_cluster_role_binding" "launchsparkoperator" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
+    name      = kubernetes_service_account.argo.metadata.0.name
     namespace = kubernetes_namespace.serviceplane.metadata.0.name # is this for the service account?  I think so...
   }
   depends_on = [kubernetes_namespace.serviceplane]
@@ -515,10 +508,11 @@ resource "helm_release" "sparkhistory" { # todo, override "loadbalancer"
   chart      = "spark-history-server"
   values = [
     "${templatefile("../../monitoring/sparkhistory.yml", {
-      project               = var.project
-      sparkhistoryname      = kubernetes_service_account.spark-history.metadata.0.name
-      sparkhistorybucketurl = var.spark_history_bucket_url
-      organization          = var.organization
+      project                    = var.project
+      sparkhistoryserviceaccount = kubernetes_service_account.spark-history.metadata.0.name
+      sparkhistorybucketurl      = var.spark_storage_bucket_url
+      sparkhistoryname           = "spark-history-server/"
+      organization               = var.organization
     })}"
   ]
 
@@ -811,21 +805,23 @@ resource "kubectl_manifest" "argoeventswebhook" {
 data "kubectl_path_documents" "pysparkeventworkflow" {
   pattern = "../../argo/pysparkworkflow.yml"
   vars = {
-    project                   = var.project
-    organization              = var.organization
-    dockersecretwrite         = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
-    registry                  = var.org_registry
-    registryprefix            = var.registryprefix
-    runserviceaccount         = kubernetes_service_account.argo.metadata.0.name
-    sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
-    sparkserviceaccount       = kubernetes_service_account.spark.metadata.0.name
-    firestoreserviceaccount   = kubernetes_service_account.firestore.metadata.0.name
-    dataconfig                = kubernetes_config_map.usefuldata.metadata.0.name
-    dataconfigargo            = kubernetes_config_map.usefuldataargo.metadata.0.name
-    namespace                 = kubernetes_namespace.sparkplane.metadata.0.name
-    monitoringnamespace       = kubernetes_namespace.serviceplane.metadata.0.name
-    spark_history_bucket_url  = var.spark_history_bucket_url
-    spark_storage_bucket_url  = var.spark_storage_bucket_url
+    project           = var.project
+    organization      = var.organization
+    dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
+    registry          = var.org_registry
+    registryprefix    = var.registryprefix
+    runserviceaccount = kubernetes_service_account.argo.metadata.0.name
+    # sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
+    sparkserviceaccount     = kubernetes_service_account.spark.metadata.0.name
+    firestoreserviceaccount = kubernetes_service_account.firestore.metadata.0.name
+    dataconfig              = kubernetes_config_map.usefuldata.metadata.0.name
+    dataconfigargo          = kubernetes_config_map.usefuldataargo.metadata.0.name
+    namespace               = kubernetes_namespace.sparkplane.metadata.0.name
+    monitoringnamespace     = kubernetes_namespace.serviceplane.metadata.0.name
+    spark_history_name      = "spark-history-server/"
+    #spark_history_bucket_url = var.spark_history_bucket_url
+    spark_storage_bucket_url = var.spark_storage_bucket_url
+    bucketwithoutgs          = replace(var.spark_storage_bucket_url, "gs://", "")
   }
 }
 

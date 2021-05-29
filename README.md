@@ -34,6 +34,7 @@ If anything hangs, you can delete the kubernetes module:
 
 * terraform state rm 'module.kubernetes-config'
 
+Make sure to delete any Compute Engine storage!!
 
 # setup for deploy
 
@@ -59,8 +60,10 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 
 # setup spark history server
 
-* sudo docker build . -f ./spark-history/Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory:v0.2.0
+* cd spark-history
+* sudo docker build . -f ./Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory:v0.2.0
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory:v0.2.0
+* cd ..
 
 Unfortunately, this requires root access, but just for spark history which has very minimal permissions
 
@@ -75,7 +78,7 @@ Get token from mainui, then
 
 
 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer 7b613aa8-0608-4a63-8f2e-8522201b6f57" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer 93371019-7983-4fde-bf1e-1e25f665899f" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
 
 
 # upload json to bucket
@@ -86,10 +89,7 @@ curl  -H "Content-Type: application/json" -H "Authorization: Bearer 7b613aa8-060
 
 You may have to create a subfolder first (eg, /test)
 
-* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/test
-* kubectl logs replaytest-driver
-* kubectl port-forward examplegcp-driver 4040:4040 # to view spark-ui, go to localhost:4040
-
+* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/mytestapp
 
 * echo {\"field1\": \"somevalue\"} > ./mytest1.json
 * gsutil cp ./mytest1.json gs://streamstate-sparkstorage-testorg/mytestapp/topic1
@@ -122,13 +122,13 @@ Grafana password:
 kubectl run -it \
 --image google/cloud-sdk:slim \
 --serviceaccount spark \
---namespace mainspark \
+--namespace mainspark-testorg \
 workload-identity-test
 
 
 kubectl run -it \
 --image google/cloud-sdk:slim \
---serviceaccount cert-manager \
+--serviceaccount argo-workflow \
 --namespace serviceplane-testorg \
 workload-identity-test
 
@@ -138,19 +138,30 @@ gcloud auth list
 kubectl get certificaterequest -n serviceplane-testorg
 
 
-curl -skf \
---connect-timeout 60 \
---max-time 60 \
--H "Accept: application/json" \
--H "Content-Type: application/json;charset=UTF-8" \
-  "https://grafana.com/api/dashboards/7890/revisions/4/download" | sed '/-- .* --/! s/"datasource":.*,/"datasource": "Prometheus",/g'\
-> "spark.json"
 
 
-curl -skf \
---connect-timeout 60 \
---max-time 60 \
--H "Accept: application/json" \
--H "Content-Type: application/json;charset=UTF-8" \
-  "https://grafana.com/api/dashboards/13927/revisions/2/download" | sed '/-- .* --/! s/"datasource":.*,/"datasource": "Prometheus",/g'\
-> "argo.json"
+gcloud projects get-iam-policy streamstatetest  \
+--flatten="bindings[].members" \
+--format='table(bindings.role)' \
+--filter="bindings.members:spark-gcs-testorg@streamstatetest.iam.gserviceaccount.com"
+
+
+kubectl run -it \
+--image us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0 \
+--serviceaccount spark \
+--namespace mainspark-testorg 
+
+
+../bin/spark-submit \
+      --class \
+      org.apache.spark.deploy.PythonRunner \
+      replay_app.py \
+      mytestapp \
+      gs://streamstate-sparkstorage-testorg \
+      {"primary_keys":["field1"],"output_schema":[{"name":"field1","type":"string"}]} \
+      {"mode":"append","processing_time":"2 seconds"} \
+      {"max_file_age":"2d"} \
+      {"brokers":"broker1,broker2"} \
+      [{"topic":"topic1","sample":[{"field1":"somevalue"}],"schema":[{"name":"field1","type":"string"}]}] \
+      checkpoint/ \
+      1

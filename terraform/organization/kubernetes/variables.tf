@@ -59,7 +59,13 @@ variable "spark_history_svc_name" {
 variable "org_registry" {
   type = string
 }
-variable "spark_history_bucket_url" { # probably delete
+#variable "spark_history_bucket_url" { # probably delete
+#  type = string
+#}
+variable "spark_history_name" {
+  type = string
+}
+variable "checkpoint_name" {
   type = string
 }
 variable "spark_storage_bucket_url" {

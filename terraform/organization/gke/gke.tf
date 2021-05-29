@@ -28,7 +28,9 @@ resource "google_container_cluster" "primary" {
   location = var.region
   # min_master_version = local.gkeversion
   release_channel {
-    channel = "REGULAR"
+    # https://cloud.google.com/kubernetes-engine/docs/release-notes
+    # see https://github.com/argoproj/argo-workflows/issues/5967
+    channel = "STABLE" # "REGULAR"  
   }
   # VPC-native
   network    = "default"

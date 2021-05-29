@@ -6,6 +6,7 @@ workflow:
     name: ${serviceaccount} # Service account which is used to run workflows
   rbac:
     create: false # adds Role and RoleBinding for the above specified service account to be able to run workflows
+
 createAggregateRoles: false
 singleNamespace: true
 controller:
@@ -29,6 +30,7 @@ server:
     # Create a ClusterRole and CRB for the server to access ClusterWorkflowTemplates.
     enabled: false
   
+useDefaultArtifactRepo: true
 artifactRepository:
   # archiveLogs will archive the main container logs as an artifact
   archiveLogs: true

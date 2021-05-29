@@ -20,14 +20,25 @@ resource "google_storage_bucket" "sparkstorage" {
   uniform_bucket_level_access = true
 }
 
-# organization specific history server
-resource "google_storage_bucket" "sparkhistory" {
-  project                     = var.project
-  name                        = "streamstate-historyserver-${var.organization}"
-  location                    = "US"
-  force_destroy               = true
-  uniform_bucket_level_access = true
+resource "google_storage_bucket_object" "sparkhistory" {
+  name    = "spark-history-server/empty"
+  content = "helloworld"
+  bucket  = google_storage_bucket.sparkstorage.name
 }
+resource "google_storage_bucket_object" "checkpoint" {
+  name    = "checkpoint/empty"
+  content = "helloworld"
+  bucket  = google_storage_bucket.sparkstorage.name
+}
+
+# organization specific history server
+#resource "google_storage_bucket" "sparkhistory" {
+#  project                     = var.project
+#  name                        = "streamstate-historyserver-${var.organization}"
+##  location                    = "US"
+#  force_destroy               = true
+#  uniform_bucket_level_access = true
+#}
 
 # organization specific argo logs
 resource "google_storage_bucket" "argologs" {
@@ -121,16 +132,28 @@ resource "google_storage_bucket_iam_member" "sparkadmin" {
   member = "serviceAccount:${google_service_account.spark-gcs.email}"
 }
 
-resource "google_storage_bucket_iam_member" "sparkhistoryadmin" {
-  bucket = google_storage_bucket.sparkhistory.name
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.spark-gcs.email}"
-}
+#resource "google_storage_bucket_iam_member" "sparkhistoryadmin" {
+#  bucket = google_storage_bucket.sparkhistory.name
+#  role   = "roles/storage.admin"
+#  member = "serviceAccount:${google_service_account.spark-gcs.email}"
+#}
 
 resource "google_storage_bucket_iam_member" "argologadmin" {
   bucket = google_storage_bucket.argologs.name
   role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.argo.email}"
+}
+
+resource "google_storage_bucket_iam_member" "argologfirestore" {
+  bucket = google_storage_bucket.argologs.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.firestore.email}"
+}
+
+resource "google_storage_bucket_iam_member" "argologdockerwrite" {
+  bucket = google_storage_bucket.argologs.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.docker-write.email}"
 }
 
 # artifact read access to cluster service account to read docker containers
@@ -156,7 +179,7 @@ resource "google_project_iam_custom_role" "readbucketrole" {
 
 
 resource "google_storage_bucket_iam_member" "sparkhistoryread" {
-  bucket = google_storage_bucket.sparkhistory.name
+  bucket = google_storage_bucket.sparkstorage.name
   role   = "projects/${var.project}/roles/${google_project_iam_custom_role.readbucketrole.role_id}"
   member = "serviceAccount:${google_service_account.spark-history.email}"
 }

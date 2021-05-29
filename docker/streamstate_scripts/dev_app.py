@@ -1,11 +1,11 @@
-from pyspark.sql import SparkSession, DataFrame
-from typing import List, Dict, Tuple
+from pyspark.sql import SparkSession
+from typing import List
 import sys
-from streamstate_utils.pyspark_utils import map_avro_to_spark_schema
 from streamstate_utils.generic_wrapper import (
     file_wrapper,
     write_console,
 )
+import os
 from process import process
 import json
 from streamstate_utils.structs import OutputStruct, FileStruct, InputStruct
@@ -17,12 +17,12 @@ def dev_from_file(
     max_file_age: str,
     bucket: str,
     inputs: List[InputStruct],
-    checkpoint: str,
+    checkpoint_location: str,
     mode: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     df = file_wrapper(app_name, max_file_age, bucket, process, inputs, spark)
-    write_console(df, checkpoint, mode)
+    write_console(df, os.path.join(bucket, checkpoint_location), mode)
 
 
 # examples
@@ -41,11 +41,12 @@ def dev_from_file(
 if __name__ == "__main__":
     [
         _,
-        app_name,  # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
+        app_name,  #
         bucket,  # bucket name including gs://
         output_struct,
         file_struct,
         input_struct,
+        checkpoint_location,
     ] = sys.argv
     output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = output_schema.load(json.loads(output_struct))
@@ -58,6 +59,6 @@ if __name__ == "__main__":
         file_info.max_file_age,
         bucket,
         input_info,
-        output_info.checkpoint_location,
+        checkpoint_location,
         output_info.mode,
     )

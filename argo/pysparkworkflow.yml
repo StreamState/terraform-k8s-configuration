@@ -117,7 +117,6 @@ spec:
                           - name: inputs
                             value: "{{inputs.parameters.inputs}}"
                       dependencies: [runmypy, rununittests]
-
                     - name: runspark
                       template: sparksubmit
                       arguments:
@@ -138,7 +137,10 @@ spec:
                            value: "{{tasks.runfirestoresetup.outputs.result}}"
                          - name: table
                            value: "{{inputs.parameters.table}}"
-                      dependencies: [createfolder, deploydocker, runfirestoresetup]
+                      dependencies: 
+                        - createfolder
+                        - deploydocker
+                        - runfirestoresetup
 
                 - name: mypy
                   inputs:
@@ -171,7 +173,7 @@ spec:
 
 
                 - name: gcsfolder
-                  serviceAccountName: ${sparksubmitserviceaccount}
+                  serviceAccountName: ${runserviceaccount}
                   inputs:
                     parameters:
                       - name: appname
@@ -264,7 +266,7 @@ spec:
                   
                   #todo, loop this for each topic.  see, eg, https://github.com/argoproj/argo-workflows/blob/master/examples/loops.yaml
                 - name: sparksubmit
-                  serviceAccountName: ${sparksubmitserviceaccount}
+                  serviceAccountName: ${runserviceaccount}
                   inputs:
                     parameters:
                       # Name of the image to push
@@ -287,8 +289,8 @@ spec:
                     # of the resource (not just labels). Multiple AND conditions can be represented by comma
                     # delimited expressions.
                     # For more details: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-                    successCondition: status.succeeded > 0
-                    failureCondition: status.failed > 1
+                    successCondition: status.applicationState.state == RUNNING # status.succeeded > 0
+                    failureCondition: status.applicationState.state == FAILING
                     manifest: |               #put your kubernetes spec here
                       apiVersion: "sparkoperator.k8s.io/v1beta2"
                       kind: SparkApplication
@@ -301,7 +303,7 @@ spec:
                           spark.jars.repositories: "https://packages.confluent.io/maven"
                           spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
-                          spark.eventLog.dir: ${spark_history_bucket_url}
+                          spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
                           spark.sql.streaming.metricsEnabled: "true"
                         type: Python
                         pythonVersion: "3"
@@ -312,7 +314,7 @@ spec:
                         sparkVersion: "3.1.1"
                         hadoopConf:
                           "fs.gs.project.id": ${project}
-                          "fs.gs.system.bucket": "streamstate-sparkstorage-${organization}"  
+                          "fs.gs.system.bucket": ${bucketwithoutgs} # "streamstate-sparkstorage-${organization}"  
                           "google.cloud.auth.service.account.enable": "true" 
                           "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                           "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
@@ -325,7 +327,9 @@ spec:
                           - '{{inputs.parameters.fileinfo}}'
                           - '{{inputs.parameters.kafka}}'
                           - '{{inputs.parameters.inputs}}'
+                          - 'checkpoint'
                           - '{{inputs.parameters.version}}'
+
                        
                         restartPolicy:
                           type: Always # should be able to resume from checkpoint if killed for some reason
@@ -347,8 +351,6 @@ spec:
                           prometheus:
                             jmxExporterJar: "/prometheus/jmx_prometheus_javaagent-0.11.0.jar"
                             port: 8090
-                        
-    
           parameters:
             - src:
                 dependencyName: deploypysparkjob
