@@ -53,8 +53,9 @@ def replay_from_file(
         # write_kafka(batch_df, kafka, output)
         write_firestore(batch_df, firestore, table)
 
-    print(os.path.join(bucket, checkpoint_location))
-    write_wrapper(df, output, os.path.join(bucket, checkpoint_location), dual_write)
+    # print(os.path.join(bucket, checkpoint_location, app_name))
+    # os.path.join(bucket, checkpoint_location, app_name)
+    write_wrapper(df, output, "/tmp/checkpoint", dual_write)
 
 
 # examples

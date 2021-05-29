@@ -511,7 +511,7 @@ resource "helm_release" "sparkhistory" { # todo, override "loadbalancer"
       project                    = var.project
       sparkhistoryserviceaccount = kubernetes_service_account.spark-history.metadata.0.name
       sparkhistorybucketurl      = var.spark_storage_bucket_url
-      sparkhistoryname           = var.spark_history_name
+      sparkhistoryname           = "spark-history-server/"
       organization               = var.organization
     })}"
   ]
@@ -818,10 +818,9 @@ data "kubectl_path_documents" "pysparkeventworkflow" {
     dataconfigargo          = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace               = kubernetes_namespace.sparkplane.metadata.0.name
     monitoringnamespace     = kubernetes_namespace.serviceplane.metadata.0.name
-    spark_history_name      = var.spark_history_name
+    spark_history_name      = "spark-history-server/"
     #spark_history_bucket_url = var.spark_history_bucket_url
     spark_storage_bucket_url = var.spark_storage_bucket_url
-    checkpoint_name          = var.checkpoint_name
     bucketwithoutgs          = replace(var.spark_storage_bucket_url, "gs://", "")
   }
 }

@@ -299,7 +299,7 @@ spec:
                         namespace: ${namespace} 
                       spec:
                         sparkConf:
-                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0,com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.1,com.google.guava:guava:23.0"
+                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
                           spark.jars.repositories: "https://packages.confluent.io/maven"
                           spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
@@ -327,7 +327,7 @@ spec:
                           - '{{inputs.parameters.fileinfo}}'
                           - '{{inputs.parameters.kafka}}'
                           - '{{inputs.parameters.inputs}}'
-                          - '${checkpoint_name}'
+                          - 'checkpoint'
                           - '{{inputs.parameters.version}}'
 
                        
