@@ -699,7 +699,7 @@ resource "helm_release" "prometheus" {
   name       = "prometheus"
   namespace  = kubernetes_namespace.serviceplane.metadata.0.name
   repository = "https://prometheus-community.github.io/helm-charts"
-  chart      = "prometheus" # does not include prometheus operator
+  chart      = "kube-prometheus-stack" # includes prometheus operator
   values = [
     "${templatefile("../../monitoring/prometheus_helm_values.yml", {
       organization          = var.organization
@@ -769,7 +769,7 @@ resource "helm_release" "argoworkflow" {
     })}"
   ]
   depends_on = [
-    kubernetes_namespace.serviceplane,
+    kubernetes_namespace.serviceplane, helm_release.prometheus
   ]
 }
 
@@ -900,3 +900,25 @@ resource "kubectl_manifest" "ingress" {
   ]
 }
 
+
+#################
+# Install spark service monitor
+#################
+
+
+data "kubectl_path_documents" "servicemonitor" {
+  pattern = "../../monitoring/servicemonitor.yml"
+  vars = {
+    sparknamepace       = kubernetes_namespace.sparkplane.metadata.0.name
+    monitoringnamespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+}
+resource "kubectl_manifest" "servicemonitor" {
+  count     = 2 #length(data.kubectl_path_documents.servicemonitor.documents)
+  yaml_body = element(data.kubectl_path_documents.servicemonitor.documents, count.index)
+  #override_namespace = kubernetes_namespace.sparkplane.metadata.0.name
+  depends_on = [
+    # kubernetes_namespace.sparkplane,
+    helm_release.prometheus,
+  ]
+}

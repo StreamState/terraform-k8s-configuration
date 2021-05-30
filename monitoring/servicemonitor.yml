@@ -1,0 +1,36 @@
+---
+# check, this service may already be stood up
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-application-metrics
+  namespace: ${sparknamepace}
+  # namespace: {{ .Namespace }}
+  labels:
+    spark/servicemonitor: "true"
+spec:
+  ports:
+    - port: 8090
+      name: metrics
+  clusterIP: None
+  selector:
+    metrics-exposed: "true"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  namespace: ${monitoringnamespace}
+  labels:
+    app: prometheus-operator
+    release: prometheus
+  name: spark-monitor
+  # namespace: {{ .Namespace }}
+spec:
+  namespaceSelector:
+    any: true # can I select just one or two?
+  endpoints:
+    - interval: 5s
+      port: metrics
+  selector:
+    matchLabels:
+      spark/servicemonitor: "true"

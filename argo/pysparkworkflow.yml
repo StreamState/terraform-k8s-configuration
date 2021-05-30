@@ -340,11 +340,17 @@ spec:
                           envFrom:
                             - configMapRef:
                                 name: ${dataconfig} 
+                          labels:
+                            metrics-exposed: "true"
+                            spark-role: "driver"
                         executor:
                           instances: 1
                           cores: 1
                           memory: "512m"
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
+                          labels:
+                            metrics-exposed: "true"
+                            spark-role: "executor"
                         monitoring: 
                           exposeDriverMetrics: true
                           exposeExecutorMetrics: true

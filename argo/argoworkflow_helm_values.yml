@@ -19,6 +19,11 @@ controller:
   clusterWorkflowTemplates:
     # Create a ClusterRole and CRB for the controller to access ClusterWorkflowTemplates.
     enabled: false
+  serviceMonitor: # prometheus operator
+    enabled: true 
+    additionalLabels:
+      app: argo
+      release: prometheus
 
 server:
   enabled: true

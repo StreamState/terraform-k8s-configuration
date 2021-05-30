@@ -1,18 +1,31 @@
-kubeStateMetrics:
-  enabled: true
+#kubeStateMetrics:
+#  enabled: true
+
+# or should prometheus be installed cluster wide?
+#kube-state-metrics:
+#  namespaces: ${serviceplane},${sparkplane}
 
 alertmanager:
   enabled: false
   useClusterRole: false
 
-server:
-  #useExistingClusterRoleName: ${prometheusclusterrole}
+grafana:
+  enabled: false
 
-  #namespaces:
-  #  - ${serviceplane}
-  #  - ${sparkplane}
-  
-  baseURL: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
-  extraArgs:
+prometheus-operator:
+  namespaces:
+    releaseNamespace: true
+    additional:
+      - ${sparkplane}
+
+kubeDns:
+  enabled: true
+
+coreDns:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
     # blank since "monitoring" prefix will be stripped by nginx
-    web.route-prefix: / # https://prometheus.io/docs/guides/tls-encryption/
+    routePrefix: / # https://prometheus.io/docs/guides/tls-encryption/
+    externalUrl: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
