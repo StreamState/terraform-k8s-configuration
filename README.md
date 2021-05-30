@@ -78,7 +78,7 @@ Get token from mainui, then
 
 
 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer 93371019-7983-4fde-bf1e-1e25f665899f" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer fcd72f29-a3b2-4980-bc8d-7d418e74f229" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
 
 
 # upload json to bucket
@@ -89,7 +89,7 @@ curl  -H "Content-Type: application/json" -H "Authorization: Bearer 93371019-798
 
 You may have to create a subfolder first (eg, /test)
 
-* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/mytestapp
+* gsutil cp ./mytest.json gs://streamstate-sparkstorage-testorg/mytestapp/topic1
 
 * echo {\"field1\": \"somevalue\"} > ./mytest1.json
 * gsutil cp ./mytest1.json gs://streamstate-sparkstorage-testorg/mytestapp/topic1
@@ -150,18 +150,3 @@ kubectl run -it \
 --image us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0 \
 --serviceaccount spark \
 --namespace mainspark-testorg 
-
-
-../bin/spark-submit \
-      --class \
-      org.apache.spark.deploy.PythonRunner \
-      replay_app.py \
-      mytestapp \
-      gs://streamstate-sparkstorage-testorg \
-      {"primary_keys":["field1"],"output_schema":[{"name":"field1","type":"string"}]} \
-      {"mode":"append","processing_time":"2 seconds"} \
-      {"max_file_age":"2d"} \
-      {"brokers":"broker1,broker2"} \
-      [{"topic":"topic1","sample":[{"field1":"somevalue"}],"schema":[{"name":"field1","type":"string"}]}] \
-      checkpoint/ \
-      1

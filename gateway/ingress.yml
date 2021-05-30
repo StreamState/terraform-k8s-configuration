@@ -40,8 +40,8 @@ spec:
           #pathType: Prefix
           backend:
             #service:
-            serviceName: prometheus-server 
-            servicePort: 80
+            serviceName: prometheus-operated 
+            servicePort: 9090
                 #number: 80
         - path: /grafana(/|$)(.*)
          # pathType: Prefix
