@@ -28,7 +28,7 @@ spec:
   namespaceSelector:
     matchNames:
       - ${sparknamepace}
-    any: false
+    # any: false
   endpoints:
     - interval: 5s
       port: metrics

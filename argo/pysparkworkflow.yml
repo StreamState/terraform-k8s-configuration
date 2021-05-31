@@ -235,7 +235,7 @@ spec:
                     parameters:
                       # Name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 # TODO!  specify tag version, different docker name per app
+                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # TODO!  specify tag version, different docker name per app
                   serviceAccountName: ${dockersecretwrite}
                   container:
                     image: gcr.io/kaniko-project/executor:latest
@@ -271,7 +271,7 @@ spec:
                     parameters:
                       # Name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry}/python_app:v0.1.0 # same as for build-docker-image
+                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # same as for build-docker-image
                       - name: inputs
                       - name: kafka
                       - name: outputs
@@ -342,7 +342,7 @@ spec:
                                 name: ${dataconfig} 
                           labels:
                             metrics-exposed: "true"
-                            spark-role: "driver"
+                            # spark-pod-type: "driver"
                         executor:
                           instances: 1
                           cores: 1
@@ -350,7 +350,7 @@ spec:
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
                           labels:
                             metrics-exposed: "true"
-                            spark-role: "executor"
+                            # spark-pod-type: "executor"
                         monitoring: 
                           exposeDriverMetrics: true
                           exposeExecutorMetrics: true

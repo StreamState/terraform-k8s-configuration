@@ -1454,8 +1454,8 @@ dashboards:
           "editable": true,
           "gnetId": null,
           "graphTooltip": 0,
-          "id": 5,
-          "iteration": 1622407373332,
+          "id": 2,
+          "iteration": 1622464740307,
           "links": [],
           "panels": [
             {
@@ -2805,7 +2805,8 @@ dashboards:
               },
               "yaxes": [
                 {
-                  "format": "short",
+                  "$$hashKey": "object:94",
+                  "format": "bytes",
                   "label": null,
                   "logBase": 1,
                   "max": null,
@@ -2813,6 +2814,7 @@ dashboards:
                   "show": true
                 },
                 {
+                  "$$hashKey": "object:95",
                   "format": "short",
                   "label": null,
                   "logBase": 1,
@@ -3003,7 +3005,7 @@ dashboards:
                 "options": [],
                 "query": {
                   "query": "label_values(kube_pod_labels{namespace = \"$namespace\"}, label_sparkoperator_k8s_io_app_name)",
-                  "refId": "Prometheus-app_name-Variable-Query"
+                  "refId": "StandardVariableQuery"
                 },
                 "refresh": 1,
                 "regex": "",
@@ -3049,7 +3051,7 @@ dashboards:
           "timezone": "",
           "title": "Spark: Applications",
           "uid": "tYYsVm6Mz",
-          "version": 5
+          "version": 1
         }
 rbac:
   namespaced: true
