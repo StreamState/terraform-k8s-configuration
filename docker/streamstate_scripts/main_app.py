@@ -42,7 +42,9 @@ def kafka_source_wrapper(
         write_kafka(batch_df, kafka, output)
         write_firestore(batch_df, firestore, table)
 
-    write_wrapper(df, output, os.path.join(bucket, checkpoint_location), dual_write)
+    write_wrapper(
+        df, output, os.path.join(bucket, checkpoint_location, app_name), dual_write
+    )
 
 
 # examples
