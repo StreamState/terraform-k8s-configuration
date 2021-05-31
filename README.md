@@ -147,6 +147,7 @@ gcloud projects get-iam-policy streamstatetest  \
 
 
 kubectl run -it \
---image us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.1.0 \
+--image us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.2.0 \
 --serviceaccount spark \
---namespace mainspark-testorg 
+--namespace mainspark-testorg \
+mytest
