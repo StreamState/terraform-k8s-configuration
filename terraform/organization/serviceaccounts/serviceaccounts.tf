@@ -25,6 +25,11 @@ resource "google_storage_bucket_object" "sparkhistory" {
   content = "helloworld"
   bucket  = google_storage_bucket.sparkstorage.name
 }
+
+# this probably isnt needed, since there aren't "folders" on gcs
+# it IS needed for spark history because the spark history
+# application needs to "see" the folder to scan it, even if its
+# a fake folder
 resource "google_storage_bucket_object" "checkpoint" {
   name    = "checkpoint/empty"
   content = "helloworld"

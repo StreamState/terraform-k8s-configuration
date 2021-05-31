@@ -24,10 +24,11 @@ metadata:
     app: prometheus-operator
     release: prometheus
   name: spark-monitor
-  # namespace: {{ .Namespace }}
 spec:
   namespaceSelector:
-    any: true # can I select just one or two?
+    matchNames:
+      - ${sparknamepace}
+    # any: false
   endpoints:
     - interval: 5s
       port: metrics

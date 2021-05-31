@@ -55,7 +55,9 @@ def replay_from_file(
 
     # print(os.path.join(bucket, checkpoint_location, app_name))
     # os.path.join(bucket, checkpoint_location, app_name)
-    write_wrapper(df, output, "/tmp/checkpoint", dual_write)
+    write_wrapper(
+        df, output, os.path.join(bucket, checkpoint_location, app_name), dual_write
+    )
 
 
 # examples

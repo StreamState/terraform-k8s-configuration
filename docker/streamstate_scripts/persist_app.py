@@ -17,14 +17,14 @@ def persist_topic(
     input: InputStruct,
     kafka: KafkaStruct,
     output: OutputStruct,
-    checkpoint_location: str
+    checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     df = kafka_wrapper(app_name, kafka.brokers, lambda dfs: dfs[0], [input], spark)
     write_wrapper(
         df,
         output,
-        os.path.join(bucket, checkpoint_location),
+        os.path.join(bucket, checkpoint_location, app_name),
         lambda df: write_parquet(df, app_name, bucket, input.topic),
     )
 
@@ -59,10 +59,5 @@ if __name__ == "__main__":
     input_schema = marshmallow_dataclass.class_schema(InputStruct)()
     input_info = input_schema.load(json.loads(input_struct))
     persist_topic(
-        app_name,
-        bucket,
-        input_info,
-        kafka_info,
-        output_info,
-        checkpoint_location
+        app_name, bucket, input_info, kafka_info, output_info, checkpoint_location
     )
