@@ -5,6 +5,9 @@
 #kube-state-metrics:
 #  namespaces: ${serviceplane},${sparkplane}
 
+kube-state-metrics:
+  extraArgs:
+    - --metric-labels-allowlist=pods=[spark-role,sparkoperator.k8s.io/app-name,sparkoperator.k8s.io/launched-by-spark-operator]
 alertmanager:
   enabled: false
   useClusterRole: false
