@@ -1454,8 +1454,7 @@ dashboards:
           "editable": true,
           "gnetId": null,
           "graphTooltip": 0,
-          "id": 2,
-          "iteration": 1622464740307,
+          "iteration": 1622550232291,
           "links": [],
           "panels": [
             {
@@ -1474,26 +1473,44 @@ dashboards:
             },
             {
               "cacheTimeout": null,
-              "colorBackground": false,
-              "colorValue": false,
-              "colors": [
-                "#299c46",
-                "rgba(237, 129, 40, 0.89)",
-                "#d44a3a"
-              ],
               "datasource": null,
-              "decimals": 1,
               "fieldConfig": {
-                "defaults": {},
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 1,
+                  "mappings": [
+                    {
+                      "id": 0,
+                      "op": "=",
+                      "text": "N/A",
+                      "type": 1,
+                      "value": "null"
+                    }
+                  ],
+                  "max": 1,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "#299c46",
+                        "value": null
+                      },
+                      {
+                        "color": "rgba(237, 129, 40, 0.89)",
+                        "value": 0.5
+                      },
+                      {
+                        "color": "#d44a3a",
+                        "value": 0.9
+                      }
+                    ]
+                  },
+                  "unit": "percentunit"
+                },
                 "overrides": []
-              },
-              "format": "percentunit",
-              "gauge": {
-                "maxValue": 1,
-                "minValue": 0,
-                "show": true,
-                "thresholdLabels": false,
-                "thresholdMarkers": true
               },
               "gridPos": {
                 "h": 9,
@@ -1504,38 +1521,21 @@ dashboards:
               "id": 147,
               "interval": null,
               "links": [],
-              "mappingType": 1,
-              "mappingTypes": [
-                {
-                  "name": "value to text",
-                  "value": 1
-                },
-                {
-                  "name": "range to text",
-                  "value": 2
-                }
-              ],
               "maxDataPoints": 100,
-              "nullPointMode": "connected",
-              "nullText": null,
-              "postfix": "",
-              "postfixFontSize": "50%",
-              "prefix": "",
-              "prefixFontSize": "50%",
-              "rangeMaps": [
-                {
-                  "from": "null",
-                  "text": "N/A",
-                  "to": "null"
-                }
-              ],
-              "sparkline": {
-                "fillColor": "rgba(255, 255, 255, 0.18)",
-                "full": false,
-                "lineColor": "rgb(255, 255, 255)",
-                "show": false
+              "options": {
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true,
+                "text": {}
               },
-              "tableColumn": "",
+              "pluginVersion": "7.5.5",
               "targets": [
                 {
                   "exemplar": true,
@@ -1547,18 +1547,8 @@ dashboards:
                   "refId": "A"
                 }
               ],
-              "thresholds": "0.5,0.9,1.0",
               "title": "% of nodes utilized",
-              "type": "singlestat",
-              "valueFontSize": "100%",
-              "valueMaps": [
-                {
-                  "op": "=",
-                  "text": "N/A",
-                  "value": "null"
-                }
-              ],
-              "valueName": "current"
+              "type": "gauge"
             },
             {
               "cacheTimeout": null,
@@ -1625,9 +1615,12 @@ dashboards:
               "tableColumn": "",
               "targets": [
                 {
-                  "expr": "(sum(\n    (sum(label_replace(rate(container_cpu_usage_seconds_total{container_name!=\"\"}[1m]), \"pod\", \"$1\", \"pod_name\", \"(.*)\")) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1)))\n/ \n(sum(\n    (sum(kube_pod_container_resource_requests_cpu_cores{}) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1)))",
+                  "exemplar": true,
+                  "expr": "(sum(\n    (sum(rate(container_cpu_usage_seconds_total{}[1m])) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1)))\n/ \n(sum(\n    (sum(kube_pod_container_resource_requests{resource=\"cpu\"}) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1)))",
                   "format": "time_series",
+                  "interval": "",
                   "intervalFactor": 1,
+                  "legendFormat": "",
                   "refId": "A"
                 }
               ],
@@ -1710,7 +1703,7 @@ dashboards:
               "targets": [
                 {
                   "exemplar": true,
-                  "expr": "sum(\n   (sum(label_replace(container_memory_usage_bytes{container_name!=\"\"}, \"pod\", \"$1\", \"pod_name\", \"(.*)\")) by (pod, namespace))\n   and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n   and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\n/ \nsum(\n   (sum(kube_pod_container_resource_requests_memory_bytes{}) by (pod, namespace))\n   and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n   and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))",
+                  "expr": "sum(\n   (sum(container_memory_usage_bytes{}) by (pod, namespace))\n   and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n   and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\n/ \nsum(\n   (sum(kube_pod_container_resource_requests{resource=\"memory\"}) by (pod, namespace))\n   and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n   and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -1979,7 +1972,7 @@ dashboards:
               "targets": [
                 {
                   "exemplar": true,
-                  "expr": "(sum(\n    (sum(label_replace(rate(container_network_receive_bytes_total{container_name!=\"\"}[1m]), \"pod\", \"$1\", \"pod_name\", \"(.*)\")) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))",
+                  "expr": "(sum(\n    (sum(rate(container_network_receive_bytes_total{}[1m])) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -1988,7 +1981,8 @@ dashboards:
                   "refId": "A"
                 },
                 {
-                  "expr": "- (sum(\n    (sum(label_replace(rate(container_network_transmit_bytes_total{container_name!=\"\"}[1m]), \"pod\", \"$1\", \"pod_name\", \"(.*)\")) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))",
+                  "exemplar": true,
+                  "expr": "- (sum(\n    (sum(rate(container_network_transmit_bytes_total{}[1m])) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -2096,7 +2090,7 @@ dashboards:
               "targets": [
                 {
                   "exemplar": true,
-                  "expr": "(sum(\n    (sum(label_replace(container_memory_usage_bytes{}, \"pod\", \"$1\", \"pod_name\", \"(.*)\")) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace) /1024 / 1024 / 1024) \n/ \n(sum(\n    (sum(kube_pod_container_resource_requests_memory_bytes{}) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) \nby (namespace) / 1024 / 1024 / 1024)",
+                  "expr": "(sum(\n    (sum(container_memory_usage_bytes{}) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace) /1024 / 1024 / 1024) \n/ \n(sum(\n    (sum(kube_pod_container_resource_requests{resource=\"memory\"}) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1)) \nby (namespace) / 1024 / 1024 / 1024)",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -2125,6 +2119,7 @@ dashboards:
               },
               "yaxes": [
                 {
+                  "$$hashKey": "object:510",
                   "format": "percentunit",
                   "label": "",
                   "logBase": 1,
@@ -2133,6 +2128,7 @@ dashboards:
                   "show": true
                 },
                 {
+                  "$$hashKey": "object:511",
                   "format": "short",
                   "label": "",
                   "logBase": 1,
@@ -2199,9 +2195,11 @@ dashboards:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "(sum(\n    (sum(label_replace(rate(container_cpu_usage_seconds_total{container_name!=\"\"}[1m]), \"pod\", \"$1\", \"pod_name\", \"(.*)\")) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))\n/ \n(sum(\n    (sum(kube_pod_container_resource_requests_cpu_cores{}) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))",
+                  "exemplar": true,
+                  "expr": "(sum(\n    (sum(rate(container_cpu_usage_seconds_total{}[1m])) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))\n/ \n(sum(\n    (sum(kube_pod_container_resource_requests{resource=\"cpu\"}) by (pod, namespace))\n    and on(pod) kube_pod_labels{label_spark_role=\"executor\"} \n    and on(pod) (kube_pod_status_phase{phase=\"Running\"} == 1))\nby (namespace))",
                   "format": "time_series",
                   "hide": false,
+                  "interval": "",
                   "intervalFactor": 1,
                   "legendFormat": "{{ namespace }}",
                   "refId": "A"
@@ -2227,6 +2225,7 @@ dashboards:
               },
               "yaxes": [
                 {
+                  "$$hashKey": "object:703",
                   "format": "percentunit",
                   "label": "",
                   "logBase": 1,
@@ -2235,6 +2234,7 @@ dashboards:
                   "show": true
                 },
                 {
+                  "$$hashKey": "object:704",
                   "format": "short",
                   "label": "",
                   "logBase": 1,
@@ -2315,7 +2315,7 @@ dashboards:
               "targets": [
                 {
                   "exemplar": true,
-                  "expr": "sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\", container=\"spark-kubernetes-driver\", pod=~\"($app_name).*\"}) by (namespace)",
+                  "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", container=\"spark-kubernetes-driver\", pod=~\"($app_name).*\", resource=\"cpu\"}) by (namespace)",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -2325,7 +2325,7 @@ dashboards:
                 },
                 {
                   "exemplar": true,
-                  "expr": "sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\", container=\"spark-kubernetes-executor\", pod=~\"($app_name).*\"}) by (namespace)",
+                  "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", container=\"spark-kubernetes-executor\", pod=~\"($app_name).*\", resource=\"cpu\"}) by (namespace)",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -2335,7 +2335,7 @@ dashboards:
                 },
                 {
                   "exemplar": true,
-                  "expr": "sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\", pod=~\"($app_name).*\"}) by (namespace)",
+                  "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", pod=~\"($app_name).*\", resource=\"cpu\"}) by (namespace)",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -2364,6 +2364,7 @@ dashboards:
               },
               "yaxes": [
                 {
+                  "$$hashKey": "object:794",
                   "decimals": 0,
                   "format": "short",
                   "label": null,
@@ -2373,6 +2374,7 @@ dashboards:
                   "show": true
                 },
                 {
+                  "$$hashKey": "object:795",
                   "format": "short",
                   "label": null,
                   "logBase": 1,
@@ -2437,15 +2439,17 @@ dashboards:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\", container=\"spark-kubernetes-driver\", pod=~\"($app_name).*\"}) by (namespace)",
+                  "exemplar": true,
+                  "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", container=\"spark-kubernetes-driver\", pod=~\"($app_name).*\", resource=\"memory\"}) by (namespace)",
                   "format": "time_series",
+                  "interval": "",
                   "intervalFactor": 1,
                   "legendFormat": "Mem Used by Driver",
                   "refId": "A"
                 },
                 {
                   "exemplar": true,
-                  "expr": "sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\", container=\"spark-kubernetes-executor\", pod=~\"($app_name).*\"}) by (namespace)",
+                  "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", container=\"spark-kubernetes-executor\", pod=~\"($app_name).*\", resource=\"memory\"}) by (namespace)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -2453,8 +2457,10 @@ dashboards:
                   "refId": "B"
                 },
                 {
-                  "expr": "sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\", pod=~\"($app_name).*\"}) by (namespace)",
+                  "exemplar": true,
+                  "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", pod=~\"($app_name).*\", resource=\"memory\"}) by (namespace)",
                   "format": "time_series",
+                  "interval": "",
                   "intervalFactor": 1,
                   "legendFormat": "Total Mem Used",
                   "refId": "C"
@@ -2480,6 +2486,7 @@ dashboards:
               },
               "yaxes": [
                 {
+                  "$$hashKey": "object:949",
                   "decimals": 0,
                   "format": "decbytes",
                   "label": null,
@@ -2489,6 +2496,7 @@ dashboards:
                   "show": true
                 },
                 {
+                  "$$hashKey": "object:950",
                   "format": "short",
                   "label": null,
                   "logBase": 1,
