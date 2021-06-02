@@ -1,23 +1,6 @@
 ---
-# check, this service may already be stood up
-apiVersion: v1
-kind: Service
-metadata:
-  name: spark-application-metrics
-  namespace: ${sparknamepace}
-  # namespace: {{ .Namespace }}
-  labels:
-    spark/servicemonitor: "true"
-spec:
-  ports:
-    - port: 8090
-      name: metrics
-  clusterIP: None
-  selector:
-    metrics-exposed: "true"
----
 apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+kind: PodMonitor
 metadata:
   namespace: ${monitoringnamespace}
   labels:
@@ -25,13 +8,18 @@ metadata:
     release: prometheus
   name: spark-monitor
 spec:
+  podMetricsEndpoints:
+    - interval: 5s
+      port: spark-ui
+      scheme: http
+      path: /metrics/prometheus
+    - interval: 5s
+      port: spark-ui
+      scheme: http
+      path: /metrics/executors/prometheus
   namespaceSelector:
     matchNames:
       - ${sparknamepace}
-    # any: false
-  endpoints:
-    - interval: 5s
-      port: metrics
   selector:
     matchLabels:
-      spark/servicemonitor: "true"
+      metrics-exposed: "true"

@@ -5,8 +5,8 @@ USER root
 RUN groupadd -r -g 999 sparkpy && useradd -r -g sparkpy -u 999 sparkpy
 RUN pip3 install streamstate-utils==0.6.0
 RUN mkdir -p /etc/metrics/conf
-COPY sparkstreaming/metrics.properties /etc/metrics/conf
-COPY sparkstreaming/prometheus.yaml /etc/metrics/conf
+COPY sparkstreaming/metrics.properties $SPARK_HOME/conf/metrics.properties
+#COPY sparkstreaming/prometheus.yaml /etc/metrics/conf
 
 
 # Setup dependencies for Google Cloud Storage access.
@@ -17,8 +17,8 @@ ADD https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-latest-hadoop3.j
 
 # Setup for the Prometheus JMX exporter.
 # Add the Prometheus JMX exporter Java agent jar for exposing metrics sent to the JmxSink to Prometheus.
-ADD https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.11.0/jmx_prometheus_javaagent-0.11.0.jar /prometheus/
-RUN chmod 644 /prometheus/jmx_prometheus_javaagent-0.11.0.jar
+#ADD https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.11.0/jmx_prometheus_javaagent-0.11.0.jar /prometheus/
+#RUN chmod 644 /prometheus/jmx_prometheus_javaagent-0.11.0.jar
 
 
 COPY streamstate_scripts/dev_app.py /opt/spark/work-dir/dev_app.py

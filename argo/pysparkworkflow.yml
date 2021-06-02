@@ -194,7 +194,7 @@ spec:
                             serviceAccountName: ${sparkserviceaccount}
                             containers:
                             - name: gcsfolder
-                              image: ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
+                              image: ${registryprefix}/${project}/${project}/pysparkbase:v0.3.0
                               imagePullPolicy: Always
                               command: [
                                 "python3",  
@@ -211,7 +211,7 @@ spec:
                     parameters:
                       - name: pythoncode
                       - name: dockerfileline1 
-                        value: FROM ${registryprefix}/${project}/${project}/pysparkbase:v0.1.0
+                        value: FROM ${registryprefix}/${project}/${project}/pysparkbase:v0.3.0
                       - name: dockerfileline2 
                         value: COPY process.py /opt/spark/work-dir/process.py
                   container:
@@ -305,6 +305,17 @@ spec:
                           spark.eventLog.enabled: "true" # spark history
                           spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
                           spark.sql.streaming.metricsEnabled: "true"
+                          spark.ui.prometheus.enabled: "true"
+                          spark.hadoop.fs.gs.project.id: ${project}
+                          spark.hadoop.gs.system.bucket: ${bucketwithoutgs} # "streamstate-sparkstorage-${organization}"  
+                          spark.hadoop.google.cloud.auth.service.account.enable: "true" 
+                          spark.hadoop.fs.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+                          spark.hadoop.fs.AbstractFileSystem.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS"
+                          spark.metrics.conf.*.sink.prometheusServlet.class: org.apache.spark.metrics.sink.PrometheusServlet
+                          spark.metrics.conf.*.sink.prometheusServlet.path: /metrics/prometheus
+                          spark.metrics.conf.master.sink.prometheusServlet.path: /metrics/master/prometheus
+                          spark.metrics.conf.applications.sink.prometheusServlet.path: /metrics/applications/prometheus
+                        
                         type: Python
                         pythonVersion: "3"
                         mode: cluster
@@ -312,12 +323,14 @@ spec:
                         imagePullPolicy: Always
                         mainApplicationFile: "local:///opt/spark/work-dir/replay_app.py" # todo, adjust this to be the right entrypoint
                         sparkVersion: "3.1.1"
-                        hadoopConf:
-                          "fs.gs.project.id": ${project}
-                          "fs.gs.system.bucket": ${bucketwithoutgs} # "streamstate-sparkstorage-${organization}"  
-                          "google.cloud.auth.service.account.enable": "true" 
-                          "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
-                          "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+                        
+                        
+                        #hadoopConf:
+                        #  "fs.gs.project.id": ${project}
+                        #  "fs.gs.system.bucket": ${bucketwithoutgs} # "streamstate-sparkstorage-${organization}"  
+                        #  "google.cloud.auth.service.account.enable": "true" 
+                        #  "fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+                        #  "fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS"
                         
                         arguments:
                           - '{{inputs.parameters.appname}}'
@@ -329,7 +342,6 @@ spec:
                           - '{{inputs.parameters.inputs}}'
                           - 'checkpoint'
                           - '{{inputs.parameters.version}}'
-
                        
                         restartPolicy:
                           type: Always # should be able to resume from checkpoint if killed for some reason
@@ -342,7 +354,6 @@ spec:
                                 name: ${dataconfig} 
                           labels:
                             metrics-exposed: "true"
-                            # spark-pod-type: "driver"
                         executor:
                           instances: 1
                           cores: 1
@@ -350,13 +361,7 @@ spec:
                           serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
                           labels:
                             metrics-exposed: "true"
-                            # spark-pod-type: "executor"
-                        monitoring: 
-                          exposeDriverMetrics: true
-                          exposeExecutorMetrics: true
-                          prometheus:
-                            jmxExporterJar: "/prometheus/jmx_prometheus_javaagent-0.11.0.jar"
-                            port: 8090
+
           parameters:
             - src:
                 dependencyName: deploypysparkjob
