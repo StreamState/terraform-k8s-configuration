@@ -914,7 +914,7 @@ data "kubectl_path_documents" "servicemonitor" {
   }
 }
 resource "kubectl_manifest" "servicemonitor" {
-  count     = 2 #length(data.kubectl_path_documents.servicemonitor.documents)
+  count     = 1 #2 #length(data.kubectl_path_documents.servicemonitor.documents)
   yaml_body = element(data.kubectl_path_documents.servicemonitor.documents, count.index)
   #override_namespace = kubernetes_namespace.sparkplane.metadata.0.name
   depends_on = [

@@ -1454,7 +1454,7 @@ dashboards:
           "editable": true,
           "gnetId": null,
           "graphTooltip": 0,
-          "iteration": 1622550232291,
+          "iteration": 1622668233377,
           "links": [],
           "panels": [
             {
@@ -1915,7 +1915,7 @@ dashboards:
               },
               "id": 153,
               "panels": [],
-              "title": "Performance",
+              "title": "Namespace Performance",
               "type": "row"
             },
             {
@@ -1933,7 +1933,7 @@ dashboards:
               "fillGradient": 0,
               "gridPos": {
                 "h": 10,
-                "w": 24,
+                "w": 7,
                 "x": 0,
                 "y": 11
               },
@@ -1945,7 +1945,7 @@ dashboards:
                 "current": true,
                 "max": true,
                 "min": false,
-                "rightSide": true,
+                "rightSide": false,
                 "show": true,
                 "sideWidth": 400,
                 "sort": "current",
@@ -2049,9 +2049,9 @@ dashboards:
               "fillGradient": 0,
               "gridPos": {
                 "h": 10,
-                "w": 24,
-                "x": 0,
-                "y": 21
+                "w": 7,
+                "x": 7,
+                "y": 11
               },
               "hiddenSeries": false,
               "id": 141,
@@ -2061,7 +2061,7 @@ dashboards:
                 "current": true,
                 "max": true,
                 "min": false,
-                "rightSide": true,
+                "rightSide": false,
                 "show": true,
                 "sideWidth": 400,
                 "sort": "current",
@@ -2157,9 +2157,9 @@ dashboards:
               "fillGradient": 0,
               "gridPos": {
                 "h": 10,
-                "w": 24,
-                "x": 0,
-                "y": 31
+                "w": 7,
+                "x": 14,
+                "y": 11
               },
               "hiddenSeries": false,
               "id": 143,
@@ -2169,7 +2169,7 @@ dashboards:
                 "current": true,
                 "max": true,
                 "min": false,
-                "rightSide": true,
+                "rightSide": false,
                 "show": true,
                 "sideWidth": 400,
                 "sort": "current",
@@ -2255,7 +2255,7 @@ dashboards:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 41
+                "y": 21
               },
               "id": 23,
               "panels": [],
@@ -2280,7 +2280,7 @@ dashboards:
                 "h": 10,
                 "w": 10,
                 "x": 0,
-                "y": 42
+                "y": 22
               },
               "hiddenSeries": false,
               "id": 29,
@@ -2407,7 +2407,7 @@ dashboards:
                 "h": 10,
                 "w": 11,
                 "x": 10,
-                "y": 42
+                "y": 22
               },
               "hiddenSeries": false,
               "id": 31,
@@ -2517,7 +2517,7 @@ dashboards:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 52
+                "y": 32
               },
               "id": 130,
               "panels": [],
@@ -2537,10 +2537,10 @@ dashboards:
               "fill": 1,
               "fillGradient": 0,
               "gridPos": {
-                "h": 8,
-                "w": 8,
+                "h": 9,
+                "w": 7,
                 "x": 0,
-                "y": 53
+                "y": 33
               },
               "hiddenSeries": false,
               "id": 139,
@@ -2571,25 +2571,17 @@ dashboards:
               "targets": [
                 {
                   "exemplar": true,
-                  "expr": "jvm_memory_bytes_used{container=\"spark-kubernetes-driver\",area=\"nonheap\"} ",
+                  "expr": "Sum(metrics_executor_JVMOffHeapMemory_bytes{namespace=~\"$namespace\",application_name=~\"$app_name\"} ) by (application_id)",
                   "interval": "",
-                  "legendFormat": "Driver Heap",
+                  "legendFormat": "{{application_id}}",
                   "refId": "A"
-                },
-                {
-                  "exemplar": true,
-                  "expr": "jvm_memory_bytes_used{container=\"spark-kubernetes-executor\",area=\"nonheap\"}",
-                  "hide": false,
-                  "interval": "",
-                  "legendFormat": "Executor Heap",
-                  "refId": "B"
                 }
               ],
               "thresholds": [],
               "timeFrom": null,
               "timeRegions": [],
               "timeShift": null,
-              "title": "Non-Heap Memory",
+              "title": "Executor Non-Heap Memory",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -2641,10 +2633,10 @@ dashboards:
               "fill": 1,
               "fillGradient": 0,
               "gridPos": {
-                "h": 8,
-                "w": 9,
-                "x": 8,
-                "y": 53
+                "h": 9,
+                "w": 7,
+                "x": 7,
+                "y": 33
               },
               "hiddenSeries": false,
               "id": 138,
@@ -2675,25 +2667,17 @@ dashboards:
               "targets": [
                 {
                   "exemplar": true,
-                  "expr": "jvm_memory_bytes_used{container=\"spark-kubernetes-driver\",area=\"heap\"} ",
+                  "expr": "sum(metrics_executor_JVMHeapMemory_bytes{namespace=~\"$namespace\",application_name=~\"$app_name\"}) by (application_id) ",
                   "interval": "",
-                  "legendFormat": "Driver Heap",
+                  "legendFormat": "{{application_id}}",
                   "refId": "A"
-                },
-                {
-                  "exemplar": true,
-                  "expr": "jvm_memory_bytes_used{container=\"spark-kubernetes-executor\",area=\"heap\"}",
-                  "hide": false,
-                  "interval": "",
-                  "legendFormat": "Executor Heap",
-                  "refId": "B"
                 }
               ],
               "thresholds": [],
               "timeFrom": null,
               "timeRegions": [],
               "timeShift": null,
-              "title": "Heap Memory",
+              "title": "Executor Heap Memory",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -2739,6 +2723,127 @@ dashboards:
               "dashes": false,
               "datasource": null,
               "fieldConfig": {
+                "defaults": {
+                  "links": []
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 7,
+                "x": 14,
+                "y": 33
+              },
+              "hiddenSeries": false,
+              "id": 115,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": false,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.5.5",
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "v",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "SUM(metrics_executor_activeTasks{namespace=~\"$namespace\", application_name=~\"$app_name\"})",
+                  "format": "time_series",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "Active tasks",
+                  "refId": "A"
+                },
+                {
+                  "exemplar": true,
+                  "expr": "SUM(metrics_executor_totalTasks_total{namespace=\"$namespace\", application_name=~\"$app_name\"})",
+                  "format": "time_series",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "Total tasks",
+                  "refId": "B"
+                },
+                {
+                  "exemplar": true,
+                  "expr": "SUM(metrics_executor_failedTasks_total{namespace=\"$namespace\", application_name=~\"$app_name\"})",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Failed Tasks",
+                  "refId": "C"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Tasks",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:792",
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:793",
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": null,
+              "fieldConfig": {
                 "defaults": {},
                 "overrides": []
               },
@@ -2746,9 +2851,9 @@ dashboards:
               "fillGradient": 0,
               "gridPos": {
                 "h": 8,
-                "w": 8,
+                "w": 7,
                 "x": 0,
-                "y": 61
+                "y": 42
               },
               "hiddenSeries": false,
               "id": 137,
@@ -2843,45 +2948,39 @@ dashboards:
               "dashes": false,
               "datasource": null,
               "fieldConfig": {
-                "defaults": {
-                  "links": []
-                },
+                "defaults": {},
                 "overrides": []
               },
               "fill": 1,
               "fillGradient": 0,
               "gridPos": {
                 "h": 8,
-                "w": 9,
-                "x": 8,
-                "y": 61
+                "w": 7,
+                "x": 7,
+                "y": 42
               },
               "hiddenSeries": false,
-              "id": 115,
+              "id": 157,
               "legend": {
-                "alignAsTable": true,
                 "avg": false,
-                "current": true,
+                "current": false,
                 "max": false,
                 "min": false,
-                "rightSide": false,
                 "show": true,
                 "total": false,
-                "values": true
+                "values": false
               },
               "lines": true,
               "linewidth": 1,
-              "links": [],
               "nullPointMode": "null",
               "options": {
                 "alertThreshold": true
               },
               "percentage": false,
               "pluginVersion": "7.5.5",
-              "pointradius": 5,
+              "pointradius": 2,
               "points": false,
               "renderer": "flot",
-              "repeatDirection": "v",
               "seriesOverrides": [],
               "spaceLength": 10,
               "stack": false,
@@ -2889,27 +2988,15 @@ dashboards:
               "targets": [
                 {
                   "exemplar": true,
-                  "expr": "spark_executor_jvm_total_max_type_gauges{app_namespace=\"$namespace\", app_id=~\"$app_name\"}",
-                  "format": "time_series",
+                  "expr": "sum(metrics_executor_MajorGCTime_seconds_total{namespace=~\"$namespace\", application_name=~\"$app_name\"}) by (application_id)",
                   "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "Heap max ({{app_id}})",
+                  "legendFormat": "{{application_id}}",
                   "refId": "A"
-                },
-                {
-                  "expr": "spark_executor_jvm_total_used_type_gauges{app_namespace=\"$namespace\", app_id=~\"$app_name\"}",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "Heap used ({{app_id}})",
-                  "refId": "B"
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
-              "title": "Executor Heap (max/used)",
+              "title": "Major Garbage Collection",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -2925,7 +3012,109 @@ dashboards:
               },
               "yaxes": [
                 {
-                  "$$hashKey": "object:792",
+                  "$$hashKey": "object:447",
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:448",
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": null,
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 7,
+                "x": 14,
+                "y": 42
+              },
+              "hiddenSeries": false,
+              "id": 159,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.5.5",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "SUM(metrics_executor_totalShuffleWrite_bytes_total{namespace=~\"$namespace\", application_name=~\"$app_name\"})",
+                  "interval": "",
+                  "legendFormat": "Shuffle Write",
+                  "refId": "A"
+                },
+                {
+                  "exemplar": true,
+                  "expr": "SUM(metrics_executor_totalShuffleRead_bytes_total{namespace=~\"$namespace\", application_name=~\"$app_name\"})",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Shuffle Read",
+                  "refId": "B"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Shuffle",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:504",
                   "format": "bytes",
                   "label": null,
                   "logBase": 1,
@@ -2934,7 +3123,7 @@ dashboards:
                   "show": true
                 },
                 {
-                  "$$hashKey": "object:793",
+                  "$$hashKey": "object:505",
                   "format": "short",
                   "label": null,
                   "logBase": 1,
@@ -2995,10 +3184,10 @@ dashboards:
                 "current": {
                   "selected": true,
                   "text": [
-                    "All"
+                    "mytestapp"
                   ],
                   "value": [
-                    "$__all"
+                    "mytestapp"
                   ]
                 },
                 "datasource": "default",
