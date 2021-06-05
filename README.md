@@ -99,6 +99,12 @@ You may have to create a subfolder first (eg, /test)
 * echo {\"field1\": \"somevalue\"} > ./mytest1.json
 * gsutil cp ./mytest1.json gs://streamstate-sparkstorage-testorg/mytestapp/topic1
 
+Read from the result firebase:
+
+
+curl  -H "Authorization: Bearer 8a4e0043-a34b-4abc-b3d0-5b9cf89e64f3" -X GET https://testorg.streamstate.org/api/mytestapp/features/1?filter="somevalue" -k 
+
+
 # Backend service service 
 
 The backend for provisioning new jobs
@@ -121,6 +127,7 @@ The backend for provisioning new jobs
 Grafana password:
 * kubectl get secret --namespace serviceplane-testorg grafana -o jsonpath="{.data.admin-password}" | base64 --decode
 
+example spark streaming metric: metrics_spark_d5530e7956d14113aa91005d4018e5b3_driver_spark_streaming_2db3b2a8_826b_4f22_91f5_74c2bce2930c_latency_Value
 
 # test workload identity
 
@@ -131,28 +138,9 @@ kubectl run -it \
 workload-identity-test
 
 
-kubectl run -it \
---image google/cloud-sdk:slim \
---serviceaccount argo-workflow \
---namespace serviceplane-testorg \
-workload-identity-test
-
-
-gcloud auth list
-
-kubectl get certificaterequest -n serviceplane-testorg
-
-
 
 
 gcloud projects get-iam-policy streamstatetest  \
 --flatten="bindings[].members" \
 --format='table(bindings.role)' \
 --filter="bindings.members:spark-gcs-testorg@streamstatetest.iam.gserviceaccount.com"
-
-
-kubectl run -it \
---image us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.2.0 \
---serviceaccount spark \
---namespace mainspark-testorg \
-mytest

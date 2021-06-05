@@ -1,6 +1,6 @@
 from typing import List, Callable, Optional, Dict, Union
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Query
 from pydantic import BaseModel
 from streamstate_utils.structs import (
     InputStruct,
@@ -107,10 +107,12 @@ def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
 def read_feature(
     app_name: str,
     version: int,
-    filter: List[str],
+    filter: Optional[List[str]] = Query(None),
     authorization: Optional[str] = Header(None),
 ):
     auth_checker(authorization, get_read_token)
+    if filter is None:
+        raise HTTPException(status_code=400, detail="Query parameter filter required")
     return get_latest_record(DB, ORGANIZATION, app_name, version, filter)
 
 

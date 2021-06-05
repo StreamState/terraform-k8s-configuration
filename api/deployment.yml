@@ -14,7 +14,7 @@ spec:
       serviceAccountName: ${firestoreviewer}
       containers:
       - image: ${registryprefix}/${project}/${project}/restapi:v0.1.0
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: restapi
         ports:
         - containerPort: 8000
