@@ -9,7 +9,8 @@ import os
 from process import process
 import json
 from streamstate_utils.structs import OutputStruct, FileStruct, InputStruct
-import marshmallow_dataclass
+
+# import marshmallow_dataclass
 
 
 def dev_from_file(
@@ -48,12 +49,9 @@ if __name__ == "__main__":
         input_struct,
         checkpoint_location,
     ] = sys.argv
-    output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
-    output_info = output_schema.load(json.loads(output_struct))
-    file_schema = marshmallow_dataclass.class_schema(FileStruct)()
-    file_info = file_schema.load(json.loads(file_struct))
-    input_schema = marshmallow_dataclass.class_schema(InputStruct)()
-    input_info = [input_schema.load(v) for v in json.loads(input_struct)]
+    output_info = OutputStruct(**json.loads(output_struct))
+    file_info = FileStruct(**json.loads(file_struct))
+    input_info = [InputStruct(**v) for v in json.loads(input_struct)]
     dev_from_file(
         app_name,
         file_info.max_file_age,

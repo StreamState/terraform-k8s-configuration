@@ -1,8 +1,6 @@
-from typing import List
 from provision_firestore import (
     create_schema,
 )
-import marshmallow_dataclass
 import sys
 
 from streamstate_utils.k8s_utils import (
@@ -17,8 +15,7 @@ import json
 
 def main():
     [_, app_name, table_struct] = sys.argv
-    table_schema = marshmallow_dataclass.class_schema(TableStruct)()
-    table_info = table_schema.load(json.loads(table_struct))
+    table_info = TableStruct(**json.loads(table_struct))
     organization = get_organization_from_config_map()
     project_id = get_project_from_config_map()
     db = open_firestore_connection(project_id)

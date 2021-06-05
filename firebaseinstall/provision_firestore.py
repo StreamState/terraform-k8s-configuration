@@ -1,11 +1,7 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
-
 from typing import List, Dict, Tuple
 
 from streamstate_utils.firestore import (
     get_collection_from_org_name_and_app_name,
-    get_document_name_from_version_and_keys,
 )
 
 import json
@@ -105,26 +101,3 @@ def get_stream_from_table(db, org_name: str, app_name: str, version: int):
     # document = get_document_name_from_app_name(app_name, version)
 
     return db.collection(collection).stream()
-
-
-## if, for example, the data is account_id, count_logins_last_30_days
-## with account_id being the primary key, then this would get the most
-## recent data for this account_id
-def get_latest_record(
-    db, org_name: str, app_name: str, version: int, key_values: List[str]
-) -> dict:
-    """
-    Gets latest record by key
-
-    Attributes:
-    db: instance of firestore client
-    org_name: name of organiation
-    app_name: name of app
-    version: schema version
-    key_values: the values of the primary key columns.
-    Must be in the same order as on write
-    """
-    collection = get_collection_from_org_name_and_app_name(org_name, app_name)
-    document = get_document_name_from_version_and_keys(key_values, version)
-
-    return db.collection(collection).document(document).get().to_dict()

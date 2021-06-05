@@ -1,7 +1,6 @@
 from typing import List, Callable, Optional, Dict, Union
 
 from fastapi import FastAPI, HTTPException, Header
-from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from streamstate_utils.structs import (
     InputStruct,
@@ -134,4 +133,4 @@ def dummy_deploy(
     body: ApiDeploy,
     authorization: Optional[str] = Header(None),
 ):
-    return "Success"
+    return "success"

@@ -313,6 +313,34 @@ resource "google_service_account_iam_binding" "argo" {
 
 
 
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# this works with google service account binding to connect kubernetes and google accounts
+resource "kubernetes_service_account" "firestoreviewer" {
+  metadata {
+    name      = "firestore-viewer"
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = var.firestoreviewer_svc_email
+    }
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+
+# see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
+# link service account and kubernetes service account
+resource "google_service_account_iam_binding" "firestoreviewer" {
+  service_account_id = var.firestoreviewer_svc_name
+  role               = "roles/iam.workloadIdentityUser"
+  members = [
+    "serviceAccount:${var.project}.svc.id.goog[${kubernetes_namespace.serviceplane.metadata.0.name}/${kubernetes_service_account.firestoreviewer.metadata.0.name}]",
+  ]
+  depends_on = [
+    kubernetes_namespace.serviceplane
+  ]
+}
+
+
 ##################
 # Standalone kubernetes service accounts and secrets
 ##################
@@ -338,22 +366,43 @@ resource "kubernetes_role_binding" "argoevents-runrb" {
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
-/*
-resource "kubernetes_service_account" "argoevents-sparksubmit" {
+# todo, define this once for whole cluster
+resource "kubernetes_cluster_role" "stopsparkapplication" {
   metadata {
-    name      = "argoevents-sparksubmit"
+    name = "stopsparkapp-role"
+  }
+  rule {
+    api_groups = ["sparkoperator.k8s.io"]
+    resources  = ["sparkapplications"]
+    verbs      = ["delete"]
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+# This is per organization
+resource "kubernetes_role_binding" "stopsparkapplication" {
+  metadata {
+    name      = "stopspark-role-binding"
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.stopsparkapplication.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.firestoreviewer.metadata.0.name
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
-  depends_on = [
-    kubernetes_namespace.serviceplane
-  ]
+  depends_on = [kubernetes_namespace.serviceplane]
 }
-*/
+
 
 # Todo, define this once for the whole cluster
-resource "kubernetes_cluster_role" "launchsparkoperator" {
+resource "kubernetes_cluster_role" "launchsparkapplication" {
   metadata {
-    name = "launchsparkoperator-role"
+    name = "launchsparkapplication-role"
   }
   rule {
     api_groups = ["sparkoperator.k8s.io"]
@@ -374,7 +423,7 @@ resource "kubernetes_cluster_role" "launchsparkoperator" {
 }
 
 # This is per organization
-resource "kubernetes_role_binding" "launchsparkoperator" {
+resource "kubernetes_role_binding" "launchsparkapplication" {
   metadata {
     name      = "launchspark-role-binding"
     namespace = kubernetes_namespace.sparkplane.metadata.0.name
@@ -382,60 +431,21 @@ resource "kubernetes_role_binding" "launchsparkoperator" {
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "ClusterRole"
-    name      = kubernetes_cluster_role.launchsparkoperator.metadata.0.name
+    name      = kubernetes_cluster_role.launchsparkapplication.metadata.0.name
   }
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.argo.metadata.0.name
-    namespace = kubernetes_namespace.serviceplane.metadata.0.name # is this for the service account?  I think so...
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
-##### Prometheus
 
-/*
-resource "kubernetes_cluster_role" "prometheusclusterrole" {
-  metadata {
-    name = "prometheusrole"
-    labels=[
-      "app=prometheus"
-    ]
-    #namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  }
-  rule {
-    api_groups = [""]
-    resources  = [
-      "nodes", 
-      "nodes/proxy", 
-      "nodes/metrics", 
-      "services", 
-      "endpoints", 
-      "pods", 
-      "ingresses", 
-      "configmaps"
-    ]
-    verbs      = ["get", "list", "watch"]
-  }
-  rule {
-    api_groups = [""]
-    resources  = ["configmaps"]
-    verbs      = ["get"]
-  }
-  rule {
-    api_groups = ["networking.k8s.io", "extensions"]
-    resources  = ["ingresses", "ingresses/status"]
-    verbs      = ["get", "list", "watch"]
-  }
-  rule {
-    non_resource_urls = ["/metrics"]
-    verbs             = ["get"]
-  }
-  depends_on = [kubernetes_namespace.serviceplane]
-}*/
 
 #### Data
-
+# do I need these?  or could I justpass them declaratively as 
+# needed?
 resource "kubernetes_config_map" "usefuldata" {
   metadata {
     name      = "sparkjobdata"
@@ -874,7 +884,27 @@ resource "kubectl_manifest" "mainui" {
   ]
 }
 
+###################
+# install API
+###################
 
+data "kubectl_path_documents" "restapi" {
+  pattern = "../../api/deployment.yml"
+  vars = {
+    registryprefix  = var.registryprefix
+    project         = var.project
+    namespace       = kubernetes_namespace.serviceplane.metadata.0.name
+    firestoreviewer = kubernetes_service_account.firestoreviewer.metadata.0.name
+  }
+}
+resource "kubectl_manifest" "restapi" {
+  count              = 2 # length(data.kubectl_path_documents.restapi.documents)
+  yaml_body          = element(data.kubectl_path_documents.restapi.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on = [
+    kubernetes_namespace.serviceplane
+  ]
+}
 
 ###############
 # install gateway

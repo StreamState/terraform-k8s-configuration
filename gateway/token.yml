@@ -8,3 +8,12 @@ metadata:
   annotations:
     secret-generator.v1.mittwald.de/autogenerate: token
 data: 
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: streamstate-restapi-token
+  annotations:
+    secret-generator.v1.mittwald.de/autogenerate: token
+data: 

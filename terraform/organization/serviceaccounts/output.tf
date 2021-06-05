@@ -18,6 +18,12 @@ output "firestore_svc_name" {
 output "firestore_svc_email" {
   value = google_service_account.firestore.email
 }
+output "firestoreviewer_svc_name" {
+  value = google_service_account.firestore-viewer.name
+}
+output "firestoreviewer_svc_email" {
+  value = google_service_account.firestore-viewer.email
+}
 output "spark_history_svc_email" {
   value = google_service_account.spark-history.email
 }

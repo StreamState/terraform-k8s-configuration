@@ -58,6 +58,11 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.1.0
 * cd ..
 
+* cd api
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.1.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.1.0
+* cd ..
+
 # setup spark history server
 
 * cd spark-history
@@ -73,12 +78,12 @@ Unfortunately, this requires root access, but just for spark history which has v
 
 Get token from mainui, then
 
-* curl  -H "Content-Type: application/json" -H "Authorization: Bearer [token]" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer d05c4b62-7b6c-4f3d-a5a8-6249acaeabdf" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
 
+To stop:
 
+curl  -H "Authorization: Bearer d05c4b62-7b6c-4f3d-a5a8-6249acaeabdf" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
 
-
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer 87a58ee3-d2f4-4302-b405-615288e5b593" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
 
 
 # upload json to bucket

@@ -106,3 +106,10 @@ variable "client_secret" {
   type = string
 }
 
+variable "firestoreviewer_svc_name" {
+  type = string
+}
+
+variable "firestoreviewer_svc_email" {
+  type = string
+}

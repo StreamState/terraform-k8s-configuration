@@ -38,7 +38,7 @@ spec:
       # port to run HTTP server on
       port: "12000"
       # endpoint to listen to
-      endpoint: /build/container 
+      endpoint: /api/deploy 
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
       # kubectl create secret generic streamstate-webhook-token --from-file=token=./token.txt
@@ -54,7 +54,7 @@ metadata:
   labels:
     service: argowebhook
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 12000
     protocol: TCP

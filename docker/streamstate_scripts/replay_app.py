@@ -26,7 +26,7 @@ from streamstate_utils.structs import (
     TableStruct,
     FirestoreOutputStruct,
 )
-import marshmallow_dataclass
+
 from process import process
 import json
 import os
@@ -87,19 +87,13 @@ if __name__ == "__main__":
         checkpoint_location,
         version,
     ] = sys.argv
-    table_schema = marshmallow_dataclass.class_schema(TableStruct)()
-    output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
-    output_info = output_schema.load(json.loads(output_struct))
-    file_schema = marshmallow_dataclass.class_schema(FileStruct)()
-    file_info = file_schema.load(json.loads(file_struct))
-    table_info = table_schema.load(json.loads(table_struct))
+    output_info = OutputStruct(**json.loads(output_struct))
+    file_info = FileStruct(**json.loads(file_struct))
+    table_info = TableStruct(**json.loads(table_struct))
     firestore = get_firestore_inputs_from_config_map(app_name, version)
-    # cassandra_input = get_cassandra_inputs_from_config_map()
-    # cassandra_output = get_cassandra_outputs_from_config_map(app_name, version)
-    kafka_schema = marshmallow_dataclass.class_schema(KafkaStruct)()
-    kafka_info = kafka_schema.load(json.loads(kafka_struct))
-    input_schema = marshmallow_dataclass.class_schema(InputStruct)()
-    input_info = [input_schema.load(v) for v in json.loads(input_struct)]
+
+    kafka_info = KafkaStruct(**json.loads(kafka_struct))
+    input_info = [InputStruct(**v) for v in json.loads(input_struct)]
     replay_from_file(
         app_name,
         bucket,
@@ -108,8 +102,6 @@ if __name__ == "__main__":
         file_info,
         table_info,
         firestore,
-        # cassandra_input,
-        # cassandra_output,
         kafka_info,
         checkpoint_location,
     )

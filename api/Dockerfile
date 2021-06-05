@@ -7,4 +7,4 @@ RUN pip3 install -r requirements.txt
 COPY index.py /opt/restapi/work-dir/index.py
 RUN chown -R restapi:restapi /opt/restapi/work-dir
 USER restapi
-CMD ["uvicorn", "index:app"]
+CMD ["uvicorn", "--host", "0.0.0.0", "index:app"]
