@@ -895,6 +895,7 @@ data "kubectl_path_documents" "restapi" {
     project         = var.project
     namespace       = kubernetes_namespace.sparkplane.metadata.0.name
     firestoreviewer = kubernetes_service_account.firestoreviewer.metadata.0.name
+    dataconfigargo  = kubernetes_config_map.usefuldataargo.metadata.0.name
   }
 }
 resource "kubectl_manifest" "restapi" {

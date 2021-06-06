@@ -63,8 +63,6 @@ def check_auth_head(authorization: str) -> bool:
 
 def check_auth(authorization: str, actual_token: str) -> bool:
     token = authorization.replace("Bearer ", "")
-    print(token)
-    print(actual_token)
     return token == actual_token
 
 

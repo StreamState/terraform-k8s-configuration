@@ -78,11 +78,11 @@ Unfortunately, this requires root access, but just for spark history which has v
 
 Get token from mainui, then
 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer 4b6f9740-c911-4bd9-84f0-f4b6bf49d81a" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer 70a3f8df-89e6-497f-bd32-93f301a0027a" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
 
 To stop:
 
-curl  -H "Authorization: Bearer 4bb078a3-402b-4f40-a466-9872b455fffa" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
+curl  -H "Authorization: Bearer 70a3f8df-89e6-497f-bd32-93f301a0027a" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
 
 
 
@@ -102,7 +102,7 @@ You may have to create a subfolder first (eg, /test)
 Read from the result firebase:
 
 
-curl  -H "Authorization: Bearer u7CTEfEhlUgafe8jRDkx7kaOz0LIY8u/" -X GET https://testorg.streamstate.org/api/mytestapp/features/1?filter="somevalue" -k 
+curl  -H "Authorization: Bearer 4e4c8adf-c1a8-4d1b-ad7d-51545db8a976" -X GET https://testorg.streamstate.org/api/mytestapp/features/1?filter="somevalue" -k 
 
 
 # Backend service service 
@@ -126,8 +126,6 @@ The backend for provisioning new jobs
 
 Grafana password:
 * kubectl get secret --namespace serviceplane-testorg grafana -o jsonpath="{.data.admin-password}" | base64 --decode
-
-example spark streaming metric: metrics_spark_d5530e7956d14113aa91005d4018e5b3_driver_spark_streaming_2db3b2a8_826b_4f22_91f5_74c2bce2930c_latency_Value
 
 # test workload identity
 

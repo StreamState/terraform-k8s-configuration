@@ -23,6 +23,9 @@ spec:
           value: "8000" 
         - name: NAMESPACE 
           value: ${namespace}
+        envFrom:
+          - configMapRef:
+              name: ${dataconfigargo}
         volumeMounts:
         - name: secret-volume-write
           mountPath: /etc/secret-volume/write_token 
