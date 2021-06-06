@@ -10,7 +10,7 @@ from streamstate_utils.structs import (
 )
 
 
-app = FastAPI()
+app = FastAPI(openapi_url="/docs/openapi.json")
 import os
 from streamstate_utils.firestore import (
     get_collection_from_org_name_and_app_name,
@@ -63,15 +63,17 @@ def check_auth_head(authorization: str) -> bool:
 
 def check_auth(authorization: str, actual_token: str) -> bool:
     token = authorization.replace("Bearer ", "")
+    print(token)
+    print(actual_token)
     return token == actual_token
 
 
 def get_write_token() -> str:
-    return os.getenv("WRITE_TOKEN", "")
+    return open("/etc/secret-volume/write_token/token", "r").read()
 
 
 def get_read_token() -> str:
-    return os.getenv("READ_TOKEN", "")
+    return open("/etc/secret-volume/read_token/token", "r").read()
 
 
 def auth_checker(authorization: Optional[str], get_token: Callable[[], str]):

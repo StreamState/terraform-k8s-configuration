@@ -893,7 +893,7 @@ data "kubectl_path_documents" "restapi" {
   vars = {
     registryprefix  = var.registryprefix
     project         = var.project
-    namespace       = kubernetes_namespace.serviceplane.metadata.0.name
+    namespace       = kubernetes_namespace.sparkplane.metadata.0.name
     firestoreviewer = kubernetes_service_account.firestoreviewer.metadata.0.name
   }
 }

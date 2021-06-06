@@ -78,11 +78,11 @@ Unfortunately, this requires root access, but just for spark history which has v
 
 Get token from mainui, then
 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer d05c4b62-7b6c-4f3d-a5a8-6249acaeabdf" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer 4b6f9740-c911-4bd9-84f0-f4b6bf49d81a" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
 
 To stop:
 
-curl  -H "Authorization: Bearer d05c4b62-7b6c-4f3d-a5a8-6249acaeabdf" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
+curl  -H "Authorization: Bearer 4bb078a3-402b-4f40-a466-9872b455fffa" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
 
 
 
@@ -102,7 +102,7 @@ You may have to create a subfolder first (eg, /test)
 Read from the result firebase:
 
 
-curl  -H "Authorization: Bearer 8a4e0043-a34b-4abc-b3d0-5b9cf89e64f3" -X GET https://testorg.streamstate.org/api/mytestapp/features/1?filter="somevalue" -k 
+curl  -H "Authorization: Bearer u7CTEfEhlUgafe8jRDkx7kaOz0LIY8u/" -X GET https://testorg.streamstate.org/api/mytestapp/features/1?filter="somevalue" -k 
 
 
 # Backend service service 

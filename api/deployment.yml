@@ -23,16 +23,18 @@ spec:
           value: "8000" 
         - name: NAMESPACE 
           value: ${namespace}
-        - name: WRITE_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: streamstate-webhook-token
-              key: token
-        - name: READ_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: streamstate-restapi-token
-              key: token
+        volumeMounts:
+        - name: secret-volume-write
+          mountPath: /etc/secret-volume/write_token 
+        - name: secret-volume-read
+          mountPath: /etc/secret-volume/read_token
+      volumes:
+      - name: secret-volume-write
+        secret:
+          secretName: streamstate-webhook-token
+      - name: secret-volume-read
+        secret:
+          secretName: streamstate-restapi-token
 ---
 apiVersion: v1
 kind: Service
