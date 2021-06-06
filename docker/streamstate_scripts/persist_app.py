@@ -8,7 +8,8 @@ from streamstate_utils.generic_wrapper import (
 )
 import json
 from streamstate_utils.structs import OutputStruct, KafkaStruct, InputStruct
-import marshmallow_dataclass
+
+# import marshmallow_dataclass
 
 
 def persist_topic(
@@ -52,12 +53,9 @@ if __name__ == "__main__":
         checkpoint_location,
     ] = sys.argv
 
-    output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
-    output_info = output_schema.load(json.loads(output_struct))
-    kafka_schema = marshmallow_dataclass.class_schema(KafkaStruct)()
-    kafka_info = kafka_schema.load(json.loads(kafka_struct))
-    input_schema = marshmallow_dataclass.class_schema(InputStruct)()
-    input_info = input_schema.load(json.loads(input_struct))
+    output_info = OutputStruct(**json.loads(output_struct))
+    kafka_info = KafkaStruct(**json.loads(kafka_struct))
+    input_info = InputStruct(**json.loads(input_struct))
     persist_topic(
         app_name, bucket, input_info, kafka_info, output_info, checkpoint_location
     )

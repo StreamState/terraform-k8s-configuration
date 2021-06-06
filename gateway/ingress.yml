@@ -51,7 +51,7 @@ spec:
               #name: grafana
               #port: 
               #  number: 3000
-        - path: /api(/|$)(.*) # post to /api/rotate, for example
+        - path: /app(/|$)(.*) # post to /app/rotate, for example
           #pathType: Prefix
           backend:
             serviceName: mainui
@@ -118,13 +118,13 @@ spec:
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-  name: streamstateingressargo
+  name: streamstateapi
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     acme.cert-manager.io/http01-edit-in-place: "true"
   labels:
-    app: streamstateingressargo
+    app: streamstateapi
 spec:
   tls: 
   - hosts:
@@ -134,15 +134,15 @@ spec:
     - host: ${organization}.streamstate.org
       http:
         paths:
-        - path: /build/container
-          #pathType: Prefix
+        - path: /api/deploy
           backend:
             serviceName: argowebhook
             servicePort: 12000
-            #service:
-              #name: argowebhook
-              #port: 
-              #  number: 12000
+        - path: /api
+          backend:
+            serviceName: restapi
+            servicePort: 8000
+
 ---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
@@ -152,7 +152,7 @@ metadata:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/proxy-buffering: "on"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    # nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/auth-response-headers: Authorization
     nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
     nginx.ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
@@ -184,6 +184,10 @@ spec:
           backend:
             serviceName: mainui
             servicePort: 80
+        - path: /docs
+          backend:
+            serviceName: restapi
+            servicePort: 8000
           #pathType: Prefix
           #backend:
           #  service:

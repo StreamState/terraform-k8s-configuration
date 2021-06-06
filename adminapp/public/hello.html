@@ -1,7 +1,12 @@
 <html>
 <script type="text/javascript">
-    function rotate() {
-        fetch('/api/rotate', { method: 'POST', credentials: "same-origin" })
+    function rotateWrite() {
+        fetch('/app/rotate/write', { method: 'POST', credentials: "same-origin" })
+            .then(response => response.json())
+            .then(data => alert(data.secret))
+    }
+    function rotateRead() {
+        fetch('/app/rotate/read', { method: 'POST', credentials: "same-origin" })
             .then(response => response.json())
             .then(data => alert(data.secret))
     }
@@ -14,9 +19,11 @@
     <li><a href="/monitoring">Monitoring</a></li>
     <li><a href="/grafana">Graphs</a></li>
     <li><a href="/sparkhistory">Spark History</a></li>
+    <li><a href="/docs">API Docs</a></li>
 </ul>
 
-<button name="foo" value="secret" onClick="rotate()">Create secret</button>
+<button name="foo" value="secret" onClick="rotateWrite()">Regenerate Write Secret</button>
+<button name="bar" value="secret" onClick="rotateRead()">Regenerate Read Secret</button>
 
 
 </html>

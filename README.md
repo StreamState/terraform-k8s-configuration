@@ -58,6 +58,11 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 * sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.1.0
 * cd ..
 
+* cd api
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.1.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.1.0
+* cd ..
+
 # setup spark history server
 
 * cd spark-history
@@ -73,12 +78,12 @@ Unfortunately, this requires root access, but just for spark history which has v
 
 Get token from mainui, then
 
-* curl  -H "Content-Type: application/json" -H "Authorization: Bearer [token]" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"checkpoint_location\": \"/tmp/checkpoint\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer 4b6f9740-c911-4bd9-84f0-f4b6bf49d81a" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
 
+To stop:
 
+curl  -H "Authorization: Bearer 4bb078a3-402b-4f40-a466-9872b455fffa" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
 
-
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer 87a58ee3-d2f4-4302-b405-615288e5b593" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/build/container -k
 
 
 # upload json to bucket
@@ -93,6 +98,12 @@ You may have to create a subfolder first (eg, /test)
 
 * echo {\"field1\": \"somevalue\"} > ./mytest1.json
 * gsutil cp ./mytest1.json gs://streamstate-sparkstorage-testorg/mytestapp/topic1
+
+Read from the result firebase:
+
+
+curl  -H "Authorization: Bearer u7CTEfEhlUgafe8jRDkx7kaOz0LIY8u/" -X GET https://testorg.streamstate.org/api/mytestapp/features/1?filter="somevalue" -k 
+
 
 # Backend service service 
 
@@ -116,6 +127,7 @@ The backend for provisioning new jobs
 Grafana password:
 * kubectl get secret --namespace serviceplane-testorg grafana -o jsonpath="{.data.admin-password}" | base64 --decode
 
+example spark streaming metric: metrics_spark_d5530e7956d14113aa91005d4018e5b3_driver_spark_streaming_2db3b2a8_826b_4f22_91f5_74c2bce2930c_latency_Value
 
 # test workload identity
 
@@ -126,28 +138,9 @@ kubectl run -it \
 workload-identity-test
 
 
-kubectl run -it \
---image google/cloud-sdk:slim \
---serviceaccount argo-workflow \
---namespace serviceplane-testorg \
-workload-identity-test
-
-
-gcloud auth list
-
-kubectl get certificaterequest -n serviceplane-testorg
-
-
 
 
 gcloud projects get-iam-policy streamstatetest  \
 --flatten="bindings[].members" \
 --format='table(bindings.role)' \
 --filter="bindings.members:spark-gcs-testorg@streamstatetest.iam.gserviceaccount.com"
-
-
-kubectl run -it \
---image us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.2.0 \
---serviceaccount spark \
---namespace mainspark-testorg \
-mytest

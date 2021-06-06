@@ -90,6 +90,14 @@ resource "google_service_account" "firestore" {
   display_name = "Firestore service account ${var.organization}"
 }
 
+## needed for the initial write to firestore from argo events
+## run in argo-events namespace instead of sparkmain
+resource "google_service_account" "firestore-viewer" {
+  project      = var.project
+  account_id   = "firestore-viewer-${var.organization}"
+  display_name = "Firestore service account read only ${var.organization}"
+}
+
 resource "google_service_account" "spark-history" {
   project      = var.project
   account_id   = "spark-history-${var.organization}"
@@ -127,6 +135,13 @@ resource "google_project_iam_member" "firestore_user_argoevents" {
   role    = "roles/datastore.user"
   project = var.project
   member  = "serviceAccount:${google_service_account.firestore.email}"
+}
+
+## access to firestore from rest api
+resource "google_project_iam_member" "firestore_viewer" {
+  role    = "roles/datastore.viewer"
+  project = var.project
+  member  = "serviceAccount:${google_service_account.firestore-viewer.email}"
 }
 
 

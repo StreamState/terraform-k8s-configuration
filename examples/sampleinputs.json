@@ -6,7 +6,7 @@
                 "field1": "somevalue"
             }
         ],
-        "schema": [
+        "topic_schema": [
             {
                 "name": "field1",
                 "type": "string"

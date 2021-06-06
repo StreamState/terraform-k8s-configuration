@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restapi
+spec:
+  selector:
+    matchLabels:
+      app: restapi
+  template:
+    metadata:
+      labels:
+        app: restapi
+    spec:
+      serviceAccountName: ${firestoreviewer}
+      containers:
+      - image: ${registryprefix}/${project}/${project}/restapi:v0.1.0
+        imagePullPolicy: Always
+        name: restapi
+        ports:
+        - containerPort: 8000
+        env:
+        - name: PORT
+          value: "8000" 
+        - name: NAMESPACE 
+          value: ${namespace}
+        volumeMounts:
+        - name: secret-volume-write
+          mountPath: /etc/secret-volume/write_token 
+        - name: secret-volume-read
+          mountPath: /etc/secret-volume/read_token
+      volumes:
+      - name: secret-volume-write
+        secret:
+          secretName: streamstate-webhook-token
+      - name: secret-volume-read
+        secret:
+          secretName: streamstate-restapi-token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restapi
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP 
+  selector:
+    app: restapi
