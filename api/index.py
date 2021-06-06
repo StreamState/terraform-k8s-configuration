@@ -3,6 +3,7 @@ from typing import List, Callable, Optional, Dict, Union
 from fastapi import FastAPI, HTTPException, Header, Query
 from pydantic import BaseModel
 from streamstate_utils.structs import (
+    FileStruct,
     InputStruct,
     KafkaStruct,
     OutputStruct,
@@ -123,6 +124,31 @@ class ApiDeploy(BaseModel):
     kafka: KafkaStruct
     outputs: OutputStruct
     table: TableStruct
+    fileinfo: FileStruct
+    appname: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "pythoncode": "ZnJvbSB0eXBpbmcgaW1wb3J0IExpc3QKZnJvbSBweXNwYXJrLnNxbCBpbXBvcnQgRGF0YUZyYW1lCgoKZGVmIHByb2Nlc3MoZGZzOiBMaXN0W0RhdGFGcmFtZV0pIC0+IERhdGFGcmFtZToKICAgIHJldHVybiBkZnNbMF0K",
+                "inputs": [
+                    {
+                        "topic": "topic1",
+                        "sample": [{"field1": "somevalue"}],
+                        "topic_schema": [{"name": "field1", "type": "string"}],
+                    }
+                ],
+                "assertions": [{"field1": "somevalue"}],
+                "kafka": {"brokers": "broker1,broker2"},
+                "outputs": {"mode": "append", "processing_time": "2 seconds"},
+                "fileinfo": {"max_file_age": "2d"},
+                "table": {
+                    "primary_keys": ["field1"],
+                    "output_schema": [{"name": "field1", "type": "string"}],
+                },
+                "appname": "mytestapp",
+            }
+        }
 
 
 ## this is a dummy endpoint, to
@@ -131,7 +157,7 @@ class ApiDeploy(BaseModel):
 ## called because our ingress
 ## redirects api/deploy to argo
 @app.post("/api/deploy")
-def dummy_deploy(
+def create_spark_streaming_job(
     body: ApiDeploy,
     authorization: Optional[str] = Header(None),
 ):
