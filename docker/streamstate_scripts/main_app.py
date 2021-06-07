@@ -66,8 +66,8 @@ if __name__ == "__main__":
         _,
         app_name,
         bucket,  # bucket name including gs://
-        output_struct,
         table_struct,
+        output_struct,
         kafka_struct,
         input_struct,
         checkpoint_location,

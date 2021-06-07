@@ -117,7 +117,7 @@ def read_feature(
     return get_latest_record(DB, ORGANIZATION, app_name, version, filter)
 
 
-class ApiDeploy(BaseModel):
+class ApiReplay(BaseModel):
     pythoncode: str
     inputs: List[InputStruct]
     assertions: List[Dict[str, Union[str, float, int, bool]]]
@@ -151,14 +151,60 @@ class ApiDeploy(BaseModel):
         }
 
 
+class ApiDeploy(BaseModel):
+    pythoncode: str
+    inputs: List[InputStruct]
+    assertions: List[Dict[str, Union[str, float, int, bool]]]
+    kafka: KafkaStruct
+    outputs: OutputStruct
+    table: TableStruct
+    fileinfo: FileStruct
+    appname: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "pythoncode": "ZnJvbSB0eXBpbmcgaW1wb3J0IExpc3QKZnJvbSBweXNwYXJrLnNxbCBpbXBvcnQgRGF0YUZyYW1lCgoKZGVmIHByb2Nlc3MoZGZzOiBMaXN0W0RhdGFGcmFtZV0pIC0+IERhdGFGcmFtZToKICAgIHJldHVybiBkZnNbMF0K",
+                "inputs": [
+                    {
+                        "topic": "topic1",
+                        "sample": [{"field1": "somevalue"}],
+                        "topic_schema": [{"name": "field1", "type": "string"}],
+                    }
+                ],
+                "assertions": [{"field1": "somevalue"}],
+                "kafka": {"brokers": "broker1,broker2"},
+                "outputs": {"mode": "append", "processing_time": "2 seconds"},
+                "table": {
+                    "primary_keys": ["field1"],
+                    "output_schema": [{"name": "field1", "type": "string"}],
+                },
+                "appname": "mytestapp",
+            }
+        }
+
+
 ## this is a dummy endpoint, to
 ## add docs to the argo webhook
 ## endpoint.  This never gets
 ## called because our ingress
 ## redirects api/deploy to argo
 @app.post("/api/deploy")
-def create_spark_streaming_job(
+def create_spark_streaming_replay_job(
     body: ApiDeploy,
+    authorization: Optional[str] = Header(None),
+):
+    return "success"
+
+
+## this is a dummy endpoint, to
+## add docs to the argo webhook
+## endpoint.  This never gets
+## called because our ingress
+## redirects api/deploy to argo
+@app.post("/api/replay")
+def create_spark_streaming_job(
+    body: ApiReplay,
     authorization: Optional[str] = Header(None),
 ):
     return "success"

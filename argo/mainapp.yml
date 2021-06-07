@@ -1,0 +1,483 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: streamstateapi
+spec:
+  template:
+    serviceAccountName: argo-events-sa 
+  dependencies:
+    - name: deploypysparkjob
+      eventSourceName: streamstatewebservice
+      eventName: deploy
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        k8s:
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: streamstate-  # Name of this Workflow
+              spec:
+                serviceAccountName: ${runserviceaccount} 
+                arguments:
+                  parameters:
+                    - name: pythoncode
+                      value: hello world # this should be overridden
+                    - name: inputs
+                      value: hello world # this should be overridden
+                    - name: assertions
+                      value: hello world # this should be overridden
+                    - name: kafka
+                      value: hello world # this should be overridden
+                    - name: outputs
+                      value: hello world # this should be overridden
+                    - name: table
+                      value: hello world # this should be overridden
+                    - name: appname
+                      value: hello world
+                entrypoint: main     
+                volumeClaimTemplates:
+                - metadata:
+                    name: work
+                  spec:
+                    accessModes: [ "ReadWriteOnce" ]
+                    resources:
+                      requests:
+                        storage: 64Mi
+                templates:
+                - name: main
+                  inputs:
+                    parameters:
+                      - name: pythoncode
+                      - name: inputs
+                      - name: assertions
+                      - name: kafka
+                      - name: outputs
+                      - name: fileinfo
+                      - name: table
+                      - name: appname
+                  dag:
+                    tasks:
+                    - name: runmypy
+                      template: mypy
+                      arguments:
+                        parameters: 
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}"
+                         
+                    - name: rununittests
+                      template: unittests
+                      arguments:
+                        parameters: 
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}"
+                         - name: inputs
+                           value: "{{inputs.parameters.inputs}}"
+                         - name: assertions
+                           value: "{{inputs.parameters.assertions}}"
+
+                    - name: runfirestoresetup 
+                      template: firestoresetup
+                      arguments:
+                        parameters:
+                         - name: appname
+                           value: "{{inputs.parameters.appname}}" 
+                         - name: table
+                           value: "{{inputs.parameters.table}}" 
+                      dependencies: [runmypy, rununittests]
+
+
+                    - name: builddocker
+                      template: create-docker-file
+                      arguments:
+                        parameters:
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}" 
+                      dependencies: [runmypy, rununittests]
+
+                    - name: deploydocker 
+                      template: build-docker-image
+                      dependencies: [builddocker]
+
+                   
+                    - name: createfolder
+                      template: gcsfolder
+                      arguments:
+                        parameters: 
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}"
+                          - name: inputs
+                            value: "{{inputs.parameters.inputs}}"
+                      dependencies: [runmypy, rununittests]
+
+                    - name: runsparkpersist
+                      template: sparksubmit
+                      arguments:
+                        parameters: 
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}"
+                         - name: input
+                           value: "{{item}}" # loop from withParam
+                         - name: topic
+                           value: "{{item.topic}}" # loop from withParam
+                         - name: kafka
+                           value: "{{inputs.parameters.kafka}}"
+                         - name: outputs
+                           value: "{{inputs.parameters.outputs}}"
+                         - name: appname
+                           value: "{{inputs.parameters.appname}}"
+                      dependencies: 
+                        - createfolder
+                        - deploydocker
+                      withParam: "{{inputs.parameters.inputs}}" # loops through
+                    
+                    - name: runsparkmainapp
+                      template: sparksubmit
+                      arguments:
+                        parameters: 
+                         - name: pythoncode
+                           value: "{{inputs.parameters.pythoncode}}"
+                         - name: inputs
+                           value: "{{inputs.parameters.inputs}}"
+                         - name: kafka
+                           value: "{{inputs.parameters.kafka}}"
+                         - name: outputs
+                           value: "{{inputs.parameters.outputs}}"
+                         - name: appname
+                           value: "{{inputs.parameters.appname}}"
+                         - name: version
+                           value: "{{tasks.runfirestoresetup.outputs.result}}"
+                         - name: table
+                           value: "{{inputs.parameters.table}}"
+                      dependencies: 
+                        - createfolder
+                        - deploydocker
+                        - runfirestoresetup
+
+                - name: mypy
+                  inputs:
+                    parameters:
+                      - name: pythoncode
+                  container:
+                    image: cytopia/mypy 
+                    command: [sh, -c]
+                    args: 
+                      - |
+                        echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py
+                        mypy process.py --ignore-missing-imports
+                    
+                - name: unittests
+                  inputs:
+                    parameters:
+                      - name: pythoncode
+                      - name: inputs
+                      - name: assertions
+                  container:
+                    image: ${registryprefix}/${project}/${project}/pysparktest:v0.1.0
+                    imagePullPolicy: Always
+                    command: [sh, -c]
+                    args: 
+                      - |
+                        echo {{inputs.parameters.pythoncode}} | base64 --decode > process.py
+                        echo '{{inputs.parameters.inputs}}' > sampleinputs.json
+                        echo '{{inputs.parameters.assertions}}' > assertedoutputs.json
+                        run-test '/opt/spark/work-dir/' sampleinputs.json assertedoutputs.json
+
+
+                - name: gcsfolder
+                  serviceAccountName: ${runserviceaccount}
+                  inputs:
+                    parameters:
+                      - name: appname
+                      - name: inputs
+                  resource:
+                    action: create
+                    successCondition: status.succeeded > 0
+                    failureCondition: status.failed > 1
+                    manifest: |
+                      apiVersion: batch/v1
+                      kind: Job
+                      metadata:
+                        generateName: gcsfolder-
+                        namespace: ${namespace}
+                      spec:
+                        template:
+                          spec:
+                            serviceAccountName: ${sparkserviceaccount}
+                            containers:
+                            - name: gcsfolder
+                              image: ${registryprefix}/${project}/${project}/pysparkbase:v0.3.0
+                              imagePullPolicy: Always
+                              command: [
+                                "python3",  
+                                "create_folder.py", 
+                                '{{inputs.parameters.appname}}', 
+                                "streamstate-sparkstorage-${organization}", 
+                                '{{inputs.parameters.inputs}}'
+                              ]
+                            restartPolicy: Never
+                        # backoffLimit: 4
+                
+                - name: create-docker-file
+                  inputs:
+                    parameters:
+                      - name: pythoncode
+                      - name: dockerfileline1 
+                        value: FROM ${registryprefix}/${project}/${project}/pysparkbase:v0.3.0
+                      - name: dockerfileline2 
+                        value: COPY process.py /opt/spark/work-dir/process.py
+                  container:
+                    image: cytopia/mypy # doesn't really matter, so may as well use an image already downloaded
+                    imagePullPolicy: IfNotPresent
+                    command: [sh, -c]
+                    args:
+                      - | 
+                        echo {{inputs.parameters.pythoncode}} | base64 -d > /work/process.py
+                        echo {{inputs.parameters.dockerfileline1}} > /work/Final.Dockerfile
+                        echo {{inputs.parameters.dockerfileline2}} >> /work/Final.Dockerfile
+                        cat /work/process.py
+                      
+                    workingDir: /work
+                    volumeMounts:
+                    - mountPath: /work 
+                      name: work
+                
+                - name: build-docker-image
+                  inputs:
+                    parameters:
+                      # Name of the image to push
+                      - name: image
+                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # TODO!  specify tag version, different docker name per app
+                  serviceAccountName: ${dockersecretwrite}
+                  container:
+                    image: gcr.io/kaniko-project/executor:latest
+                    args:
+                    - "--dockerfile=/work/Final.Dockerfile"
+                    - "--context=dir:///work"
+                    - "--destination={{inputs.parameters.image}}"
+                    workingDir: /work
+                    volumeMounts:
+                    - mountPath: /work 
+                      name: work
+
+                - name: firestoresetup 
+                  serviceAccountName: ${firestoreserviceaccount}
+                  inputs:
+                    parameters:
+                      - name: table
+                      - name: appname
+                  script: # script allows us to get the output from the console rather than from a file
+                    image: ${registryprefix}/${project}/${project}/firestoresetup:v0.1.0 
+                    imagePullPolicy: Always
+                    envFrom:
+                    - configMapRef:
+                        name: ${dataconfigargo}
+                    command: [sh]
+                    source: | 
+                      python3 entrypoint.py '{{inputs.parameters.appname}}' '{{inputs.parameters.table}}'
+                
+                - name: sparksubmitmain
+                  serviceAccountName: ${runserviceaccount}
+                  inputs:
+                    parameters:
+                      # Name of the image to push
+                      - name: image
+                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # same as for build-docker-image
+                      - name: input
+                      - name: topic
+                      - name: kafka
+                      - name: outputs
+                      - name: appname
+  
+                  resource:                   # indicates that this is a resource template
+                    action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
+                    # The successCondition and failureCondition are optional expressions.
+                    # If failureCondition is true, the step is considered failed.
+                    # If successCondition is true, the step is considered successful.
+                    # They use kubernetes label selection syntax and can be applied against any field
+                    # of the resource (not just labels). Multiple AND conditions can be represented by comma
+                    # delimited expressions.
+                    # For more details: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+                    successCondition: status.applicationState.state == RUNNING # status.succeeded > 0
+                    failureCondition: status.applicationState.state == FAILING
+                    manifest: |               #put your kubernetes spec here
+                      apiVersion: "sparkoperator.k8s.io/v1beta2"
+                      kind: SparkApplication
+                      metadata:
+                        name: {{inputs.parameters.appname}}-main #todo, make this a function of "topics" (ie, the thing to be looping over)
+                        namespace: ${namespace} 
+                      spec:
+                        sparkConf:
+                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
+                          spark.jars.repositories: "https://packages.confluent.io/maven"
+                          spark.jars.ivy: "/tmp/ivy"
+                          spark.eventLog.enabled: "true" # spark history
+                          spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
+                          spark.sql.streaming.metricsEnabled: "true"
+                          spark.ui.prometheus.enabled: "true"
+                          spark.hadoop.fs.gs.project.id: ${project}
+                          spark.hadoop.gs.system.bucket: ${bucketwithoutgs}   
+                          spark.hadoop.google.cloud.auth.service.account.enable: "true" 
+                          spark.hadoop.fs.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+                          spark.hadoop.fs.AbstractFileSystem.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS"
+                          spark.metrics.conf.*.sink.prometheusServlet.class: org.apache.spark.metrics.sink.PrometheusServlet
+                          spark.metrics.conf.*.sink.prometheusServlet.path: /metrics/prometheus
+                          spark.metrics.conf.master.sink.prometheusServlet.path: /metrics/master/prometheus
+                          spark.metrics.conf.applications.sink.prometheusServlet.path: /metrics/applications/prometheus
+                        
+                        type: Python
+                        pythonVersion: "3"
+                        mode: cluster
+                        image: {{inputs.parameters.image}}
+                        imagePullPolicy: Always
+                        mainApplicationFile: "local:///opt/spark/work-dir/main_app.py" # todo, adjust this to be the right entrypoint
+                        sparkVersion: "3.1.1"
+                        
+                        arguments:
+                          - '{{inputs.parameters.appname}}-main'
+                          - '${spark_storage_bucket_url}'
+                          - '{{inputs.parameters.table}}'
+                          - '{{inputs.parameters.outputs}}'
+                          - '{{inputs.parameters.kafka}}'
+                          - '{{inputs.parameters.inputs}}'
+                          - 'checkpoint'
+                          - '{{inputs.parameters.version}}'
+                       
+                        restartPolicy:
+                          type: Always # should be able to resume from checkpoint if killed for some reason
+                        driver:
+                          coreRequest: 200m
+                          memory: "512m"
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
+                          envFrom:
+                            - configMapRef:
+                                name: ${dataconfig} 
+                          labels:
+                            metrics-exposed: "true"
+                        executor:
+                          instances: 1
+                          cores: 1
+                          memory: "512m"
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
+                          labels:
+                            metrics-exposed: "true"  
+
+                - name: sparksubmittopic
+                  serviceAccountName: ${runserviceaccount}
+                  inputs:
+                    parameters:
+                      # Name of the image to push
+                      - name: image
+                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # same as for build-docker-image
+                      - name: input
+                      - name: topic
+                      - name: kafka
+                      - name: outputs
+                      - name: appname
+  
+                  resource:                   # indicates that this is a resource template
+                    action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
+                    # The successCondition and failureCondition are optional expressions.
+                    # If failureCondition is true, the step is considered failed.
+                    # If successCondition is true, the step is considered successful.
+                    # They use kubernetes label selection syntax and can be applied against any field
+                    # of the resource (not just labels). Multiple AND conditions can be represented by comma
+                    # delimited expressions.
+                    # For more details: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+                    successCondition: status.applicationState.state == RUNNING # status.succeeded > 0
+                    failureCondition: status.applicationState.state == FAILING
+                    manifest: |               #put your kubernetes spec here
+                      apiVersion: "sparkoperator.k8s.io/v1beta2"
+                      kind: SparkApplication
+                      metadata:
+                        name: {{inputs.parameters.appname}}-{{inputs.parameters.topic}}-persist #todo, make this a function of "topics" (ie, the thing to be looping over)
+                        namespace: ${namespace} 
+                      spec:
+                        sparkConf:
+                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
+                          spark.jars.repositories: "https://packages.confluent.io/maven"
+                          spark.jars.ivy: "/tmp/ivy"
+                          spark.eventLog.enabled: "true" # spark history
+                          spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
+                          spark.sql.streaming.metricsEnabled: "true"
+                          spark.ui.prometheus.enabled: "true"
+                          spark.hadoop.fs.gs.project.id: ${project}
+                          spark.hadoop.gs.system.bucket: ${bucketwithoutgs} # "streamstate-sparkstorage-${organization}"  
+                          spark.hadoop.google.cloud.auth.service.account.enable: "true" 
+                          spark.hadoop.fs.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+                          spark.hadoop.fs.AbstractFileSystem.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS"
+                          spark.metrics.conf.*.sink.prometheusServlet.class: org.apache.spark.metrics.sink.PrometheusServlet
+                          spark.metrics.conf.*.sink.prometheusServlet.path: /metrics/prometheus
+                          spark.metrics.conf.master.sink.prometheusServlet.path: /metrics/master/prometheus
+                          spark.metrics.conf.applications.sink.prometheusServlet.path: /metrics/applications/prometheus
+                        
+                        type: Python
+                        pythonVersion: "3"
+                        mode: cluster
+                        image: {{inputs.parameters.image}}
+                        imagePullPolicy: Always
+                        mainApplicationFile: "local:///opt/spark/work-dir/persist_app.py" # todo, adjust this to be the right entrypoint
+                        sparkVersion: "3.1.1"
+                        
+                        arguments:
+                          - '{{inputs.parameters.appname}}-{{inputs.parameters.topic}}-persist'
+                          - '${spark_storage_bucket_url}'
+                          - '{{inputs.parameters.outputs}}'
+                          - '{{inputs.parameters.kafka}}'
+                          - '{{inputs.parameters.input}}'
+                          - 'checkpoint'
+                       
+                        restartPolicy:
+                          type: Always # should be able to resume from checkpoint if killed for some reason
+                        driver:
+                          coreRequest: 200m
+                          memory: "512m"
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
+                          envFrom:
+                            - configMapRef:
+                                name: ${dataconfig} 
+                          labels:
+                            metrics-exposed: "true"
+                        executor:
+                          instances: 1
+                          cores: 1
+                          memory: "512m"
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
+                          labels:
+                            metrics-exposed: "true"
+
+          parameters:
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.pythoncode # base 64 python code
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.inputs # list of topic, schema (fields: list), sample (list of inputs, eg [{"field1": "hello"}])
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.assertions # list of expected (eg, [{"field1: "hello", "field2":"hi"}])
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.kafka #brokers, as string (more to come....)
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.outputs # mode, checkpoint_location, output_name (which is probably just app name?)
+              dest: spec.arguments.parameters.4.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.table # primary_keys: list, output_schema: avro
+              dest: spec.arguments.parameters.5.value
+            - src:
+                dependencyName: deploypysparkjob # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
+                dataKey: body.appname # string
+              dest: spec.arguments.parameters.6.value

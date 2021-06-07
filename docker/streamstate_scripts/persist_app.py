@@ -9,8 +9,6 @@ from streamstate_utils.generic_wrapper import (
 import json
 from streamstate_utils.structs import OutputStruct, KafkaStruct, InputStruct
 
-# import marshmallow_dataclass
-
 
 def persist_topic(
     app_name: str,
