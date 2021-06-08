@@ -3,24 +3,16 @@ from typing import List
 import sys
 from streamstate_utils.firestore import get_firestore_inputs_from_config_map
 
-# from streamstate_utils.cassandra_utils import (
-#    get_cassandra_inputs_from_config_map,
-#    get_cassandra_outputs_from_config_map,
-# )
 
 from streamstate_utils.generic_wrapper import (
     file_wrapper,
     write_wrapper,
     write_firestore,
-    # set_cassandra,
-    # write_cassandra,
     write_kafka,
 )
 from streamstate_utils.structs import (
     OutputStruct,
     FileStruct,
-    # CassandraInputStruct,
-    # CassandraOutputStruct,
     KafkaStruct,
     InputStruct,
     TableStruct,
@@ -44,17 +36,15 @@ def replay_from_file(
     checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    # set_cassandra(cassandra_input, spark)
     df = file_wrapper(app_name, files.max_file_age, bucket, process, inputs, spark)
 
     def dual_write(batch_df: DataFrame):
+
         batch_df.persist()
         # todo, uncomment this
-        # write_kafka(batch_df, kafka, output)
+        # write_kafka(batch_df, kafka, app_name, firestore.version)
         write_firestore(batch_df, firestore, table)
 
-    # print(os.path.join(bucket, checkpoint_location, app_name))
-    # os.path.join(bucket, checkpoint_location, app_name)
     write_wrapper(
         df, output, os.path.join(bucket, checkpoint_location, app_name), dual_write
     )

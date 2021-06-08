@@ -20,8 +20,6 @@ from streamstate_utils.structs import (
     TableStruct,
 )
 
-# import marshmallow_dataclass
-
 
 def kafka_source_wrapper(
     app_name: str,
@@ -30,17 +28,15 @@ def kafka_source_wrapper(
     output: OutputStruct,
     firestore: FirestoreOutputStruct,
     table: TableStruct,
-    # files: FileStruct,
     kafka: KafkaStruct,
     checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    # set_cassandra(cassandra_input, spark)
     df = kafka_wrapper(app_name, kafka.brokers, process, input, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
-        write_kafka(batch_df, kafka, output)
+        write_kafka(batch_df, kafka, app_name, firestore.version)
         write_firestore(batch_df, firestore, table)
 
     write_wrapper(
