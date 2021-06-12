@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
 import sys
 import os
 from streamstate_utils.generic_wrapper import (
@@ -19,7 +20,12 @@ def persist_topic(
     checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    df = kafka_wrapper(app_name, kafka.brokers, lambda dfs: dfs[0], [input], spark)
+    df = kafka_wrapper(
+        kafka.brokers,
+        lambda dfs: dfs[0],
+        [input],
+        spark,
+    )
     write_wrapper(
         df,
         output,

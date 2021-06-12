@@ -104,33 +104,31 @@ def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=e.status, detail=e.body)
 
 
-@app.get("/api/{app_name}/features/{version}")
+@app.get("/api/{app_name}/features/{code_version}")
 def read_feature(
     app_name: str,
-    version: int,
+    code_version: int,
     filter: Optional[List[str]] = Query(None),
     authorization: Optional[str] = Header(None),
 ):
     auth_checker(authorization, get_read_token)
     if filter is None:
         raise HTTPException(status_code=400, detail="Query parameter filter required")
-    return get_latest_record(DB, ORGANIZATION, app_name, version, filter)
+    return get_latest_record(DB, ORGANIZATION, app_name, code_version, filter)
 
 
 class ApiReplay(BaseModel):
-    pythoncode: str
     inputs: List[InputStruct]
-    assertions: List[Dict[str, Union[str, float, int, bool]]]
     kafka: KafkaStruct
     outputs: OutputStruct
     table: TableStruct
     fileinfo: FileStruct
     appname: str
+    code_version: int
 
     class Config:
         schema_extra = {
             "example": {
-                "pythoncode": "ZnJvbSB0eXBpbmcgaW1wb3J0IExpc3QKZnJvbSBweXNwYXJrLnNxbCBpbXBvcnQgRGF0YUZyYW1lCgoKZGVmIHByb2Nlc3MoZGZzOiBMaXN0W0RhdGFGcmFtZV0pIC0+IERhdGFGcmFtZToKICAgIHJldHVybiBkZnNbMF0K",
                 "inputs": [
                     {
                         "topic": "topic1",
@@ -138,7 +136,6 @@ class ApiReplay(BaseModel):
                         "topic_schema": [{"name": "field1", "type": "string"}],
                     }
                 ],
-                "assertions": [{"field1": "somevalue"}],
                 "kafka": {"brokers": "broker1,broker2"},
                 "outputs": {"mode": "append", "processing_time": "2 seconds"},
                 "fileinfo": {"max_file_age": "2d"},
@@ -147,6 +144,7 @@ class ApiReplay(BaseModel):
                     "output_schema": [{"name": "field1", "type": "string"}],
                 },
                 "appname": "mytestapp",
+                "code_version": 1,
             }
         }
 

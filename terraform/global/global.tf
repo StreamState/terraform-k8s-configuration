@@ -70,26 +70,38 @@ resource "google_project_service" "artifactregistry" {
   service    = "artifactregistry.googleapis.com"
   depends_on = [google_project_service.resource_manager]
 }
+/*
 resource "google_project_service" "registry" {
   project    = var.project
   service    = "containerregistry.googleapis.com"
   depends_on = [google_project_service.resource_manager]
-}
+}*/
 resource "google_project_service" "container_cluster" {
   project    = var.project
   service    = "container.googleapis.com"
   depends_on = [google_project_service.resource_manager]
 }
 
-resource "google_artifact_registry_repository" "orgrepo" {
+resource "google_artifact_registry_repository" "artifactrepo" {
   provider      = google-beta
   project       = var.project
   location      = var.location
   repository_id = var.project
-  description   = "organization specific docker repo"
+  description   = "global docker repo"
   format        = "DOCKER"
   depends_on    = [google_project_service.artifactregistry]
 }
+
+## This apparently isn't allowed yet
+/*esource "google_artifact_registry_repository" "mavenrepo" {
+  provider      = google-beta
+  project       = var.project
+  location      = var.location
+  repository_id = var.project
+  description   = "global maven repo"
+  format        = "MAVEN"
+  depends_on    = [google_project_service.artifactregistry]
+}*/
 
 
 resource "google_compute_global_address" "staticgkeip" {

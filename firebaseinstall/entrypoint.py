@@ -1,5 +1,5 @@
 from provision_firestore import (
-    create_schema,
+    version_code_and_schema,
 )
 import sys
 
@@ -20,14 +20,14 @@ def main():
     project_id = get_project_from_config_map()
     db = open_firestore_connection(project_id)
 
-    version = create_schema(
+    code_version = version_code_and_schema(
         db,
         organization,
         app_name,
         table_info.primary_keys,
         table_info.output_schema,
     )
-    print(version)  # this is needed for Argo to pick this up
+    print(code_version)  # this is needed for Argo to pick this up
 
 
 if __name__ == "__main__":

@@ -103,7 +103,13 @@ spec:
 
                     - name: deploydocker 
                       template: build-docker-image
-                      dependencies: [builddocker]
+                      arguments:
+                        parameters:
+                         - name: version
+                           value: "{{tasks.runfirestoresetup.outputs.result}}" 
+                         - name: appname
+                           value: "{{inputs.parameters.appname}}" 
+                      dependencies: [builddocker, runfirestoresetup]
 
                    
                     - name: createfolder
@@ -117,7 +123,7 @@ spec:
                       dependencies: [runmypy, rununittests]
 
                     - name: runsparkpersist
-                      template: sparksubmit
+                      template: sparksubmitmain
                       arguments:
                         parameters: 
                          - name: pythoncode
@@ -132,13 +138,16 @@ spec:
                            value: "{{inputs.parameters.outputs}}"
                          - name: appname
                            value: "{{inputs.parameters.appname}}"
+                        - name: version
+                           value: "{{tasks.runfirestoresetup.outputs.result}}"
                       dependencies: 
                         - createfolder
                         - deploydocker
+                        - runfirestoresetup
                       withParam: "{{inputs.parameters.inputs}}" # loops through
                     
                     - name: runsparkmainapp
-                      template: sparksubmit
+                      template: sparksubmittopic
                       arguments:
                         parameters: 
                          - name: pythoncode
@@ -251,16 +260,18 @@ spec:
                 - name: build-docker-image
                   inputs:
                     parameters:
-                      # Name of the image to push
+                      # (Base) name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # TODO!  specify tag version, different docker name per app
+                        value: ${registryprefix}/${project}/${registry}
+                      - name: appname
+                      - name: version
                   serviceAccountName: ${dockersecretwrite}
                   container:
                     image: gcr.io/kaniko-project/executor:latest
                     args:
                     - "--dockerfile=/work/Final.Dockerfile"
                     - "--context=dir:///work"
-                    - "--destination={{inputs.parameters.image}}"
+                    - "--destination={{inputs.parameters.image}}/{{inputs.parameters.appname}}:v{{inputs.parameters.version}}"
                     workingDir: /work
                     volumeMounts:
                     - mountPath: /work 
@@ -286,14 +297,14 @@ spec:
                   serviceAccountName: ${runserviceaccount}
                   inputs:
                     parameters:
-                      # Name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # same as for build-docker-image
+                        value: ${registryprefix}/${project}/${registry} #/python_app:v0.2.0 # same as for build-docker-image
                       - name: input
                       - name: topic
                       - name: kafka
                       - name: outputs
                       - name: appname
+                      - name: version
   
                   resource:                   # indicates that this is a resource template
                     action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
@@ -334,7 +345,7 @@ spec:
                         type: Python
                         pythonVersion: "3"
                         mode: cluster
-                        image: {{inputs.parameters.image}}
+                        image: {{inputs.parameters.image}}/{{inputs.parameters.appname}}:v{{inputs.parameters.version}}
                         imagePullPolicy: Always
                         mainApplicationFile: "local:///opt/spark/work-dir/main_app.py" # todo, adjust this to be the right entrypoint
                         sparkVersion: "3.1.1"
@@ -374,12 +385,13 @@ spec:
                     parameters:
                       # Name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry}/python_app:v0.2.0 # same as for build-docker-image
+                        value: ${registryprefix}/${project}/${registry} # /python_app:v0.2.0 # same as for build-docker-image
                       - name: input
                       - name: topic
                       - name: kafka
                       - name: outputs
                       - name: appname
+                      - name: version
   
                   resource:                   # indicates that this is a resource template
                     action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
@@ -420,7 +432,7 @@ spec:
                         type: Python
                         pythonVersion: "3"
                         mode: cluster
-                        image: {{inputs.parameters.image}}
+                        image: {{inputs.parameters.image}}/{{inputs.parameters.appname}}:v{{inputs.parameters.version}}
                         imagePullPolicy: Always
                         mainApplicationFile: "local:///opt/spark/work-dir/persist_app.py" # todo, adjust this to be the right entrypoint
                         sparkVersion: "3.1.1"

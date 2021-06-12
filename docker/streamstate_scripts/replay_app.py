@@ -42,7 +42,7 @@ def replay_from_file(
 
         batch_df.persist()
         # todo, uncomment this
-        # write_kafka(batch_df, kafka, app_name, firestore.version)
+        # write_kafka(batch_df, kafka, app_name, firestore.code_version)
         write_firestore(batch_df, firestore, table)
 
     write_wrapper(

@@ -32,11 +32,11 @@ def kafka_source_wrapper(
     checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    df = kafka_wrapper(app_name, kafka.brokers, process, input, spark)
+    df = kafka_wrapper(kafka.brokers, process, input, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
-        write_kafka(batch_df, kafka, app_name, firestore.version)
+        write_kafka(batch_df, kafka, app_name, firestore.code_version)
         write_firestore(batch_df, firestore, table)
 
     write_wrapper(
