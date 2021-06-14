@@ -812,8 +812,33 @@ resource "kubectl_manifest" "argoeventswebhook" {
   depends_on         = [helm_release.argoevents]
 }
 
-data "kubectl_path_documents" "pysparkeventworkflow" {
-  pattern = "../../argo/pysparkworkflow.yml"
+data "kubectl_path_documents" "replayapp" {
+  pattern = "../../argo/replayapp.yml"
+  vars = {
+    project           = var.project
+    organization      = var.organization
+    registry          = var.org_registry
+    registryprefix    = var.registryprefix
+    runserviceaccount = kubernetes_service_account.argo.metadata.0.name
+    sparkserviceaccount     = kubernetes_service_account.spark.metadata.0.name
+    dataconfig              = kubernetes_config_map.usefuldata.metadata.0.name
+    namespace               = kubernetes_namespace.sparkplane.metadata.0.name
+    spark_history_name      = "spark-history-server/"
+    spark_storage_bucket_url = var.spark_storage_bucket_url
+    bucketwithoutgs          = replace(var.spark_storage_bucket_url, "gs://", "")
+  }
+}
+
+resource "kubectl_manifest" "replayapp" {
+  count              = 1 # length(data.kubectl_path_documents.pysparkeventworkflow.documents)
+  yaml_body          = element(data.kubectl_path_documents.replayapp.documents, count.index)
+  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  depends_on         = [kubectl_manifest.argoeventswebhook]
+}
+
+
+data "kubectl_path_documents" "mainapp" {
+  pattern = "../../argo/mainapp.yml"
   vars = {
     project           = var.project
     organization      = var.organization
@@ -821,13 +846,12 @@ data "kubectl_path_documents" "pysparkeventworkflow" {
     registry          = var.org_registry
     registryprefix    = var.registryprefix
     runserviceaccount = kubernetes_service_account.argo.metadata.0.name
-    # sparksubmitserviceaccount = kubernetes_service_account.argoevents-sparksubmit.metadata.0.name
     sparkserviceaccount     = kubernetes_service_account.spark.metadata.0.name
     firestoreserviceaccount = kubernetes_service_account.firestore.metadata.0.name
     dataconfig              = kubernetes_config_map.usefuldata.metadata.0.name
     dataconfigargo          = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace               = kubernetes_namespace.sparkplane.metadata.0.name
-    monitoringnamespace     = kubernetes_namespace.serviceplane.metadata.0.name
+    # monitoringnamespace     = kubernetes_namespace.serviceplane.metadata.0.name
     spark_history_name      = "spark-history-server/"
     #spark_history_bucket_url = var.spark_history_bucket_url
     spark_storage_bucket_url = var.spark_storage_bucket_url
@@ -835,9 +859,9 @@ data "kubectl_path_documents" "pysparkeventworkflow" {
   }
 }
 
-resource "kubectl_manifest" "pysparkeventworkflow" {
+resource "kubectl_manifest" "mainapp" {
   count              = 1 # length(data.kubectl_path_documents.pysparkeventworkflow.documents)
-  yaml_body          = element(data.kubectl_path_documents.pysparkeventworkflow.documents, count.index)
+  yaml_body          = element(data.kubectl_path_documents.mainapp.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [kubectl_manifest.argoeventswebhook]
 }
