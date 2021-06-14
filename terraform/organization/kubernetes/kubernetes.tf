@@ -815,15 +815,15 @@ resource "kubectl_manifest" "argoeventswebhook" {
 data "kubectl_path_documents" "replayapp" {
   pattern = "../../argo/replayapp.yml"
   vars = {
-    project           = var.project
-    organization      = var.organization
-    registry          = var.org_registry
-    registryprefix    = var.registryprefix
-    runserviceaccount = kubernetes_service_account.argo.metadata.0.name
-    sparkserviceaccount     = kubernetes_service_account.spark.metadata.0.name
-    dataconfig              = kubernetes_config_map.usefuldata.metadata.0.name
-    namespace               = kubernetes_namespace.sparkplane.metadata.0.name
-    spark_history_name      = "spark-history-server/"
+    project                  = var.project
+    organization             = var.organization
+    registry                 = var.org_registry
+    registryprefix           = var.registryprefix
+    runserviceaccount        = kubernetes_service_account.argo.metadata.0.name
+    sparkserviceaccount      = kubernetes_service_account.spark.metadata.0.name
+    dataconfig               = kubernetes_config_map.usefuldata.metadata.0.name
+    namespace                = kubernetes_namespace.sparkplane.metadata.0.name
+    spark_history_name       = "spark-history-server/"
     spark_storage_bucket_url = var.spark_storage_bucket_url
     bucketwithoutgs          = replace(var.spark_storage_bucket_url, "gs://", "")
   }
@@ -840,19 +840,19 @@ resource "kubectl_manifest" "replayapp" {
 data "kubectl_path_documents" "mainapp" {
   pattern = "../../argo/mainapp.yml"
   vars = {
-    project           = var.project
-    organization      = var.organization
-    dockersecretwrite = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
-    registry          = var.org_registry
-    registryprefix    = var.registryprefix
-    runserviceaccount = kubernetes_service_account.argo.metadata.0.name
+    project                 = var.project
+    organization            = var.organization
+    dockersecretwrite       = kubernetes_service_account.docker-cfg-write-events.metadata.0.name
+    registry                = var.org_registry
+    registryprefix          = var.registryprefix
+    runserviceaccount       = kubernetes_service_account.argo.metadata.0.name
     sparkserviceaccount     = kubernetes_service_account.spark.metadata.0.name
     firestoreserviceaccount = kubernetes_service_account.firestore.metadata.0.name
     dataconfig              = kubernetes_config_map.usefuldata.metadata.0.name
     dataconfigargo          = kubernetes_config_map.usefuldataargo.metadata.0.name
     namespace               = kubernetes_namespace.sparkplane.metadata.0.name
     # monitoringnamespace     = kubernetes_namespace.serviceplane.metadata.0.name
-    spark_history_name      = "spark-history-server/"
+    spark_history_name = "spark-history-server/"
     #spark_history_bucket_url = var.spark_history_bucket_url
     spark_storage_bucket_url = var.spark_storage_bucket_url
     bucketwithoutgs          = replace(var.spark_storage_bucket_url, "gs://", "")
