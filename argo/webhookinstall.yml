@@ -62,13 +62,29 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: argowebhook
+  name: argowebhookreplay
   labels:
-    service: argowebhook
+    service: argowebhookreplay
 spec:
   type: ClusterIP
   ports:
   - port: 12000
+    protocol: TCP
+  selector:
+    controller: eventsource-controller
+    eventsource-name: streamstatewebservice
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argowebhookdeploy
+  labels:
+    service: argowebhookdeploy
+spec:
+  type: ClusterIP
+  ports:
+  - port: 13000
     protocol: TCP
   selector:
     controller: eventsource-controller
