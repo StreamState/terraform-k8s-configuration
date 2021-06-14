@@ -30,7 +30,8 @@ spec:
                     - name: pythoncode
                       value: hello world # this should be overridden
                     - name: inputs
-                      value: hello world # this should be overridden
+                      value: |
+                        [{"topic":"sometopic"}] # this should be overridden
                     - name: assertions
                       value: hello world # this should be overridden
                     - name: kafka
@@ -126,20 +127,20 @@ spec:
                       template: sparksubmitmain
                       arguments:
                         parameters: 
-                         - name: pythoncode
-                           value: "{{inputs.parameters.pythoncode}}"
-                         - name: input
-                           value: "{{item}}" # loop from withParam
-                         - name: topic
-                           value: "{{item.topic}}" # loop from withParam
-                         - name: kafka
-                           value: "{{inputs.parameters.kafka}}"
-                         - name: outputs
-                           value: "{{inputs.parameters.outputs}}"
-                         - name: appname
-                           value: "{{inputs.parameters.appname}}"
-                        - name: version
-                           value: "{{tasks.runfirestoresetup.outputs.result}}"
+                          - name: pythoncode
+                            value: "{{inputs.parameters.pythoncode}}"
+                          - name: input
+                            value: "{{item}}" # loop from withParam
+                          - name: topic
+                            value: "{{item.topic}}" # loop from withParam
+                          - name: kafka
+                            value: "{{inputs.parameters.kafka}}"
+                          - name: outputs
+                            value: "{{inputs.parameters.outputs}}"
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}"
+                          - name: version
+                            value: "{{tasks.runfirestoresetup.outputs.result}}"
                       dependencies: 
                         - createfolder
                         - deploydocker
@@ -150,20 +151,20 @@ spec:
                       template: sparksubmittopic
                       arguments:
                         parameters: 
-                         - name: pythoncode
-                           value: "{{inputs.parameters.pythoncode}}"
-                         - name: inputs
-                           value: "{{inputs.parameters.inputs}}"
-                         - name: kafka
-                           value: "{{inputs.parameters.kafka}}"
-                         - name: outputs
-                           value: "{{inputs.parameters.outputs}}"
-                         - name: appname
-                           value: "{{inputs.parameters.appname}}"
-                         - name: version
-                           value: "{{tasks.runfirestoresetup.outputs.result}}"
-                         - name: table
-                           value: "{{inputs.parameters.table}}"
+                          - name: pythoncode
+                            value: "{{inputs.parameters.pythoncode}}"
+                          - name: inputs
+                            value: "{{inputs.parameters.inputs}}"
+                          - name: kafka
+                            value: "{{inputs.parameters.kafka}}"
+                          - name: outputs
+                            value: "{{inputs.parameters.outputs}}"
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}"
+                          - name: version
+                            value: "{{tasks.runfirestoresetup.outputs.result}}"
+                          - name: table
+                            value: "{{inputs.parameters.table}}"
                       dependencies: 
                         - createfolder
                         - deploydocker
