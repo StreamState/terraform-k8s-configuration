@@ -1,29 +1,136 @@
-<html>
-<script type="text/javascript">
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Stream State</title>
+  <meta name="description" content="stream state admin page">
+  <meta name="author" content="Stream State">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+  <style>
+    #admin-list a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid px-5">
+      <a class="navbar-brand" href="#">Stream State</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <!--
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="#">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Features</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Pricing</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
+          </li>
+          -->
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid p-5">
+
+    <div id="admin-list" class="row row-cols-1 row-cols-md-3 g-4">
+      <div v-for="item in items" :key="item.id">
+        <div class="col">
+          <div class="card">
+            <div class="card-body">
+              <a :href="item.link">
+                <h5 class="card-title">{{item.title}}</h5>
+              </a>
+              <p class="card-text">{{item.body}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5">
+      <button class="btn btn-outline-primary" name="foo" value="secret" onClick="rotateWrite()">Regenerate Write Secret</button>
+      <button class="btn btn-outline-primary" name="bar" value="secret" onClick="rotateRead()">Regenerate Read Secret</button>
+    </div>
+  </div>
+
+  <script type="text/javascript">
     function rotateWrite() {
-        fetch('/app/rotate/write', { method: 'POST', credentials: "same-origin" })
-            .then(response => response.json())
-            .then(data => alert(data.secret))
+      fetch('/app/rotate/write', {
+          method: 'POST',
+          credentials: "same-origin"
+        })
+        .then(response => response.json())
+        .then(data => alert(data.secret))
     }
+
     function rotateRead() {
-        fetch('/app/rotate/read', { method: 'POST', credentials: "same-origin" })
-            .then(response => response.json())
-            .then(data => alert(data.secret))
+      fetch('/app/rotate/read', {
+          method: 'POST',
+          credentials: "same-origin"
+        })
+        .then(response => response.json())
+        .then(data => alert(data.secret))
     }
-</script>
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <script>
+    new Vue({
+      el: '#admin-list',
+      data: {
+        items: [{
+            id: 0,
+            title: 'Argo',
+            body: 'Argo is a robust workflow engine for Kubernetes that enables the implementation of each step in a workflow as a container. It provides simple, flexible mechanisms for specifying constraints between the steps in a workflow and artifact management for linking the output of any step as an input to subsequent steps.',
+            link: '/ui'
+          },
+          {
+            id: 1,
+            title: 'Monitoring',
+            body: 'View and manage metrics, logs, traces, alerts, and notifications.',
+            link: '/monitoring'
+          },
+          {
+            id: 2,
+            title: 'Graphs',
+            body: 'A multi-platform open source analytics and interactive visualization web application. It provides charts, graphs, and alerts for the web when connected to supported data sources.',
+            link: '/grafana'
+          },
+          {
+            id: 3,
+            title: 'Spark History',
+            body: 'A monitoring tool that displays information about completed Spark applications.',
+            link: '/sparkhistory'
+          },
+          {
+            id: 4,
+            title: 'API Docs',
+            body: 'A technical content deliverable, containing instructions about how to effectively use and integrate with an API.',
+            link: '/docs'
+          }
+        ]
+      }
+    })
+  </script>
 
-<b>Hello</b>
 
-<ul>
-    <li><a href="/ui">Argo</a></li>
-    <li><a href="/monitoring">Monitoring</a></li>
-    <li><a href="/grafana">Graphs</a></li>
-    <li><a href="/sparkhistory">Spark History</a></li>
-    <li><a href="/docs">API Docs</a></li>
-</ul>
-
-<button name="foo" value="secret" onClick="rotateWrite()">Regenerate Write Secret</button>
-<button name="bar" value="secret" onClick="rotateRead()">Regenerate Read Secret</button>
-
+</body>
 
 </html>
