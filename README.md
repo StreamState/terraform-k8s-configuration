@@ -78,14 +78,14 @@ Unfortunately, this requires root access, but just for spark history which has v
 
 Get token from mainui, then
 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer 01f4f34a-71f2-41a9-a021-17d4f1ecf46b" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer 8f774a3e-3fa7-45cc-9000-f59e24cd1d53" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
 
 To replay: 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer 01f4f34a-71f2-41a9-a021-17d4f1ecf46b" -X POST -d "{\"inputs\": $(cat examples/sampleinputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\", \"code_version\": 1}" https://testorg.streamstate.org/api/replay -k
+curl  -H "Content-Type: application/json" -H "Authorization: Bearer 8f774a3e-3fa7-45cc-9000-f59e24cd1d53" -X POST -d "{\"inputs\": $(cat examples/sampleinputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\", \"code_version\": 1}" https://testorg.streamstate.org/api/replay -k
 
 To stop:
 
-curl  -H "Authorization: Bearer 70a3f8df-89e6-497f-bd32-93f301a0027a" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
+curl  -H "Authorization: Bearer 8f774a3e-3fa7-45cc-9000-f59e24cd1d53" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
 
 
 
