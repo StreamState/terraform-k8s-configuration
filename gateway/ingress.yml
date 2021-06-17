@@ -136,11 +136,11 @@ spec:
         paths:
         - path: /api/replay
           backend:
-            serviceName: argowebhook
+            serviceName: argowebhookreplay
             servicePort: 12000
         - path: /api/deploy
           backend:
-            serviceName: argowebhook
+            serviceName: argowebhookdeploy
             servicePort: 13000
         - path: /api
           backend:
