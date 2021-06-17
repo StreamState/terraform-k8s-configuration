@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: streamstateapi
+  name: deploystreamstateapi
 spec:
   template:
     serviceAccountName: argo-events-sa 
@@ -60,7 +60,6 @@ spec:
                       - name: assertions
                       - name: kafka
                       - name: outputs
-                      - name: fileinfo
                       - name: table
                       - name: appname
                   dag:

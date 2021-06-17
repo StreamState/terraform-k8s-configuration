@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: streamstateapi
+  name: replaystreamstateapi
 spec:
   template:
     serviceAccountName: argo-events-sa 
   dependencies:
-    - name: deploypysparkjob
+    - name: replaypysparkjob
       eventSourceName: streamstatewebservice
       eventName: replay
   triggers:
