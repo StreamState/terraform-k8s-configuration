@@ -20,8 +20,7 @@ resource "google_service_account" "cluster" {
 
 
 
-# this should be at the organization level (each organization gets their own cluster)
-# what about loadbalancing and IP address?
+# this should be at the global level, multitenant
 resource "google_container_cluster" "primary" {
   project  = var.project
   name     = "streamstatecluster-${var.organization}"

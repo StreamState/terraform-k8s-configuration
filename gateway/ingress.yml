@@ -134,10 +134,14 @@ spec:
     - host: ${organization}.streamstate.org
       http:
         paths:
+        - path: /api/replay
+          backend:
+            serviceName: argowebhookreplay
+            servicePort: 12000
         - path: /api/deploy
           backend:
-            serviceName: argowebhook
-            servicePort: 12000
+            serviceName: argowebhookdeploy
+            servicePort: 13000
         - path: /api
           backend:
             serviceName: restapi

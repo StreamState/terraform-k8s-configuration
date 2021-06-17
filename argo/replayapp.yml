@@ -1,0 +1,202 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: replaystreamstateapi
+spec:
+  template:
+    serviceAccountName: argo-events-sa 
+  dependencies:
+    - name: replaypysparkjob
+      eventSourceName: streamstatewebservice
+      eventName: replay
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        k8s:
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: replaystreamstate-  # Name of this Workflow
+              spec:
+                serviceAccountName: ${runserviceaccount} 
+                arguments:
+                  parameters:
+                    - name: inputs
+                      value: hello world # this should be overridden
+                    - name: kafka
+                      value: hello world # this should be overridden
+                    - name: outputs
+                      value: hello world # this should be overridden
+                    - name: fileinfo
+                      value: hello world # this should be overridden
+                    - name: table
+                      value: hello world # this should be overridden
+                    - name: appname
+                      value: hello world
+                    - name: code_version
+                      value: hello world
+                entrypoint: main     
+                volumeClaimTemplates:
+                - metadata:
+                    name: work
+                  spec:
+                    accessModes: [ "ReadWriteOnce" ]
+                    resources:
+                      requests:
+                        storage: 64Mi
+                templates:
+                - name: main
+                  inputs:
+                    parameters:
+                      - name: inputs
+                      - name: kafka
+                      - name: outputs
+                      - name: fileinfo
+                      - name: table
+                      - name: appname
+                      - name: code_version
+                  dag:
+                    tasks:
+                    - name: runspark
+                      template: sparksubmit
+                      arguments:
+                        parameters: 
+                         - name: inputs
+                           value: "{{inputs.parameters.inputs}}"
+                         - name: kafka
+                           value: "{{inputs.parameters.kafka}}"
+                         - name: outputs
+                           value: "{{inputs.parameters.outputs}}"
+                         - name: fileinfo
+                           value: "{{inputs.parameters.fileinfo}}"
+                         - name: appname
+                           value: "{{inputs.parameters.appname}}"
+                         - name: version
+                           value: "{{inputs.parameters.code_version}}"
+                         - name: table
+                           value: "{{inputs.parameters.table}}"
+
+                - name: sparksubmit
+                  serviceAccountName: ${runserviceaccount}
+                  inputs:
+                    parameters:
+                      # Name of the image to push
+                      - name: image
+                        value: ${registryprefix}/${project}/${registry}
+                      - name: inputs
+                      - name: kafka
+                      - name: outputs
+                      - name: fileinfo
+                      - name: appname
+                      - name: version
+                      - name: table
+  
+                  resource:                   # indicates that this is a resource template
+                    action: apply            # can be any kubectl action (e.g. create, delete, apply, patch)
+                    # The successCondition and failureCondition are optional expressions.
+                    # If failureCondition is true, the step is considered failed.
+                    # If successCondition is true, the step is considered successful.
+                    # They use kubernetes label selection syntax and can be applied against any field
+                    # of the resource (not just labels). Multiple AND conditions can be represented by comma
+                    # delimited expressions.
+                    # For more details: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+                    successCondition: status.applicationState.state == RUNNING # status.succeeded > 0
+                    failureCondition: status.applicationState.state == FAILING
+                    manifest: |               #put your kubernetes spec here
+                      apiVersion: "sparkoperator.k8s.io/v1beta2"
+                      kind: SparkApplication
+                      metadata:
+                        name: {{inputs.parameters.appname}}-replay 
+                        namespace: ${namespace} 
+                      spec:
+                        sparkConf:
+                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
+                          spark.jars.repositories: "https://packages.confluent.io/maven"
+                          spark.jars.ivy: "/tmp/ivy"
+                          spark.eventLog.enabled: "true" # spark history
+                          spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
+                          spark.sql.streaming.metricsEnabled: "true"
+                          spark.ui.prometheus.enabled: "true"
+                          spark.hadoop.fs.gs.project.id: ${project}
+                          spark.hadoop.gs.system.bucket: ${bucketwithoutgs} # "streamstate-sparkstorage-${organization}"  
+                          spark.hadoop.google.cloud.auth.service.account.enable: "true" 
+                          spark.hadoop.fs.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
+                          spark.hadoop.fs.AbstractFileSystem.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS"
+                          spark.metrics.conf.*.sink.prometheusServlet.class: org.apache.spark.metrics.sink.PrometheusServlet
+                          spark.metrics.conf.*.sink.prometheusServlet.path: /metrics/prometheus
+                          spark.metrics.conf.master.sink.prometheusServlet.path: /metrics/master/prometheus
+                          spark.metrics.conf.applications.sink.prometheusServlet.path: /metrics/applications/prometheus
+                        
+                        type: Python
+                        pythonVersion: "3"
+                        mode: cluster
+                        image: {{inputs.parameters.image}}/{{inputs.parameters.appname}}:v{{inputs.parameters.version}}
+                        imagePullPolicy: Always
+                        mainApplicationFile: "local:///opt/spark/work-dir/replay_app.py" # todo, adjust this to be the right entrypoint
+                        sparkVersion: "3.1.1"
+                        
+                        arguments:
+                          - '{{inputs.parameters.appname}}-replay'
+                          - '${spark_storage_bucket_url}'
+                          - '{{inputs.parameters.table}}'
+                          - '{{inputs.parameters.outputs}}'
+                          - '{{inputs.parameters.fileinfo}}'
+                          - '{{inputs.parameters.kafka}}'
+                          - '{{inputs.parameters.inputs}}'
+                          - 'checkpoint'
+                          - '{{inputs.parameters.version}}'
+                       
+                        restartPolicy:
+                          type: Always # should be able to resume from checkpoint if killed for some reason
+                        driver:
+                          coreRequest: 200m
+                          memory: "512m"
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
+                          envFrom:
+                            - configMapRef:
+                                name: ${dataconfig} 
+                          labels:
+                            metrics-exposed: "true"
+                        executor:
+                          instances: 1
+                          cores: 1
+                          memory: "512m"
+                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
+                          labels:
+                            metrics-exposed: "true"
+
+          parameters:
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.inputs # list of topic, schema (fields: list), sample (list of inputs, eg [{"field1": "hello"}])
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.kafka #brokers, as string (more to come....)
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.outputs # mode, checkpoint_location, output_name (which is probably just app name?)
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: deploypysparkjob # todo, may not really need this if we fix https://github.com/StreamState/k8s_poc/issues/35
+                dataKey: body.fileinfo # max_file_age
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: deploypysparkjob
+                dataKey: body.table # primary_keys: list, output_schema: avro
+              dest: spec.arguments.parameters.4.value
+            - src:
+                dependencyName: deploypysparkjob # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
+                dataKey: body.appname # string
+              dest: spec.arguments.parameters.5.value
+            - src:
+                dependencyName: deploypysparkjob # could this come from output schema's name?  eg, [outputschema.name]-dev-app?
+                dataKey: body.code_version # string
+              dest: spec.arguments.parameters.6.value

@@ -34,9 +34,21 @@ spec:
   replicas: 3 # needed for HA
   webhook:
     # event-source can run multiple HTTP servers. Simply define a unique port to start a new HTTP server
-    runcontainer:
+    replay:
       # port to run HTTP server on
       port: "12000"
+      # endpoint to listen to
+      endpoint: /api/replay 
+      # HTTP request method to allow. In this case, only POST requests are accepted
+      method: POST
+      # kubectl create secret generic streamstate-webhook-token --from-file=token=./token.txt
+      authSecret:
+        name: streamstate-webhook-token
+        key: token 
+
+    deploy:
+      # port to run HTTP server on
+      port: "13000"
       # endpoint to listen to
       endpoint: /api/deploy 
       # HTTP request method to allow. In this case, only POST requests are accepted
@@ -50,13 +62,29 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: argowebhook
+  name: argowebhookreplay
   labels:
-    service: argowebhook
+    service: argowebhookreplay
 spec:
   type: ClusterIP
   ports:
   - port: 12000
+    protocol: TCP
+  selector:
+    controller: eventsource-controller
+    eventsource-name: streamstatewebservice
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argowebhookdeploy
+  labels:
+    service: argowebhookdeploy
+spec:
+  type: ClusterIP
+  ports:
+  - port: 13000
     protocol: TCP
   selector:
     controller: eventsource-controller

@@ -20,8 +20,6 @@ from streamstate_utils.structs import (
     TableStruct,
 )
 
-# import marshmallow_dataclass
-
 
 def kafka_source_wrapper(
     app_name: str,
@@ -30,17 +28,15 @@ def kafka_source_wrapper(
     output: OutputStruct,
     firestore: FirestoreOutputStruct,
     table: TableStruct,
-    # files: FileStruct,
     kafka: KafkaStruct,
     checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    # set_cassandra(cassandra_input, spark)
-    df = kafka_wrapper(app_name, kafka.brokers, process, input, spark)
+    df = kafka_wrapper(kafka.brokers, process, input, spark)
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()
-        write_kafka(batch_df, kafka, output)
+        write_kafka(batch_df, kafka, app_name, firestore.code_version)
         write_firestore(batch_df, firestore, table)
 
     write_wrapper(
@@ -66,19 +62,16 @@ if __name__ == "__main__":
         _,
         app_name,
         bucket,  # bucket name including gs://
-        output_struct,
         table_struct,
+        output_struct,
         kafka_struct,
         input_struct,
         checkpoint_location,
         version,  ## todo, is this the best way? (probably)
     ] = sys.argv
-    # table_schema = marshmallow_dataclass.class_schema(TableStruct)()
-    # output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = OutputStruct(**json.loads(output_struct))
     kafka_info = KafkaStruct(**json.loads(kafka_struct))
     firestore = get_firestore_inputs_from_config_map(app_name, version)
-    # input_schema = marshmallow_dataclass.class_schema(InputStruct)()
     table_info = TableStruct(**json.loads(table_struct))
     input_info = [InputStruct(**v) for v in json.loads(input_struct)]
 

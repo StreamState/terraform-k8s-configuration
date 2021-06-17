@@ -104,17 +104,49 @@ def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=e.status, detail=e.body)
 
 
-@app.get("/api/{app_name}/features/{version}")
+@app.get("/api/{app_name}/features/{code_version}")
 def read_feature(
     app_name: str,
-    version: int,
+    code_version: int,
     filter: Optional[List[str]] = Query(None),
     authorization: Optional[str] = Header(None),
 ):
     auth_checker(authorization, get_read_token)
     if filter is None:
         raise HTTPException(status_code=400, detail="Query parameter filter required")
-    return get_latest_record(DB, ORGANIZATION, app_name, version, filter)
+    return get_latest_record(DB, ORGANIZATION, app_name, code_version, filter)
+
+
+class ApiReplay(BaseModel):
+    inputs: List[InputStruct]
+    kafka: KafkaStruct
+    outputs: OutputStruct
+    table: TableStruct
+    fileinfo: FileStruct
+    appname: str
+    code_version: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "inputs": [
+                    {
+                        "topic": "topic1",
+                        "sample": [{"field1": "somevalue"}],
+                        "topic_schema": [{"name": "field1", "type": "string"}],
+                    }
+                ],
+                "kafka": {"brokers": "broker1,broker2"},
+                "outputs": {"mode": "append", "processing_time": "2 seconds"},
+                "fileinfo": {"max_file_age": "2d"},
+                "table": {
+                    "primary_keys": ["field1"],
+                    "output_schema": [{"name": "field1", "type": "string"}],
+                },
+                "appname": "mytestapp",
+                "code_version": 1,
+            }
+        }
 
 
 class ApiDeploy(BaseModel):
@@ -141,7 +173,6 @@ class ApiDeploy(BaseModel):
                 "assertions": [{"field1": "somevalue"}],
                 "kafka": {"brokers": "broker1,broker2"},
                 "outputs": {"mode": "append", "processing_time": "2 seconds"},
-                "fileinfo": {"max_file_age": "2d"},
                 "table": {
                     "primary_keys": ["field1"],
                     "output_schema": [{"name": "field1", "type": "string"}],
@@ -157,8 +188,21 @@ class ApiDeploy(BaseModel):
 ## called because our ingress
 ## redirects api/deploy to argo
 @app.post("/api/deploy")
-def create_spark_streaming_job(
+def create_spark_streaming_replay_job(
     body: ApiDeploy,
+    authorization: Optional[str] = Header(None),
+):
+    return "success"
+
+
+## this is a dummy endpoint, to
+## add docs to the argo webhook
+## endpoint.  This never gets
+## called because our ingress
+## redirects api/deploy to argo
+@app.post("/api/replay")
+def create_spark_streaming_job(
+    body: ApiReplay,
     authorization: Optional[str] = Header(None),
 ):
     return "success"
