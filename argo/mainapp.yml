@@ -122,14 +122,16 @@ spec:
                             value: "{{inputs.parameters.inputs}}"
                       dependencies: [runmypy, rununittests]
 
-                    - name: runsparkpersist
-                      template: sparksubmitmain
+                    - name:  runsparkpersist
+                      template: sparksubmittopic
                       arguments:
                         parameters: 
                           - name: pythoncode
                             value: "{{inputs.parameters.pythoncode}}"
                           - name: input
-                            value: "{{item}}" # loop from withParam
+                            value: "{{item}}"
+                          - name: table
+                            value: "{{inputs.parameters.table}}" 
                           - name: topic
                             value: "{{item.topic}}" # loop from withParam
                           - name: kafka
@@ -147,7 +149,7 @@ spec:
                       withParam: "{{inputs.parameters.inputs}}" # loops through
                     
                     - name: runsparkmainapp
-                      template: sparksubmittopic
+                      template: sparksubmitmain
                       arguments:
                         parameters: 
                           - name: pythoncode
@@ -168,7 +170,7 @@ spec:
                         - createfolder
                         - deploydocker
                         - runfirestoresetup
-
+                      
                 - name: mypy
                   inputs:
                     parameters:
@@ -299,8 +301,8 @@ spec:
                     parameters:
                       - name: image
                         value: ${registryprefix}/${project}/${registry} #/python_app:v0.2.0 # same as for build-docker-image
-                      - name: input
-                      - name: topic
+                      - name: inputs
+                      - name: table
                       - name: kafka
                       - name: outputs
                       - name: appname
