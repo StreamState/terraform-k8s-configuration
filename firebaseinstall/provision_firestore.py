@@ -24,10 +24,8 @@ def _parse_schema(schema: List[Dict[str, str]]):
         assert type(field["type"]) == str
 
 
-def set_document_name_version(
-    app_name: str, org_name: str, schema_version: int, code_version: int
-) -> str:
-    return f"{app_name}_{org_name}_{schema_version}_{code_version}"
+def set_document_name_version(app_name: str, org_name: str, code_version: int) -> str:
+    return f"{app_name}_{org_name}_{code_version}"
 
 
 def set_document_name(app_name: str, org_name: str) -> str:
