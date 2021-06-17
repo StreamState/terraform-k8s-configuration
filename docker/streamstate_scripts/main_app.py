@@ -69,12 +69,9 @@ if __name__ == "__main__":
         checkpoint_location,
         version,  ## todo, is this the best way? (probably)
     ] = sys.argv
-    # table_schema = marshmallow_dataclass.class_schema(TableStruct)()
-    # output_schema = marshmallow_dataclass.class_schema(OutputStruct)()
     output_info = OutputStruct(**json.loads(output_struct))
     kafka_info = KafkaStruct(**json.loads(kafka_struct))
     firestore = get_firestore_inputs_from_config_map(app_name, version)
-    # input_schema = marshmallow_dataclass.class_schema(InputStruct)()
     table_info = TableStruct(**json.loads(table_struct))
     input_info = [InputStruct(**v) for v in json.loads(input_struct)]
 

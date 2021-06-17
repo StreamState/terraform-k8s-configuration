@@ -10,8 +10,6 @@ from process import process
 import json
 from streamstate_utils.structs import OutputStruct, FileStruct, InputStruct
 
-# import marshmallow_dataclass
-
 
 def dev_from_file(
     app_name: str,
