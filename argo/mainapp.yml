@@ -95,12 +95,13 @@ spec:
                     - name: setupconfluent
                       template: confluenttopiccreate
                       arguments:
-                        - name: appname
-                          value: "{{inputs.parameters.appname}}" 
-                        - name: kafka
-                          value: "{{inputs.parameters.kafka}}"
-                        - name: version
-                          value: "{{tasks.runfirestoresetup.outputs.result}}" 
+                        parameters:
+                          - name: appname
+                            value: "{{inputs.parameters.appname}}" 
+                          - name: kafka
+                            value: "{{inputs.parameters.kafka}}"
+                          - name: version
+                            value: "{{tasks.runfirestoresetup.outputs.result}}" 
                       dependencies: [runfirestoresetup]
 
                     - name: builddocker
@@ -315,10 +316,13 @@ spec:
                   container: 
                     image: ${registryprefix}/${project}/${project}/firestoresetup:v0.1.0 
                     imagePullPolicy: Always
-                    command: [sh, -c]
-                    args: 
-                      - | 
-                      python3 provision_confluent_kafka.py '{{inputs.parameters.appname}}' '{{inputs.parameters.kafka}}' '{{inputs.parameters.version}}' 
+                    command: [
+                      "python3",
+                      "provision_confluent_kafka.py",
+                      '{{inputs.parameters.appname}}', 
+                      '{{inputs.parameters.kafka}}' ,
+                      '{{inputs.parameters.version}}'
+                    ] 
                 
                 - name: sparksubmitmain
                   serviceAccountName: ${runserviceaccount}
