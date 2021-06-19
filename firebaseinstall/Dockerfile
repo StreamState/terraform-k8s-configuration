@@ -5,7 +5,7 @@ RUN pip3 install confluent-kafka==1.7.0
 RUN mkdir -p /opt/firestore/work-dir
 WORKDIR /opt/firestore/work-dir
 COPY entrypoint.py /opt/firestore/work-dir/entrypoint.py
-COPY entrypoint.py /opt/firestore/work-dir/provision_confluent_kafka.py
+COPY provision_confluent_kafka.py /opt/firestore/work-dir/provision_confluent_kafka.py
 COPY provision_firestore.py /opt/firestore/work-dir/provision_firestore.py
 RUN chown -R firestore:firestore /opt/firestore/work-dir
 USER firestore
