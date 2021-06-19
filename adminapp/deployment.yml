@@ -27,6 +27,10 @@ spec:
           value: streamstate-webhook-token
         - name: READ_TOKEN_NAME
           value: streamstate-restapi-token
+        - name: CONFLUENT_KEY_NAME # these are dummies at the moment
+          value: confluent-api-key
+        - name: CONFLUENT_SECRET_NAME # these are dummies at the moment
+          value: confluent-secret
 ---
 apiVersion: v1
 kind: Service

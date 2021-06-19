@@ -1,6 +1,6 @@
 [
     {
-        "topic": "topic1",
+        "topic": "streamstate_test_topic",
         "sample": [
             {
                 "field1": "somevalue"

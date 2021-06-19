@@ -114,9 +114,11 @@ spec:
                       metadata:
                         name: {{inputs.parameters.appname}}-replay 
                         namespace: ${namespace} 
+                        labels:
+                          app: {{inputs.parameters.appname}}
                       spec:
                         sparkConf:
-                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
+                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1"
                           spark.jars.repositories: "https://packages.confluent.io/maven"
                           spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history

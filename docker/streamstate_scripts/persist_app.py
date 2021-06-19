@@ -22,6 +22,8 @@ def persist_topic(
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     df = kafka_wrapper(
         kafka.brokers,
+        kafka.confluent_api_key,
+        kafka.confluent_secret,
         lambda dfs: dfs[0],
         [input],
         spark,

@@ -92,6 +92,16 @@ spec:
                            value: "{{inputs.parameters.table}}" 
                       dependencies: [runmypy, rununittests]
 
+                    - name: setupconfluent
+                      template: confluenttopiccreate
+                      arguments:
+                        - name: appname
+                          value: "{{inputs.parameters.appname}}" 
+                        - name: kafka
+                          value: "{{inputs.parameters.kafka}}"
+                        - name: version
+                          value: "{{tasks.runfirestoresetup.outputs.result}}" 
+                      dependencies: [runfirestoresetup]
 
                     - name: builddocker
                       template: create-docker-file
@@ -170,6 +180,7 @@ spec:
                         - createfolder
                         - deploydocker
                         - runfirestoresetup
+                        - setupconfluent
                       
                 - name: mypy
                   inputs:
@@ -294,6 +305,20 @@ spec:
                     command: [sh]
                     source: | 
                       python3 entrypoint.py '{{inputs.parameters.appname}}' '{{inputs.parameters.table}}'
+
+                - name: confluenttopiccreate 
+                  inputs:
+                    parameters:
+                      - name: appname
+                      - name: kafka
+                      - name: version
+                  container: 
+                    image: ${registryprefix}/${project}/${project}/firestoresetup:v0.1.0 
+                    imagePullPolicy: Always
+                    command: [sh, -c]
+                    args: 
+                      - | 
+                      python3 provision_confluent_kafka.py '{{inputs.parameters.appname}}' '{{inputs.parameters.kafka}}' '{{inputs.parameters.version}}' 
                 
                 - name: sparksubmitmain
                   serviceAccountName: ${runserviceaccount}
@@ -325,9 +350,11 @@ spec:
                       metadata:
                         name: {{inputs.parameters.appname}}-main 
                         namespace: ${namespace} 
+                        labels:
+                          app: {{inputs.parameters.appname}}
                       spec:
                         sparkConf:
-                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
+                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1"
                           spark.jars.repositories: "https://packages.confluent.io/maven"
                           spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
@@ -404,17 +431,20 @@ spec:
                     # of the resource (not just labels). Multiple AND conditions can be represented by comma
                     # delimited expressions.
                     # For more details: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+                    # # sprig is not allowed until 3.1 name: {{inputs.parameters.appname}}-{{=sprig.replace(inputs.parameters.topic, "_", "-")}}-persist 
                     successCondition: status.applicationState.state == RUNNING # status.succeeded > 0
                     failureCondition: status.applicationState.state == FAILING
                     manifest: |               #put your kubernetes spec here
                       apiVersion: "sparkoperator.k8s.io/v1beta2"
                       kind: SparkApplication
                       metadata:
-                        name: {{inputs.parameters.appname}}-{{inputs.parameters.topic}}-persist #todo, make this a function of "topics" (ie, the thing to be looping over)
+                        name: {{inputs.parameters.appname}}-placeholdertopicname-persist # update this once 3.1 is released
                         namespace: ${namespace} 
+                        labels:
+                          app: {{inputs.parameters.appname}}
                       spec:
                         sparkConf:
-                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0"
+                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1"
                           spark.jars.repositories: "https://packages.confluent.io/maven"
                           spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
