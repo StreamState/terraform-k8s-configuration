@@ -32,7 +32,14 @@ def kafka_source_wrapper(
     checkpoint_location: str,
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
-    df = kafka_wrapper(kafka.brokers, process, input, spark)
+    df = kafka_wrapper(
+        kafka.brokers,
+        kafka.confluent_api_key,
+        kafka.confluent_secret,
+        process,
+        input,
+        spark,
+    )
 
     def dual_write(batch_df: DataFrame):
         batch_df.persist()

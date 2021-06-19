@@ -63,68 +63,85 @@
     </div>
 
     <div class="mt-5">
-      <button class="btn btn-outline-primary" name="foo" value="secret" onClick="rotateWrite()">Regenerate Write Secret</button>
-      <button class="btn btn-outline-primary" name="bar" value="secret" onClick="rotateRead()">Regenerate Read Secret</button>
+      <button class="btn btn-outline-primary" name="foo" value="secret" onClick="rotateWrite()">Regenerate Write
+        Secret</button>
+      <button class="btn btn-outline-primary" name="bar" value="secret" onClick="rotateRead()">Regenerate Read
+        Secret</button>
     </div>
+    <form action="/app/confluent/create" method="POST">
+      <div class="form-group">
+        <label for="confluentKey">API Key</label>
+        <input type="text" class="form-control" id="confluentKey" aria-describedby="apiKeyHelp"
+          placeholder="Enter API Key">
+        <small id="apiKeyHelp" class="form-text text-muted">Service account key from Confluent Kafka</small>
+      </div>
+      <div class="form-group">
+        <label for="confluentSecret">Password</label>
+        <input type="password" class="form-control" id="confluentSecret" placeholder="Enter Secret"
+          aria-describedby="apiSecretHelp">
+        <small id="apiSecretHelp" class="form-text text-muted">Service account secret from Confluent Kafka</small>
+      </div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
   </div>
 
   <script type="text/javascript">
     function rotateWrite() {
       fetch('/app/rotate/write', {
-          method: 'POST',
-          credentials: "same-origin"
-        })
+        method: 'POST',
+        credentials: "same-origin"
+      })
         .then(response => response.json())
         .then(data => alert(data.secret))
     }
 
     function rotateRead() {
       fetch('/app/rotate/read', {
-          method: 'POST',
-          credentials: "same-origin"
-        })
+        method: 'POST',
+        credentials: "same-origin"
+      })
         .then(response => response.json())
         .then(data => alert(data.secret))
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous">
-  </script>
+    </script>
   <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
   <script>
     new Vue({
       el: '#admin-list',
       data: {
         items: [{
-            id: 0,
-            title: 'Argo',
-            body: 'Argo is a robust workflow engine for Kubernetes that enables the implementation of each step in a workflow as a container. It provides simple, flexible mechanisms for specifying constraints between the steps in a workflow and artifact management for linking the output of any step as an input to subsequent steps.',
-            link: '/ui'
-          },
-          {
-            id: 1,
-            title: 'Monitoring',
-            body: 'View and manage metrics, logs, traces, alerts, and notifications.',
-            link: '/monitoring'
-          },
-          {
-            id: 2,
-            title: 'Graphs',
-            body: 'A multi-platform open source analytics and interactive visualization web application. It provides charts, graphs, and alerts for the web when connected to supported data sources.',
-            link: '/grafana'
-          },
-          {
-            id: 3,
-            title: 'Spark History',
-            body: 'A monitoring tool that displays information about completed Spark applications.',
-            link: '/sparkhistory'
-          },
-          {
-            id: 4,
-            title: 'API Docs',
-            body: 'A technical content deliverable, containing instructions about how to effectively use and integrate with an API.',
-            link: '/docs'
-          }
+          id: 0,
+          title: 'Argo',
+          body: 'Argo is a robust workflow engine for Kubernetes that enables the implementation of each step in a workflow as a container. It provides simple, flexible mechanisms for specifying constraints between the steps in a workflow and artifact management for linking the output of any step as an input to subsequent steps.',
+          link: '/ui'
+        },
+        {
+          id: 1,
+          title: 'Monitoring',
+          body: 'View and manage metrics, logs, traces, alerts, and notifications.',
+          link: '/monitoring'
+        },
+        {
+          id: 2,
+          title: 'Graphs',
+          body: 'A multi-platform open source analytics and interactive visualization web application. It provides charts, graphs, and alerts for the web when connected to supported data sources.',
+          link: '/grafana'
+        },
+        {
+          id: 3,
+          title: 'Spark History',
+          body: 'A monitoring tool that displays information about completed Spark applications.',
+          link: '/sparkhistory'
+        },
+        {
+          id: 4,
+          title: 'API Docs',
+          body: 'A technical content deliverable, containing instructions about how to effectively use and integrate with an API.',
+          link: '/docs'
+        }
         ]
       }
     })

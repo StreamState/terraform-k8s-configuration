@@ -91,6 +91,15 @@ def auth_checker(authorization: Optional[str], get_token: Callable[[], str]):
 def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
     auth_checker(authorization, get_write_token)
     try:
+        response = CUSTOM_OBJECT.list_namespaced_custom_object(
+            "sparkoperator.k8s.io",
+            "v1beta2",
+            NAMESPACE,
+            "sparkapplications",
+            body=client.V1DeleteOptions(),
+            label_selector=app_name,
+        )
+        print(response)  # need to loop through
         api_response = CUSTOM_OBJECT.delete_namespaced_custom_object(
             "sparkoperator.k8s.io",
             "v1beta2",
