@@ -358,9 +358,9 @@ spec:
                           app: {{inputs.parameters.appname}}
                       spec:
                         sparkConf:
-                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1"
-                          spark.jars.repositories: "https://packages.confluent.io/maven"
-                          spark.jars.ivy: "/tmp/ivy"
+                          #spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1"
+                          #spark.jars.repositories: "https://packages.confluent.io/maven"
+                          #spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
                           spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
                           spark.sql.streaming.metricsEnabled: "true"
@@ -384,7 +384,7 @@ spec:
                         sparkVersion: "3.1.1"
                         
                         arguments:
-                          - '{{inputs.parameters.appname}}-main'
+                          - '{{inputs.parameters.appname}}'
                           - '${spark_storage_bucket_url}'
                           - '{{inputs.parameters.table}}'
                           - '{{inputs.parameters.outputs}}'
@@ -448,9 +448,9 @@ spec:
                           app: {{inputs.parameters.appname}}
                       spec:
                         sparkConf:
-                          spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1"
-                          spark.jars.repositories: "https://packages.confluent.io/maven"
-                          spark.jars.ivy: "/tmp/ivy"
+                          #spark.jars.packages: "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1"
+                          #spark.jars.repositories: "https://packages.confluent.io/maven"
+                          #spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
                           spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
                           spark.sql.streaming.metricsEnabled: "true"

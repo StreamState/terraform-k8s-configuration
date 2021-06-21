@@ -5,7 +5,7 @@ FROM gcr.io/spark-operator/spark-py:v3.1.1-hadoop3
 USER root
 RUN groupadd -r -g 999 sparkpy && useradd -r -g sparkpy -u 999 sparkpy
 
-RUN pip3 install streamstate-utils==0.8.3
+RUN pip3 install streamstate-utils==0.8.4
 RUN pip3 install pyspark==3.1.1
 RUN chown -R sparkpy:sparkpy $SPARK_HOME
 USER sparkpy

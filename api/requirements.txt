@@ -1,4 +1,4 @@
 fastapi==0.65.1
 uvicorn[standard]==0.14.0
-streamstate-utils==0.8.3
+streamstate-utils==0.8.4
 kubernetes==17.17.0
