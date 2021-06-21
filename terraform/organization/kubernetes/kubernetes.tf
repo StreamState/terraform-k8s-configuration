@@ -374,7 +374,7 @@ resource "kubernetes_cluster_role" "stopsparkapplication" {
   rule {
     api_groups = ["sparkoperator.k8s.io"]
     resources  = ["sparkapplications"]
-    verbs      = ["delete"]
+    verbs      = ["delete", "list"]
   }
   depends_on = [kubernetes_namespace.serviceplane]
 }

@@ -96,19 +96,20 @@ def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
             "v1beta2",
             NAMESPACE,
             "sparkapplications",
-            body=client.V1DeleteOptions(),
-            label_selector=app_name,
+            label_selector=f"app={app_name}",
         )
-        print(response)  # need to loop through
-        api_response = CUSTOM_OBJECT.delete_namespaced_custom_object(
-            "sparkoperator.k8s.io",
-            "v1beta2",
-            NAMESPACE,
-            "sparkapplications",
-            app_name,
-            body=client.V1DeleteOptions(),
-        )
-        return api_response
+        result = []
+        for application in response["items"]:
+            api_response = CUSTOM_OBJECT.delete_namespaced_custom_object(
+                "sparkoperator.k8s.io",
+                "v1beta2",
+                NAMESPACE,
+                "sparkapplications",
+                application["metadata"]["name"],
+                body=client.V1DeleteOptions(),
+            )
+            result.append(api_response)
+        return result
     except ApiException as e:
         raise HTTPException(status_code=e.status, detail=e.body)
 
