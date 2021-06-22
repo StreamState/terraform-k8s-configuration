@@ -633,8 +633,8 @@ resource "helm_release" "nginx" {
   #repository       = "https://helm.nginx.com/stable"
   repository = "https://kubernetes.github.io/ingress-nginx"
   #chart      = "nginx-ingress"
-  chart = "ingress-nginx"
-
+  chart   = "ingress-nginx"
+  version = "3.34.0"
   values = [
     "${templatefile("../../gateway/nginx.yml", {
       static_ip_address = var.staticip_address
@@ -949,6 +949,7 @@ resource "kubectl_manifest" "ingress" {
   depends_on = [
     kubectl_manifest.argoeventswebhook,
     helm_release.grafana,
+    helm_release.nginx,
     helm_release.prometheus,
     kubectl_manifest.oauth2,
     kubectl_manifest.mainui

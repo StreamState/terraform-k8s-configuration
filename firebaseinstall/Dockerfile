@@ -1,6 +1,6 @@
 FROM python:3.7-slim
 RUN groupadd -r -g 999 firestore && useradd -r -g firestore -u 999 firestore
-RUN pip3 install streamstate-utils==0.8.4
+RUN pip3 install streamstate-utils==0.9.0
 RUN pip3 install confluent-kafka==1.7.0
 RUN mkdir -p /opt/firestore/work-dir
 WORKDIR /opt/firestore/work-dir
