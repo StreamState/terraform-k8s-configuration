@@ -33,9 +33,7 @@ def kafka_source_wrapper(
 ):
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     df = kafka_wrapper(
-        kafka.brokers,
-        kafka.confluent_api_key,
-        kafka.confluent_secret,
+        kafka,
         process,
         input,
         spark,
