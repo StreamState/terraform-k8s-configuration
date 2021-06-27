@@ -1,6 +1,5 @@
 const {convertListByGroup}=require('./utils')
 
-console.log(convertListByGroup)
 describe('convertListByGroup', ()=>{
     test('it returns groups correctly', ()=>{
         const input=[{

@@ -5,7 +5,7 @@ kc.loadFromDefault()
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api)
 
 const k8sApiCustomObject = kc.makeApiClient(k8s.CustomObjectsApi)
-const { v4: uuidv4 } = require('uuid')
+
 const fastify = require('fastify')()
 
 const path = require('path')
@@ -32,7 +32,7 @@ fastify.post('/rotate/write', (req, reply) => {
         })
 })
 fastify.post('/rotate/read', (req, reply) => {
-    generateNewSecret(readTokenName)
+    generateNewSecret(readTokenName, k8s, k8sApi)
         .then(secret => reply.send({ secret }))
         .catch(e => {
             console.log(e)
@@ -41,8 +41,8 @@ fastify.post('/rotate/read', (req, reply) => {
 })
 fastify.post('/confluent/create', (req, reply) => {
     return Promise.all([
-        createNewSecret(confluentKeyName, req.body.confluentKey, 'key'),
-        createNewSecret(confluentSecretName, req.body.confluentSecret, 'secret')
+        createNewSecret(confluentKeyName, req.body.confluentKey, k8s, k8sApi,'key'),
+        createNewSecret(confluentSecretName, req.body.confluentSecret, k8s, k8sApi, 'secret')
     ]).then(_ => reply.send({ success: true }))
         .catch(e => {
             console.log(e)

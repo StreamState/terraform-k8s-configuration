@@ -1,4 +1,5 @@
 const base64 = require('base-64')
+const { v4: uuidv4 } = require('uuid')
 const convertListByGroup=listOfSparkApps=>{
     console.log(listOfSparkApps)
     return Object.entries(listOfSparkApps.reduce((agg, val)=>{
@@ -18,7 +19,7 @@ const convertListByGroup=listOfSparkApps=>{
         value
     }))
 }
-const getSparkApplications=()=>{
+const getSparkApplications=(k8sApiCustomObject)=>{
     //k8sApiCustomObject.getNamespacedCustomObject
     k8sApiCustomObject.listNamespacedCustomObjects(
         "sparkoperator.k8s.io",
