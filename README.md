@@ -10,6 +10,11 @@
 
 See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terraform
 
+First time:
+* export TF_CREDS=~/.config/gcloud/${USER}-terraform-admin.json
+* gcloud iam service-accounts keys create ${TF_CREDS} --iam-account terraform@streamstatetest.iam.gserviceaccount.com
+
+Every time:
 
 * cd terraform/organization
 * export PROJECT_NAME=streamstatetest
@@ -54,8 +59,8 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 * cd ..
 
 * cd adminapp
-* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.1.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.1.0
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.2.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.2.0
 * cd ..
 
 * cd api
