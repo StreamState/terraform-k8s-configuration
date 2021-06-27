@@ -1,5 +1,6 @@
-const {convertlistByGroup}=require('./index')
+const {convertListByGroup}=require('./utils')
 
+console.log(convertListByGroup)
 describe('convertListByGroup', ()=>{
     test('it returns groups correctly', ()=>{
         const input=[{
@@ -18,7 +19,7 @@ describe('convertListByGroup', ()=>{
             },
             somekey:"hi2"
         }]
-        result=convertlistByGroup(input)
+        result=convertListByGroup(input)
         const expected=[
             {
                 sparkApp:"mytestapp1",
