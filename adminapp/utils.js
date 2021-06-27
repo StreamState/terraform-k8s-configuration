@@ -21,7 +21,7 @@ const convertListByGroup=listOfSparkApps=>{
 }
 const getSparkApplications=(k8sApiCustomObject)=>{
     //k8sApiCustomObject.getNamespacedCustomObject
-    k8sApiCustomObject.listNamespacedCustomObjects(
+    return k8sApiCustomObject.listNamespacedCustomObjects(
         "sparkoperator.k8s.io",
         "v1beta2",
         namespace,
@@ -56,5 +56,5 @@ module.exports={
     convertListByGroup,
     generateNewSecret,
     createNewSecret,
-
+    getSparkApplications
 }
