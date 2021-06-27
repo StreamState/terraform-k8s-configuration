@@ -19,7 +19,7 @@ const convertListByGroup=listOfSparkApps=>{
         value
     }))
 }
-const getSparkApplications=(k8sApiCustomObject)=>{
+const getSparkApplications=(k8sApiCustomObject, namespace)=>{
     //k8sApiCustomObject.getNamespacedCustomObject
     return k8sApiCustomObject.listNamespacedCustomObjects(
         "sparkoperator.k8s.io",
@@ -28,10 +28,11 @@ const getSparkApplications=(k8sApiCustomObject)=>{
         "sparkapplications",
         //labelSelector=`app=${app_name}`,
     ).then(response=>{
+        console.log(response)
         return convertListByGroup(response)
     })
 }
-const createNewSecret = (secretName, secretText, k8s, k8sApi, keyName = 'token') => {
+const createNewSecret = (secretName, secretText, k8s, k8sApi, namespace, keyName = 'token') => {
     const b64secret = base64.encode(secretText)
     const metadata = { name: secretName, namespace }
     const data = { [keyName]: b64secret }
@@ -47,9 +48,9 @@ const createNewSecret = (secretName, secretText, k8s, k8sApi, keyName = 'token')
         })
         .then(() => secretText)
 }
-const generateNewSecret = (secretName, k8s, k8sApi) => {
+const generateNewSecret = (secretName, k8s, k8sApi, namespace) => {
     const secretText = uuidv4()
-    return createNewSecret(secretName, secretText, k8s, k8sApi)
+    return createNewSecret(secretName, secretText, k8s, k8sApi, namespace)
 }
 
 module.exports={

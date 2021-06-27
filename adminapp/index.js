@@ -23,8 +23,11 @@ const {
     NAMESPACE: namespace
 } = process.env
 
+fastify.get('/applications', (req, reply)=>{
+    reply.send(getSparkApplications(k8sApiCustomObject, namespace))
+})
 fastify.post('/rotate/write', (req, reply) => {
-    generateNewSecret(writeTokenName)
+    generateNewSecret(writeTokenName, k8s, k8sApi, namespace)
         .then(secret => reply.send({ secret }))
         .catch(e => {
             console.log(e)
@@ -32,7 +35,7 @@ fastify.post('/rotate/write', (req, reply) => {
         })
 })
 fastify.post('/rotate/read', (req, reply) => {
-    generateNewSecret(readTokenName, k8s, k8sApi)
+    generateNewSecret(readTokenName, k8s, k8sApi, namespace)
         .then(secret => reply.send({ secret }))
         .catch(e => {
             console.log(e)
@@ -41,8 +44,8 @@ fastify.post('/rotate/read', (req, reply) => {
 })
 fastify.post('/confluent/create', (req, reply) => {
     return Promise.all([
-        createNewSecret(confluentKeyName, req.body.confluentKey, k8s, k8sApi,'key'),
-        createNewSecret(confluentSecretName, req.body.confluentSecret, k8s, k8sApi, 'secret')
+        createNewSecret(confluentKeyName, req.body.confluentKey, k8s, k8sApi,namespace, 'key'),
+        createNewSecret(confluentSecretName, req.body.confluentSecret, k8s, k8sApi,namespace, 'secret')
     ]).then(_ => reply.send({ success: true }))
         .catch(e => {
             console.log(e)
