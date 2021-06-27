@@ -3,6 +3,8 @@ const k8s = require('@kubernetes/client-node');
 const kc = new k8s.KubeConfig()
 kc.loadFromDefault()
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api)
+
+const k8sApiCustomObject = kc.makeApiClient(k8s.CustomObjectsApi)
 const { v4: uuidv4 } = require('uuid')
 const fastify = require('fastify')()
 const base64 = require('base-64')
@@ -54,6 +56,37 @@ fastify.listen(process.env.PORT, '0.0.0.0').then((address) => {
 fastify.get('/', (req, reply) => {
     return reply.sendFile('hello.html') // serving path.join(__dirname, 'public', 'myHtml.html') directly
 })
+const convertListByGroup=listOfSparkApps=>{
+    console.log(listOfSparkApps)
+    return Object.entries(listOfSparkApps.reduce((agg, val)=>{
+        const sparkApp=agg[val.metadata.name]||[]
+        return {
+            ...agg, 
+            [val.metadata.name]:[
+                ...sparkApp,
+                val
+                //val
+            ]
+        }
+    }, {
+
+    })).map(([key, value])=>({
+        sparkApp: key, 
+        value
+    }))
+}
+const getSparkApplications=()=>{
+    //k8sApiCustomObject.getNamespacedCustomObject
+    k8sApiCustomObject.listNamespacedCustomObjects(
+        "sparkoperator.k8s.io",
+        "v1beta2",
+        namespace,
+        "sparkapplications",
+        //labelSelector=`app=${app_name}`,
+    ).then(response=>{
+        return convertListByGroup(response)
+    })
+}
 const createNewSecret = (secretName, secretText, keyName = 'token') => {
     const b64secret = base64.encode(secretText)
     const metadata = { name: secretName, namespace }
@@ -73,4 +106,8 @@ const createNewSecret = (secretName, secretText, keyName = 'token') => {
 const generateNewSecret = (secretName) => {
     const secretText = uuidv4()
     return createNewSecret(secretName, secretText)
+}
+
+module.exports={
+    convertListByGroup
 }

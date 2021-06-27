@@ -4,7 +4,7 @@
   "description": "adminapi for dealing with api  keys in kubernetes",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "Daniel Stahl",
   "license": "ISC",
@@ -15,5 +15,8 @@
     "fastify-formbody": "^5.0.0",
     "fastify-static": "^4.2.2",
     "uuid": "^3.4.0"
+  },
+  "devDependencies": {
+    "jest": "^27.0.5"
   }
 }
