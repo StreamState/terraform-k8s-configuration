@@ -9,7 +9,7 @@ const k8sApiCustomObject = kc.makeApiClient(k8s.CustomObjectsApi)
 const fastify = require('fastify')()
 
 const path = require('path')
-const { generateNewSecret, createNewSecret, getSparkApplications}
+const { generateNewSecret, createNewSecret, getSparkApplications}=require('./utils')
 fastify.register(require('fastify-static'), {
     root: path.join(__dirname, 'public'),
     prefix: '/public/', // optional: default '/'

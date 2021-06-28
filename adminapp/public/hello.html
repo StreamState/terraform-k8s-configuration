@@ -67,6 +67,9 @@
         Secret</button>
       <button class="btn btn-outline-primary" name="bar" value="secret" onClick="rotateRead()">Regenerate Read
         Secret</button>
+
+        <button class="btn btn-outline-primary" name="test" value="secret" onClick="testGetSparkApps()">Test get spark apps
+      </button>
     </div>
     <form action="/app/confluent/create" method="POST">
       <div class="form-group">
@@ -93,6 +96,15 @@
       })
         .then(response => response.json())
         .then(data => alert(data.secret))
+    }
+
+    function testGetSparkApps(){
+      fetch('/app/applications', {
+        method: 'GET',
+        credentials: "same-origin"
+      })
+        .then(response => response.json())
+        .then(console.log)
     }
 
     function rotateRead() {
