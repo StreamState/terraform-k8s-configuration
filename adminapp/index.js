@@ -24,7 +24,9 @@ const {
 } = process.env
 
 fastify.get('/applications', (req, reply)=>{
-    reply.send(getSparkApplications(k8sApiCustomObject, namespace))
+    getSparkApplications(k8sApiCustomObject, namespace).then(result=>reply.send(result)).catch(e=>{
+        reply.send({ error: e.message })
+    })
 })
 fastify.post('/rotate/write', (req, reply) => {
     generateNewSecret(writeTokenName, k8s, k8sApi, namespace)

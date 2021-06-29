@@ -26,11 +26,12 @@ const getSparkApplications=(k8sApiCustomObject, namespace)=>{
         "v1beta2",
         namespace,
         "sparkapplications",
-        //labelSelector=`app=${app_name}`,
     ).then(response=>{
-        console.log(response)
-        return convertListByGroup(response)
-    })
+        return response.items
+    }).catch(e=>{
+        console.log(e)
+        return []
+    }).then(convertListByGroup)
 }
 const createNewSecret = (secretName, secretText, k8s, k8sApi, namespace, keyName = 'token') => {
     const b64secret = base64.encode(secretText)
