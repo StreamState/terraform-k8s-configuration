@@ -379,6 +379,19 @@ resource "kubernetes_cluster_role" "stopsparkapplication" {
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
+# todo, define this once for whole cluster
+resource "kubernetes_cluster_role" "monitorsparkapplication" {
+  metadata {
+    name = "monitorsparkapp-role"
+  }
+  rule {
+    api_groups = ["sparkoperator.k8s.io"]
+    resources  = ["sparkapplications"]
+    verbs      = ["list"]
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
 # This is per organization
 resource "kubernetes_role_binding" "stopsparkapplication" {
   metadata {
@@ -393,6 +406,64 @@ resource "kubernetes_role_binding" "stopsparkapplication" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.firestoreviewer.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+
+resource "kubernetes_role" "secretaccess" {
+  metadata {
+    name = "secretaccess-role"
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["secrets"]
+    verbs      = ["create", "delete"]
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+resource "kubernetes_service_account" "mainui" {
+  metadata {
+    name      = "mainui"
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+# This is per organization
+resource "kubernetes_role_binding" "monitorsparkapplication" {
+  metadata {
+    name      = "monitorspark-role-binding"
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.monitorsparkapplication.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.mainui.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
+  }
+  depends_on = [kubernetes_namespace.serviceplane]
+}
+
+resource "kubernetes_role_binding" "secretaccess" {
+  metadata {
+    name      = "secretaccess-role-binding"
+    namespace = kubernetes_namespace.sparkplane.metadata.0.name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.secretaccess.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.mainui.metadata.0.name
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   depends_on = [kubernetes_namespace.serviceplane]
@@ -894,13 +965,14 @@ resource "kubectl_manifest" "oauth2" {
 data "kubectl_path_documents" "mainui" {
   pattern = "../../adminapp/deployment.yml"
   vars = {
+    serviceaccount=kubernetes_service_account.mainui.metadata.0.name
     registryprefix = var.registryprefix
     project        = var.project
     namespace      = kubernetes_namespace.serviceplane.metadata.0.name
   }
 }
 resource "kubectl_manifest" "mainui" {
-  count              = 5 # length(data.kubectl_path_documents.mainui.documents)
+  count              = 2 # length(data.kubectl_path_documents.mainui.documents)
   yaml_body          = element(data.kubectl_path_documents.mainui.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on = [

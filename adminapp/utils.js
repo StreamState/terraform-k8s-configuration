@@ -21,7 +21,7 @@ const convertListByGroup=listOfSparkApps=>{
 }
 const getSparkApplications=(k8sApiCustomObject, namespace)=>{
     //k8sApiCustomObject.getNamespacedCustomObject
-    return k8sApiCustomObject.listNamespacedCustomObjects(
+    return k8sApiCustomObject.listNamespacedCustomObject(
         "sparkoperator.k8s.io",
         "v1beta2",
         namespace,
