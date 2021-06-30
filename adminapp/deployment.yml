@@ -31,6 +31,8 @@ spec:
           value: confluent-api-key
         - name: CONFLUENT_SECRET_NAME # these are dummies at the moment
           value: confluent-secret
+        - name: HOST
+          value: ${host}
         volumeMounts:
         - name: secret-volume-write
           mountPath: /etc/secret-volume/write_token 

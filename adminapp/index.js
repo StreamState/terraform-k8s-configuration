@@ -20,7 +20,8 @@ const {
     READ_TOKEN_NAME: readTokenName,
     CONFLUENT_KEY_NAME: confluentKeyName,
     CONFLUENT_SECRET_NAME: confluentSecretName,
-    NAMESPACE: namespace
+    NAMESPACE: namespace,
+    HOST: host
 } = process.env
 
 fastify.get('/applications', (req, reply)=>{

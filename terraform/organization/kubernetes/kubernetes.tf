@@ -415,6 +415,7 @@ resource "kubernetes_role_binding" "stopsparkapplication" {
 resource "kubernetes_role" "secretaccess" {
   metadata {
     name = "secretaccess-role"
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   rule {
     api_groups = [""]
@@ -454,7 +455,7 @@ resource "kubernetes_service_account" "mainui" {
 resource "kubernetes_role_binding" "secretaccess" {
   metadata {
     name      = "secretaccess-role-binding"
-    namespace = kubernetes_namespace.sparkplane.metadata.0.name
+    namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -968,6 +969,7 @@ data "kubectl_path_documents" "mainui" {
     serviceaccount=kubernetes_service_account.mainui.metadata.0.name
     registryprefix = var.registryprefix
     project        = var.project
+    host           = var.cluster_endpoint
     namespace      = kubernetes_namespace.serviceplane.metadata.0.name
   }
 }
