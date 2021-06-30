@@ -95,7 +95,7 @@ def group_applications(spark_applications: List[dict])->List[Tuple[str, list]]:
             placeholder[app_name].append(spark_app_name)
         else:
             placeholder[app_name]=[spark_app_name]
-    return placeholder.items()
+    return [{"app_name": key, "spark_applications": value} for (key, value) in placeholder.items()]
 
 @app.get("/api/applications")
 def applications(authorization: Optional[str] = Header(None)):
