@@ -1,15 +1,15 @@
 const k8s = require('@kubernetes/client-node');
-
+const https = require('https')
 const kc = new k8s.KubeConfig()
 kc.loadFromDefault()
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api)
 
-const k8sApiCustomObject = kc.makeApiClient(k8s.CustomObjectsApi)
+//const k8sApiCustomObject = kc.makeApiClient(k8s.CustomObjectsApi)
 
 const fastify = require('fastify')()
 
 const path = require('path')
-const { generateNewSecret, createNewSecret, getSparkApplications}=require('./utils')
+const { generateNewSecret, createNewSecret, getWriteToken}=require('./utils')
 fastify.register(require('fastify-static'), {
     root: path.join(__dirname, 'public'),
     prefix: '/public/', // optional: default '/'
@@ -24,8 +24,27 @@ const {
 } = process.env
 
 fastify.get('/applications', (req, reply)=>{
-    getSparkApplications(k8sApiCustomObject, namespace).then(result=>reply.send(result)).catch(e=>{
-        reply.send({ error: e.message })
+    return getWriteToken().then(token=>{
+        const options = {
+            hostname: host,
+            port: 443,
+            path: '/api/applications',
+            method: 'GET',
+            headers:{
+                Authorization: `Bearer ${token}`
+            }
+        }
+        let chunk=''
+        https.request(options, res=>{
+            res.on('data', d => {
+                chunk+=d
+            })
+            res.on('end', ()=>{
+                reply.send(JSON.parse(chunk))
+            })
+        }).on('error', e => {
+            reply.send({ error: e.message })
+        })
     })
 })
 fastify.post('/rotate/write', (req, reply) => {

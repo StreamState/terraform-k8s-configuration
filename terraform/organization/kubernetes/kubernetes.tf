@@ -380,7 +380,7 @@ resource "kubernetes_cluster_role" "stopsparkapplication" {
 }
 
 # todo, define this once for whole cluster
-resource "kubernetes_cluster_role" "monitorsparkapplication" {
+/*resource "kubernetes_cluster_role" "monitorsparkapplication" {
   metadata {
     name = "monitorsparkapp-role"
   }
@@ -390,7 +390,7 @@ resource "kubernetes_cluster_role" "monitorsparkapplication" {
     verbs      = ["list"]
   }
   depends_on = [kubernetes_namespace.serviceplane]
-}
+}*/
 
 # This is per organization
 resource "kubernetes_role_binding" "stopsparkapplication" {
@@ -433,7 +433,7 @@ resource "kubernetes_service_account" "mainui" {
 }
 
 # This is per organization
-resource "kubernetes_role_binding" "monitorsparkapplication" {
+/*resource "kubernetes_role_binding" "monitorsparkapplication" {
   metadata {
     name      = "monitorspark-role-binding"
     namespace = kubernetes_namespace.sparkplane.metadata.0.name
@@ -449,7 +449,7 @@ resource "kubernetes_role_binding" "monitorsparkapplication" {
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   depends_on = [kubernetes_namespace.serviceplane]
-}
+}*/
 
 resource "kubernetes_role_binding" "secretaccess" {
   metadata {

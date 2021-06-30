@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional, Dict, Union
+from typing import List, Callable, Optional, Dict, Union, Tuple
 
 from fastapi import FastAPI, HTTPException, Header, Query
 from pydantic import BaseModel
@@ -86,6 +86,30 @@ def auth_checker(authorization: Optional[str], get_token: Callable[[], str]):
     if not check_auth(authorization, actual_token):
         raise HTTPException(status_code=401, detail="Incorrect token")
 
+def group_applications(spark_applications: List[dict])->List[Tuple[str, list]]:
+    placeholder={}
+    for sparkapp in spark_applications:
+        app_name=sparkapp["metadata"]["labels"]["app"]
+        spark_app_name=sparkapp["metadata"]["name"]
+        if app_name in placeholder:
+            placeholder[app_name].append(spark_app_name)
+        else:
+            placeholder[app_name]=[spark_app_name]
+    return placholder.items()
+
+@app.get("/api/applications")
+def applications(authorization: Optional[str] = Header(None)):
+    auth_checker(authorization, get_write_token)
+    try:
+        response = CUSTOM_OBJECT.list_namespaced_custom_object(
+            "sparkoperator.k8s.io",
+            "v1beta2",
+            NAMESPACE,
+            "sparkapplications"
+        )
+        return group_applications(response["items"])
+    except ApiException as e:
+        raise HTTPException(status_code=e.status, detail=e.body)
 
 @app.post("/api/{app_name}/stop")
 def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
