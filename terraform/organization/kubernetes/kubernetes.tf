@@ -379,18 +379,6 @@ resource "kubernetes_cluster_role" "stopsparkapplication" {
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
-# todo, define this once for whole cluster
-/*resource "kubernetes_cluster_role" "monitorsparkapplication" {
-  metadata {
-    name = "monitorsparkapp-role"
-  }
-  rule {
-    api_groups = ["sparkoperator.k8s.io"]
-    resources  = ["sparkapplications"]
-    verbs      = ["list"]
-  }
-  depends_on = [kubernetes_namespace.serviceplane]
-}*/
 
 # This is per organization
 resource "kubernetes_role_binding" "stopsparkapplication" {
@@ -410,7 +398,6 @@ resource "kubernetes_role_binding" "stopsparkapplication" {
   }
   depends_on = [kubernetes_namespace.serviceplane]
 }
-
 
 resource "kubernetes_role" "secretaccess" {
   metadata {
@@ -433,24 +420,6 @@ resource "kubernetes_service_account" "mainui" {
   depends_on = [kubernetes_namespace.serviceplane]
 }
 
-# This is per organization
-/*resource "kubernetes_role_binding" "monitorsparkapplication" {
-  metadata {
-    name      = "monitorspark-role-binding"
-    namespace = kubernetes_namespace.sparkplane.metadata.0.name
-  }
-  role_ref {
-    api_group = "rbac.authorization.k8s.io"
-    kind      = "ClusterRole"
-    name      = kubernetes_cluster_role.monitorsparkapplication.metadata.0.name
-  }
-  subject {
-    kind      = "ServiceAccount"
-    name      = kubernetes_service_account.mainui.metadata.0.name
-    namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  }
-  depends_on = [kubernetes_namespace.serviceplane]
-}*/
 
 resource "kubernetes_role_binding" "secretaccess" {
   metadata {
@@ -469,8 +438,6 @@ resource "kubernetes_role_binding" "secretaccess" {
   }
   depends_on = [kubernetes_namespace.serviceplane]
 }
-
-
 # Todo, define this once for the whole cluster
 resource "kubernetes_cluster_role" "launchsparkapplication" {
   metadata {
@@ -678,17 +645,6 @@ data "kubectl_file_documents" "oidcsecret" {
 resource "kubectl_manifest" "oidcsecret" {
   count              = 1
   yaml_body          = element(data.kubectl_file_documents.oidcsecret.documents, count.index)
-  override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
-  depends_on         = [helm_release.passwordgenerator]
-}
-
-
-data "kubectl_file_documents" "token" {
-  content = file("../../gateway/token.yml")
-}
-resource "kubectl_manifest" "token" {
-  count              = length(data.kubectl_file_documents.token.documents)
-  yaml_body          = element(data.kubectl_file_documents.token.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
 }

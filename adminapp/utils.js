@@ -1,39 +1,7 @@
 const base64 = require('base-64')
 const { v4: uuidv4 } = require('uuid')
 const fs = require('fs')
-/*const convertListByGroup=listOfSparkApps=>{
-    console.log(listOfSparkApps)
-    return Object.entries(listOfSparkApps.reduce((agg, val)=>{
-        const sparkApp=agg[val.metadata.name]||[]
-        return {
-            ...agg, 
-            [val.metadata.name]:[
-                ...sparkApp,
-                val
-                //val
-            ]
-        }
-    }, {
 
-    })).map(([key, value])=>({
-        sparkApp: key, 
-        value
-    }))
-}
-const getSparkApplications=(k8sApiCustomObject, namespace)=>{
-    //k8sApiCustomObject.getNamespacedCustomObject
-    return k8sApiCustomObject.listNamespacedCustomObject(
-        "sparkoperator.k8s.io",
-        "v1beta2",
-        namespace,
-        "sparkapplications",
-    ).then(response=>{
-        return response.items
-    }).catch(e=>{
-        console.log(e)
-        return []
-    }).then(convertListByGroup)
-}*/
 const createNewSecret = (secretName, secretText, k8s, k8sApi, namespace, keyName = 'token') => {
     const b64secret = base64.encode(secretText)
     const metadata = { name: secretName, namespace }
@@ -62,8 +30,6 @@ const getWriteToken=()=>{
 }
 module.exports={
     getWriteToken,
-    //convertListByGroup,
     generateNewSecret,
     createNewSecret,
-    //getSparkApplications
 }

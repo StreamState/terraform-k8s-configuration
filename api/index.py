@@ -1,6 +1,8 @@
 from typing import List, Callable, Optional, Dict, Union, Tuple
 
 from fastapi import FastAPI, HTTPException, Header, Query
+from fastapi.middleware.cors import CORSMiddleware
+
 from pydantic import BaseModel
 from streamstate_utils.structs import (
     FileStruct,
@@ -12,6 +14,15 @@ from streamstate_utils.structs import (
 
 
 app = FastAPI(openapi_url="/docs/openapi.json")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex="https://.*\.streamstate\.org",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 import os
 from streamstate_utils.firestore import (
     get_collection_from_org_name_and_app_name,
@@ -98,8 +109,7 @@ def group_applications(spark_applications: List[dict])->List[Tuple[str, list]]:
     return [{"app_name": key, "spark_applications": value} for (key, value) in placeholder.items()]
 
 @app.get("/api/applications")
-def applications(authorization: Optional[str] = Header(None)):
-    auth_checker(authorization, get_write_token)
+def applications():
     try:
         response = CUSTOM_OBJECT.list_namespaced_custom_object(
             "sparkoperator.k8s.io",
@@ -112,8 +122,7 @@ def applications(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=e.status, detail=e.body)
 
 @app.post("/api/{app_name}/stop")
-def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
-    auth_checker(authorization, get_write_token)
+def stop_spark_job(app_name: str):
     try:
         response = CUSTOM_OBJECT.list_namespaced_custom_object(
             "sparkoperator.k8s.io",
@@ -143,9 +152,7 @@ def read_feature(
     app_name: str,
     code_version: int,
     filter: Optional[List[str]] = Query(None),
-    authorization: Optional[str] = Header(None),
 ):
-    auth_checker(authorization, get_read_token)
     if filter is None:
         raise HTTPException(status_code=400, detail="Query parameter filter required")
     return get_latest_record(DB, ORGANIZATION, app_name, code_version, filter)
@@ -223,8 +230,7 @@ class ApiDeploy(BaseModel):
 ## redirects api/deploy to argo
 @app.post("/api/deploy")
 def create_spark_streaming_replay_job(
-    body: ApiDeploy,
-    authorization: Optional[str] = Header(None),
+    body: ApiDeploy
 ):
     return "success"
 
@@ -237,6 +243,5 @@ def create_spark_streaming_replay_job(
 @app.post("/api/replay")
 def create_spark_streaming_job(
     body: ApiReplay,
-    authorization: Optional[str] = Header(None),
 ):
     return "success"

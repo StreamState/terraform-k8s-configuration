@@ -63,11 +63,6 @@
     </div>
 
     <div class="mt-5">
-      <button class="btn btn-outline-primary" name="foo" value="secret" onClick="rotateWrite()">Regenerate Write
-        Secret</button>
-      <button class="btn btn-outline-primary" name="bar" value="secret" onClick="rotateRead()">Regenerate Read
-        Secret</button>
-
         <button class="btn btn-outline-primary" name="test" value="secret" onClick="testGetSparkApps()">Test get spark apps
       </button>
     </div>
@@ -89,31 +84,14 @@
   </div>
 
   <script type="text/javascript">
-    function rotateWrite() {
-      fetch('/app/rotate/write', {
-        method: 'POST',
-        credentials: "same-origin"
-      })
-        .then(response => response.json())
-        .then(data => alert(data.secret))
-    }
-
+    
     function testGetSparkApps(){
-      fetch('/app/applications', {
+      fetch('/api/applications', {
         method: 'GET',
-        credentials: "same-origin"
+        credentials: "include"
       })
         .then(response => response.json())
         .then(console.log)
-    }
-
-    function rotateRead() {
-      fetch('/app/rotate/read', {
-        method: 'POST',
-        credentials: "same-origin"
-      })
-        .then(response => response.json())
-        .then(data => alert(data.secret))
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
