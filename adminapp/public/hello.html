@@ -99,9 +99,9 @@
     }
 
     function testGetSparkApps(){
-      fetch('/app/applications', {
+      fetch('/api/applications', {
         method: 'GET',
-        credentials: "same-origin"
+        credentials: "include"
       })
         .then(response => response.json())
         .then(console.log)

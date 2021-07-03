@@ -33,13 +33,14 @@ spec:
           - --email-domain=*
           - --skip-provider-button=true
           - --http-address=0.0.0.0:4180
-          - --redirect-url=https://testorg.streamstate.org/oauth2/callback
+          - --redirect-url=https://${organization}.streamstate.org/oauth2/callback
           - --pass-host-header
           - --exclude-logging-path=/ping
           - --whitelist-domain=*.streamstate.org
           - --cookie-domain=*.streamstate.org
           - --upstream=file:///dev/null
-          - --skip-auth-route=/build(/|$)(.*) # use argowebhook api key
+          - --skip-jwt-bearer-tokens=true
+          - --extra-jwt-issuers=https://dev-20490044.okta.com/oauth2/default=api://default
         env:
         - name: OAUTH2_PROXY_CLIENT_ID
           valueFrom:
