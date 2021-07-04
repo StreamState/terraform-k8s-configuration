@@ -1,6 +1,8 @@
-from typing import List, Callable, Optional, Dict, Union
+from typing import List, Callable, Optional, Dict, Union, Tuple
 
 from fastapi import FastAPI, HTTPException, Header, Query
+from fastapi.middleware.cors import CORSMiddleware
+
 from pydantic import BaseModel
 from streamstate_utils.structs import (
     FileStruct,
@@ -10,8 +12,19 @@ from streamstate_utils.structs import (
     TableStruct,
 )
 
+from utils import group_applications
+
 
 app = FastAPI(openapi_url="/docs/openapi.json")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex="https://.*\.streamstate\.org",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 import os
 from streamstate_utils.firestore import (
     get_collection_from_org_name_and_app_name,
@@ -57,39 +70,19 @@ def get_latest_record(
 
     return db.collection(collection).document(document).get().to_dict()
 
-
-def check_auth_head(authorization: str) -> bool:
-    return authorization.startswith("Bearer ")
-
-
-def check_auth(authorization: str, actual_token: str) -> bool:
-    token = authorization.replace("Bearer ", "")
-    return token == actual_token
-
-
-def get_write_token() -> str:
-    return open("/etc/secret-volume/write_token/token", "r").read()
-
-
-def get_read_token() -> str:
-    return open("/etc/secret-volume/read_token/token", "r").read()
-
-
-def auth_checker(authorization: Optional[str], get_token: Callable[[], str]):
-    if authorization is None:
-        raise HTTPException(status_code=401, detail="Authorization header required")
-
-    if not check_auth_head(authorization):
-        raise HTTPException(status_code=401, detail="Malformed authorization header")
-
-    actual_token = get_token()
-    if not check_auth(authorization, actual_token):
-        raise HTTPException(status_code=401, detail="Incorrect token")
+@app.get("/api/applications")
+def applications():
+    try:
+        response = CUSTOM_OBJECT.list_namespaced_custom_object(
+            "sparkoperator.k8s.io", "v1beta2", NAMESPACE, "sparkapplications"
+        )
+        return group_applications(response["items"])
+    except ApiException as e:
+        raise HTTPException(status_code=e.status, detail=e.body)
 
 
 @app.post("/api/{app_name}/stop")
-def stop_spark_job(app_name: str, authorization: Optional[str] = Header(None)):
-    auth_checker(authorization, get_write_token)
+def stop_spark_job(app_name: str):
     try:
         response = CUSTOM_OBJECT.list_namespaced_custom_object(
             "sparkoperator.k8s.io",
@@ -119,9 +112,7 @@ def read_feature(
     app_name: str,
     code_version: int,
     filter: Optional[List[str]] = Query(None),
-    authorization: Optional[str] = Header(None),
 ):
-    auth_checker(authorization, get_read_token)
     if filter is None:
         raise HTTPException(status_code=400, detail="Query parameter filter required")
     return get_latest_record(DB, ORGANIZATION, app_name, code_version, filter)
@@ -198,10 +189,7 @@ class ApiDeploy(BaseModel):
 ## called because our ingress
 ## redirects api/deploy to argo
 @app.post("/api/deploy")
-def create_spark_streaming_replay_job(
-    body: ApiDeploy,
-    authorization: Optional[str] = Header(None),
-):
+def create_spark_streaming_replay_job(body: ApiDeploy):
     return "success"
 
 
@@ -213,6 +201,5 @@ def create_spark_streaming_replay_job(
 @app.post("/api/replay")
 def create_spark_streaming_job(
     body: ApiReplay,
-    authorization: Optional[str] = Header(None),
 ):
     return "success"

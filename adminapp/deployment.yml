@@ -11,10 +11,10 @@ spec:
       labels:
         app: mainui
     spec:
-      serviceAccountName: mainui
+      serviceAccountName: ${serviceaccount}
       containers:
-      - image: ${registryprefix}/${project}/${project}/adminapp:v0.1.0
-        imagePullPolicy: IfNotPresent
+      - image: ${registryprefix}/${project}/${project}/adminapp:v0.3.0
+        imagePullPolicy: Always
         name: mainui
         ports:
         - containerPort: 3000
@@ -31,6 +31,20 @@ spec:
           value: confluent-api-key
         - name: CONFLUENT_SECRET_NAME # these are dummies at the moment
           value: confluent-secret
+        - name: HOST
+          value: ${host}
+        volumeMounts:
+        - name: secret-volume-write
+          mountPath: /etc/secret-volume/write_token 
+        - name: secret-volume-read
+          mountPath: /etc/secret-volume/read_token
+      volumes:
+      - name: secret-volume-write
+        secret:
+          secretName: streamstate-webhook-token
+      - name: secret-volume-read
+        secret:
+          secretName: streamstate-restapi-token
 ---
 apiVersion: v1
 kind: Service
@@ -44,39 +58,3 @@ spec:
   type: ClusterIP 
   selector:
     app: mainui
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mainui
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: mainui
-  name: secretaccess
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: secretaccess
-subjects:
-- kind: ServiceAccount
-  name: mainui
-  apiGroup: ""
-roleRef:
-  kind: Role
-  name: secretaccess
-  apiGroup: ""

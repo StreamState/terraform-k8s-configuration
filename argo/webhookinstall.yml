@@ -41,10 +41,6 @@ spec:
       endpoint: /api/replay 
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
-      # kubectl create secret generic streamstate-webhook-token --from-file=token=./token.txt
-      authSecret:
-        name: streamstate-webhook-token
-        key: token 
 
     deploy:
       # port to run HTTP server on
@@ -53,10 +49,6 @@ spec:
       endpoint: /api/deploy 
       # HTTP request method to allow. In this case, only POST requests are accepted
       method: POST
-      # kubectl create secret generic streamstate-webhook-token --from-file=token=./token.txt
-      authSecret:
-        name: streamstate-webhook-token
-        key: token 
 
 ---
 apiVersion: v1
