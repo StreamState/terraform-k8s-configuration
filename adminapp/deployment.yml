@@ -33,18 +33,6 @@ spec:
           value: confluent-secret
         - name: HOST
           value: ${host}
-        volumeMounts:
-        - name: secret-volume-write
-          mountPath: /etc/secret-volume/write_token 
-        - name: secret-volume-read
-          mountPath: /etc/secret-volume/read_token
-      volumes:
-      - name: secret-volume-write
-        secret:
-          secretName: streamstate-webhook-token
-      - name: secret-volume-read
-        secret:
-          secretName: streamstate-restapi-token
 ---
 apiVersion: v1
 kind: Service
