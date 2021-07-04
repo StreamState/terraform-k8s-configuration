@@ -12,6 +12,8 @@ from streamstate_utils.structs import (
     TableStruct,
 )
 
+from utils import group_applications
+
 
 app = FastAPI(openapi_url="/docs/openapi.json")
 
@@ -67,22 +69,6 @@ def get_latest_record(
     document = get_document_name_from_version_and_keys(key_values, version)
 
     return db.collection(collection).document(document).get().to_dict()
-
-
-def group_applications(spark_applications: List[dict]) -> List[Tuple[str, list]]:
-    placeholder = {}
-    for sparkapp in spark_applications:
-        app_name = sparkapp["metadata"]["labels"]["app"]
-        spark_app_name = sparkapp["metadata"]["name"]
-        if app_name in placeholder:
-            placeholder[app_name].append(spark_app_name)
-        else:
-            placeholder[app_name] = [spark_app_name]
-    return [
-        {"app_name": key, "spark_applications": value}
-        for (key, value) in placeholder.items()
-    ]
-
 
 @app.get("/api/applications")
 def applications():
