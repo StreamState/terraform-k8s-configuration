@@ -69,57 +69,31 @@ def get_latest_record(
     return db.collection(collection).document(document).get().to_dict()
 
 
-def check_auth_head(authorization: str) -> bool:
-    return authorization.startswith("Bearer ")
-
-
-def check_auth(authorization: str, actual_token: str) -> bool:
-    token = authorization.replace("Bearer ", "")
-    return token == actual_token
-
-
-def get_write_token() -> str:
-    return open("/etc/secret-volume/write_token/token", "r").read()
-
-
-def get_read_token() -> str:
-    return open("/etc/secret-volume/read_token/token", "r").read()
-
-
-def auth_checker(authorization: Optional[str], get_token: Callable[[], str]):
-    if authorization is None:
-        raise HTTPException(status_code=401, detail="Authorization header required")
-
-    if not check_auth_head(authorization):
-        raise HTTPException(status_code=401, detail="Malformed authorization header")
-
-    actual_token = get_token()
-    if not check_auth(authorization, actual_token):
-        raise HTTPException(status_code=401, detail="Incorrect token")
-
-def group_applications(spark_applications: List[dict])->List[Tuple[str, list]]:
-    placeholder={}
+def group_applications(spark_applications: List[dict]) -> List[Tuple[str, list]]:
+    placeholder = {}
     for sparkapp in spark_applications:
-        app_name=sparkapp["metadata"]["labels"]["app"]
-        spark_app_name=sparkapp["metadata"]["name"]
+        app_name = sparkapp["metadata"]["labels"]["app"]
+        spark_app_name = sparkapp["metadata"]["name"]
         if app_name in placeholder:
             placeholder[app_name].append(spark_app_name)
         else:
-            placeholder[app_name]=[spark_app_name]
-    return [{"app_name": key, "spark_applications": value} for (key, value) in placeholder.items()]
+            placeholder[app_name] = [spark_app_name]
+    return [
+        {"app_name": key, "spark_applications": value}
+        for (key, value) in placeholder.items()
+    ]
+
 
 @app.get("/api/applications")
 def applications():
     try:
         response = CUSTOM_OBJECT.list_namespaced_custom_object(
-            "sparkoperator.k8s.io",
-            "v1beta2",
-            NAMESPACE,
-            "sparkapplications"
+            "sparkoperator.k8s.io", "v1beta2", NAMESPACE, "sparkapplications"
         )
         return group_applications(response["items"])
     except ApiException as e:
         raise HTTPException(status_code=e.status, detail=e.body)
+
 
 @app.post("/api/{app_name}/stop")
 def stop_spark_job(app_name: str):
@@ -229,9 +203,7 @@ class ApiDeploy(BaseModel):
 ## called because our ingress
 ## redirects api/deploy to argo
 @app.post("/api/deploy")
-def create_spark_streaming_replay_job(
-    body: ApiDeploy
-):
+def create_spark_streaming_replay_job(body: ApiDeploy):
     return "success"
 
 
