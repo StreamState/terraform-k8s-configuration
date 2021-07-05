@@ -401,13 +401,13 @@ resource "kubernetes_role_binding" "stopsparkapplication" {
 
 resource "kubernetes_role" "secretaccess" {
   metadata {
-    name = "secretaccess-role"
+    name      = "secretaccess-role"
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   rule {
     api_groups = [""]
     resources  = ["secrets"]
-    verbs      = ["create", "delete"]
+    verbs      = ["create", "delete", "patch"]
   }
   depends_on = [kubernetes_namespace.serviceplane]
 }
@@ -637,10 +637,13 @@ resource "helm_release" "passwordgenerator" {
 }
 
 data "kubectl_file_documents" "oidcsecret" {
-  content = file("../../gateway/oidc.yml")
+  content = templatefile("../../gateway/oidc.yml", {
+    client_id     = base64encode(var.client_id),
+    client_secret = base64encode(var.client_secret)
+  })
 }
 resource "kubectl_manifest" "oidcsecret" {
-  count              = length(data.kubectl_file_documents.oidcsecret.documents)
+  count              = 1 #length(data.kubectl_file_documents.oidcsecret.documents)
   yaml_body          = element(data.kubectl_file_documents.oidcsecret.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
@@ -919,7 +922,7 @@ resource "kubectl_manifest" "oauth2" {
 data "kubectl_path_documents" "mainui" {
   pattern = "../../adminapp/deployment.yml"
   vars = {
-    serviceaccount=kubernetes_service_account.mainui.metadata.0.name
+    serviceaccount = kubernetes_service_account.mainui.metadata.0.name
     registryprefix = var.registryprefix
     project        = var.project
   }
@@ -940,11 +943,12 @@ resource "kubectl_manifest" "mainui" {
 data "kubectl_path_documents" "restapi" {
   pattern = "../../api/deployment.yml"
   vars = {
-    registryprefix  = var.registryprefix
-    project         = var.project
-    namespace       = kubernetes_namespace.sparkplane.metadata.0.name
-    firestoreviewer = kubernetes_service_account.firestoreviewer.metadata.0.name
-    dataconfigargo  = kubernetes_config_map.usefuldataargo.metadata.0.name
+    registryprefix   = var.registryprefix
+    project          = var.project
+    servicenamespace = kubernetes_namespace.serviceplane.metadata.0.name
+    namespace        = kubernetes_namespace.sparkplane.metadata.0.name
+    firestoreviewer  = kubernetes_service_account.firestoreviewer.metadata.0.name
+    dataconfigargo   = kubernetes_config_map.usefuldataargo.metadata.0.name
   }
 }
 resource "kubectl_manifest" "restapi" {

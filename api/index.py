@@ -49,6 +49,7 @@ ORGANIZATION = get_organization_from_config_map()
 PROJECT_ID = get_project_from_config_map()
 DB = open_firestore_connection(PROJECT_ID)
 NAMESPACE = os.getenv("NAMESPACE", "")
+SERVICE_NAMESPACE=os.getenv("SERVICE_NAMESPACE", "")
 ## if, for example, the data is account_id, count_logins_last_30_days
 ## with account_id being the primary key, then this would get the most
 ## recent data for this account_id
@@ -73,23 +74,18 @@ def get_latest_record(
 
 
 def create_new_secret(
-    secret_name: str, secrets: List[Tuple[str, str]]
+    secret_name: str, namespace:str, secrets: List[Tuple[str, str]]
 ) -> str:  # secret_text: str, key_names: List[str]) -> str:
     data = {
-        key_name: base64.b64encode(secret_text) for key_name, secret_text in secrets
+        key_name: base64.b64encode(secret_text.encode()).decode("utf-8") for key_name, secret_text in secrets
     }
     body = client.V1Secret()
     body.api_version = "v1"
     body.data = data
     body.kind = "Secret"
-    body.metadata = {"name": secret_name, "namespace": NAMESPACE}
-    try:
-        api_response = V1.patch_namespaced_secret(secret_name, NAMESPACE, body)
-        return api_response
-    except ApiException as e:
-        raise HTTPException(status_code=e.status, detail=e.body)
-
-
+    body.metadata = {"name": secret_name, "namespace": namespace}
+    return V1.patch_namespaced_secret(secret_name, namespace, body)
+    
 @app.get("/api/applications")
 def applications():
     try:
@@ -153,7 +149,14 @@ def create_oidc_options(body: Oidc):
         ("oidc-issuer-user", body.oidc_issuer_url),
         ("extra-jwt-issuers", body.extra_jwt_issuers),
     ]
-    return create_new_secret("oauth2-proxy-config", secrets)
+    try:
+        return create_new_secret("oauth2-proxy-config", SERVICE_NAMESPACE, secrets)
+    except ApiException as e:
+        print(e)
+        raise HTTPException(status_code=e.status, detail=e.body)
+
+
+    
 
 
 class ApiReplay(BaseModel):

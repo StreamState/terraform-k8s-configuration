@@ -7,7 +7,12 @@ variable "namespace" {
 variable "project" {
   type = string
 }
-
+variable "client_id" {
+  type = string
+}
+variable "client_secret" {
+  type = string
+}
 /*variable "staticip_name" {
   type = string
 }*/
@@ -72,6 +77,8 @@ module "kubernetes-config" {
   project                   = var.project
   registryprefix            = var.registryprefix
   namespace                 = var.namespace
+  client_id                 = var.client_id
+  client_secret             = var.client_secret
   docker_write_svc_email    = module.serviceaccounts.docker_write_svc_email
   docker_write_svc_name     = module.serviceaccounts.docker_write_svc_name
   spark_gcs_svc_name        = module.serviceaccounts.spark_gcs_svc_name

@@ -23,6 +23,8 @@ spec:
           value: "8000" 
         - name: NAMESPACE 
           value: ${namespace}
+        - name: SERVICE_NAMESPACE
+          value: ${servicenamespace}
         envFrom:
           - configMapRef:
               name: ${dataconfigargo}

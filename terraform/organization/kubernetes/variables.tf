@@ -6,6 +6,12 @@ variable "cluster_id" {
   type = string
 }
 
+variable "client_id" {
+  type = string
+}
+variable "client_secret" {
+  type = string
+}
 
 
 variable "cluster_endpoint" {
