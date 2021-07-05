@@ -28,6 +28,6 @@ def group_applications(spark_applications: List[dict]) -> List[Tuple[str, list]]
         else:
             placeholder[app_name] = [spark_app_payload]
     return [
-        {"app_name": key, "spark_applications": value}
+        {"job_name": key, "spark_applications": value}
         for (key, value) in placeholder.items()
     ]
