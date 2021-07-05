@@ -7,7 +7,12 @@ variable "namespace" {
 variable "project" {
   type = string
 }
-
+variable "client_id" {
+  type = string
+}
+variable "client_secret" {
+  type = string
+}
 /*variable "staticip_name" {
   type = string
 }*/
@@ -17,15 +22,6 @@ variable "staticip_address" {
 variable "registryprefix" {
   type    = string                       # eg gcr.io
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
-}
-
-//temporary, lets see if this actually works
-variable "client_id" {
-  type = string
-}
-
-variable "client_secret" {
-  type = string
 }
 
 # this is likely a per-organization bucket
@@ -81,6 +77,8 @@ module "kubernetes-config" {
   project                   = var.project
   registryprefix            = var.registryprefix
   namespace                 = var.namespace
+  client_id                 = var.client_id
+  client_secret             = var.client_secret
   docker_write_svc_email    = module.serviceaccounts.docker_write_svc_email
   docker_write_svc_name     = module.serviceaccounts.docker_write_svc_name
   spark_gcs_svc_name        = module.serviceaccounts.spark_gcs_svc_name
@@ -97,8 +95,6 @@ module "kubernetes-config" {
   //staticipname             = var.staticip_name
   spark_history_name = module.serviceaccounts.spark_history_name
   checkpoint_name    = module.serviceaccounts.checkpoint_name
-  client_id          = var.client_id
-  client_secret      = var.client_secret
   staticip_address   = var.staticip_address
   dns_svc_name       = module.serviceaccounts.dns_svc_name
   dns_svc_email      = module.serviceaccounts.dns_svc_email

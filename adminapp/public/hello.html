@@ -81,10 +81,57 @@
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
+    <br/>
+      <div class="form-group">
+        <label for="client_id">Client ID</label>
+        <input type="text" class="form-control" id="client_id" aria-describedby="clientidHelp"
+          placeholder="Enter Client ID">
+        <small id="clientidHelp" class="form-text text-muted">Client ID from OIDC provider</small>
+      </div>
+      <div class="form-group">
+        <label for="client_secret">Client Secret</label>
+        <input type="text" class="form-control" id="client_secret" aria-describedby="clientsecretHelp"
+          placeholder="Enter Client Secret">
+        <small id="clientsecretHelp" class="form-text text-muted">Client Secret from OIDC provider</small>
+      </div>
+      <div class="form-group">
+        <label for="oidc_issuer_url">OIDC Issuer Url</label>
+        <input type="text" class="form-control" id="oidc_issuer_url" aria-describedby="oidcurl_help"
+          placeholder="Enter URL of OIDC Issuer">
+        <small id="oidcurl_help" class="form-text text-muted">OIDC provider URL</small>
+      </div>
+
+      <!--
+        TODO make this an expandable form for each provider and have 
+        2 form entries for each provider: "issuer" and "audience"
+      -->
+      <div class="form-group">
+        <label for="extra_jwt_issuers">Extra OIDC Issuer Urls</label>
+        <input type="text" class="form-control" id="extra_jwt_issuers" aria-describedby="oidcextra_help"
+          placeholder="Enter additional providers">
+        <small id="oidcextra_help" class="form-text text-muted">Additional providers, comma seperated, in {issuer}={audience} format</small>
+      </div>
+      <button type="submit" onClick="updateForm()" class="btn btn-primary">Submit</button>
   </div>
 
   <script type="text/javascript">
-    
+    function updateForm(){
+      const client_id=document.getElementById("client_id").value
+      const client_secret=document.getElementById("client_secret").value
+      const oidc_issuer_url=document.getElementById("oidc_issuer_url").value
+      const extra_jwt_issuers=document.getElementById("extra_jwt_issuers").value
+
+      fetch('/api/openid', {
+        method: 'POST',
+        credentials: "include",
+        body: JSON.stringify({
+          client_id, client_secret, oidc_issuer_url, extra_jwt_issuers
+        })
+      })
+        .then(response => response.json())
+        .then(console.log)
+    }
+
     function testGetSparkApps(){
       fetch('/api/applications', {
         method: 'GET',

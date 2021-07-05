@@ -6,7 +6,7 @@ metadata:
   annotations:
     secret-generator.v1.mittwald.de/autogenerate: cookie-secret
 data: 
-  # python -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(16)).decode())'
-  # cookie_secret:
-  client-id: ${client_id}
+  client-id: ${client_id} 
   client-secret: ${client_secret}
+  oidc-issuer-url: aHR0cHM6Ly9kZXYtMjA0OTAwNDQub2t0YS5jb20vb2F1dGgyL2RlZmF1bHQ= # placeholder to own url
+  extra-jwt-issuers: aHR0cHM6Ly9kZXYtMjA0OTAwNDQub2t0YS5jb20vb2F1dGgyL2RlZmF1bHQ9YXBpOi8vZGVmYXVsdA== # placeholder to own extra issuer

@@ -13,7 +13,7 @@ spec:
     spec:
       serviceAccountName: ${firestoreviewer}
       containers:
-      - image: ${registryprefix}/${project}/${project}/restapi:v0.2.0
+      - image: ${registryprefix}/${project}/${project}/restapi:v0.3.0
         imagePullPolicy: Always
         name: restapi
         ports:
@@ -23,6 +23,8 @@ spec:
           value: "8000" 
         - name: NAMESPACE 
           value: ${namespace}
+        - name: SERVICE_NAMESPACE
+          value: ${servicenamespace}
         envFrom:
           - configMapRef:
               name: ${dataconfigargo}
