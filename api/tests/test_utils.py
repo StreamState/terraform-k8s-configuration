@@ -58,7 +58,7 @@ def test_group_applications_normal():
     )
     assert result == [
         {
-            "app_name": "app1",
+            "job_name": "app1",
             "spark_applications": [
                 {
                     "spark_name": "spark1",
@@ -83,7 +83,7 @@ def test_group_applications_normal():
             ],
         },
         {
-            "app_name": "app2",
+            "job_name": "app2",
             "spark_applications": [
                 {
                     "spark_name": "spark1",
