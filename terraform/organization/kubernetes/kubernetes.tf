@@ -433,7 +433,7 @@ resource "kubernetes_role_binding" "secretaccess" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.mainui.metadata.0.name
+    name      = kubernetes_service_account.firestoreviewer.metadata.0.name #kubernetes_service_account.mainui.metadata.0.name
     namespace = kubernetes_namespace.serviceplane.metadata.0.name
   }
   depends_on = [kubernetes_namespace.serviceplane]
@@ -637,13 +637,10 @@ resource "helm_release" "passwordgenerator" {
 }
 
 data "kubectl_file_documents" "oidcsecret" {
-  content = templatefile("../../gateway/oidc.yml", {
-    client_id     = base64encode(var.client_id),
-    client_secret = base64encode(var.client_secret)
-  })
+  content = file("../../gateway/oidc.yml")
 }
 resource "kubectl_manifest" "oidcsecret" {
-  count              = 1
+  count              = length(data.kubectl_file_documents.oidcsecret.documents)
   yaml_body          = element(data.kubectl_file_documents.oidcsecret.documents, count.index)
   override_namespace = kubernetes_namespace.serviceplane.metadata.0.name
   depends_on         = [helm_release.passwordgenerator]
@@ -925,8 +922,6 @@ data "kubectl_path_documents" "mainui" {
     serviceaccount=kubernetes_service_account.mainui.metadata.0.name
     registryprefix = var.registryprefix
     project        = var.project
-    host           = var.cluster_endpoint
-    namespace      = kubernetes_namespace.serviceplane.metadata.0.name
   }
 }
 resource "kubectl_manifest" "mainui" {

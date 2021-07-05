@@ -19,15 +19,6 @@ variable "registryprefix" {
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
 }
 
-//temporary, lets see if this actually works
-variable "client_id" {
-  type = string
-}
-
-variable "client_secret" {
-  type = string
-}
-
 # this is likely a per-organization bucket
 # TODO probably need to subsitute prefix at runtime
 # so each organization gets own "backend"
@@ -97,8 +88,6 @@ module "kubernetes-config" {
   //staticipname             = var.staticip_name
   spark_history_name = module.serviceaccounts.spark_history_name
   checkpoint_name    = module.serviceaccounts.checkpoint_name
-  client_id          = var.client_id
-  client_secret      = var.client_secret
   staticip_address   = var.staticip_address
   dns_svc_name       = module.serviceaccounts.dns_svc_name
   dns_svc_email      = module.serviceaccounts.dns_svc_email

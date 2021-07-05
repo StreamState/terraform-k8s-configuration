@@ -59,13 +59,13 @@ todo! make this part of CI/CD pipeline for the entire project (streamstate) leve
 * cd ..
 
 * cd adminapp
-* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.3.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.3.0
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.4.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.4.0
 * cd ..
 
 * cd api
-* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.2.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.2.0
+* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.3.0
+* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.3.0
 * cd ..
 
 # setup spark history server

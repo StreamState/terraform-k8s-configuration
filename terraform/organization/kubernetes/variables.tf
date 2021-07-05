@@ -96,15 +96,6 @@ variable "argo_svc_email" {
   type = string
 }
 
-//temporary, lets see if this actually works
-//It does work!  Need to figure out what to make
-//this programtic for organizations
-variable "client_id" {
-  type = string
-}
-variable "client_secret" {
-  type = string
-}
 
 variable "firestoreviewer_svc_name" {
   type = string

@@ -13,7 +13,7 @@ spec:
     spec:
       serviceAccountName: ${serviceaccount}
       containers:
-      - image: ${registryprefix}/${project}/${project}/adminapp:v0.3.0
+      - image: ${registryprefix}/${project}/${project}/adminapp:v0.4.0
         imagePullPolicy: Always
         name: mainui
         ports:
@@ -21,18 +21,10 @@ spec:
         env:
         - name: PORT
           value: "3000" 
-        - name: NAMESPACE 
-          value: ${namespace}
-        - name: WRITE_TOKEN_NAME
-          value: streamstate-webhook-token
-        - name: READ_TOKEN_NAME
-          value: streamstate-restapi-token
         - name: CONFLUENT_KEY_NAME # these are dummies at the moment
           value: confluent-api-key
         - name: CONFLUENT_SECRET_NAME # these are dummies at the moment
           value: confluent-secret
-        - name: HOST
-          value: ${host}
 ---
 apiVersion: v1
 kind: Service
