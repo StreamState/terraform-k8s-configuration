@@ -16,6 +16,7 @@ controller:
     prometheus.io/port: "9090"
   metricsConfig:
     enabled: true
+  containerRuntimeExecutor: k8sapi #required for GKE autopilot
   clusterWorkflowTemplates:
     # Create a ClusterRole and CRB for the controller to access ClusterWorkflowTemplates.
     enabled: false

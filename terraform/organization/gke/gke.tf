@@ -22,9 +22,10 @@ resource "google_service_account" "cluster" {
 
 # this should be at the global level, multitenant
 resource "google_container_cluster" "primary" {
-  project  = var.project
-  name     = "streamstatecluster-${var.organization}"
-  location = var.region
+  project          = var.project
+  name             = "streamstatecluster-${var.organization}"
+  location         = var.region
+  enable_autopilot = true
   # min_master_version = local.gkeversion
   release_channel {
     # https://cloud.google.com/kubernetes-engine/docs/release-notes
@@ -32,27 +33,27 @@ resource "google_container_cluster" "primary" {
     channel = "STABLE" # "REGULAR"  
   }
   # VPC-native
-  network    = "default"
-  subnetwork = "default"
-  ip_allocation_policy {
-    cluster_ipv4_cidr_block  = "/16"
-    services_ipv4_cidr_block = "/22"
-  }
+  #network    = "default"
+  #subnetwork = "default"
+  #ip_allocation_policy {
+  #  cluster_ipv4_cidr_block  = "/16"
+  #  services_ipv4_cidr_block = "/22"
+  #}
 
-  # Enable Workload Identity
-  workload_identity_config {
-    identity_namespace = "${var.project}.svc.id.goog"
-  }
+  # Enable Workload Identity...this should be autoconfigured with autopilot
+  #workload_identity_config {
+  #  identity_namespace = "${var.project}.svc.id.goog"
+  #}
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
-  remove_default_node_pool = true
-  initial_node_count       = 1
+  #remove_default_node_pool = true
+  #initial_node_count       = 1
 }
 
 
 # this should be at the organization level (each organization gets their own cluster)
-resource "google_container_node_pool" "primary_preemptible_nodes" {
+/*resource "google_container_node_pool" "primary_preemptible_nodes" {
   project    = var.project
   name       = "${var.project}pool-${var.organization}"
   location   = var.region
@@ -75,7 +76,7 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
       "https://www.googleapis.com/auth/cloud-platform",
     ]
   }
-}
+}*/
 data "google_container_cluster" "primary" {
   name     = google_container_cluster.primary.name
   location = var.region

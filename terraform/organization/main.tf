@@ -44,7 +44,7 @@ terraform {
     }
     google = {
       source  = "hashicorp/google"
-      version = ">= 3.52"
+      version = ">= 3.74"
     }
     helm = {
       source  = "hashicorp/helm"
