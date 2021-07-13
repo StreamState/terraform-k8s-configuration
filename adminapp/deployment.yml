@@ -17,10 +17,8 @@ spec:
         imagePullPolicy: Always
         name: mainui
         ports:
-        - containerPort: 3000
-        env:
-        - name: PORT
-          value: "3000" 
+        - containerPort: 8000
+        env: 
         - name: CONFLUENT_KEY_NAME # these are dummies at the moment
           value: confluent-api-key
         - name: CONFLUENT_SECRET_NAME # these are dummies at the moment
