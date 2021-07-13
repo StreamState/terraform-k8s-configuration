@@ -131,24 +131,8 @@ Read from the result firebase:
 curl  -H "Authorization: Bearer 7b1d331a-e67f-4ee8-b1f8-930320f18039" -X GET https://testorg.streamstate.org/api/mytestapp/features/1?filter="somevalue" -k 
 
 
-# Backend service service 
-
-The backend for provisioning new jobs
-
-
-# dev area
-* sudo docker build . -t spsbt -f ./test_container/Dockerfile
-* sudo docker run -it spsbt /bin/bash
-* spark-submit --master local[*] --class dhstest.FileSourceWrapper target/scala-2.12/kafka_and_file_connect.jar myapp ./tmp_file 0 Append /tmp
-* sudo docker exec -it $(sudo -S docker ps -q  --filter ancestor=spsbt) /bin/bash
-* echo {\"id\": 1,\"first_name\": \"John\", \"last_name\": \"Lindt\",  \"email\": \"jlindt@gmail.com\",\"gender\": \"Male\",\"ip_address\": \"1.2.3.4\"} >> ./tmp_file/mytest.json
-
 
 # prometheus
-
-
-* kubectl port-forward svc/prometheus-operated -n monitoring 9090:9090
-* kubectl port-forward svc/prometheus-grafana  -n monitoring 8000:80
 
 Grafana password:
 * kubectl get secret --namespace serviceplane-testorg grafana -o jsonpath="{.data.admin-password}" | base64 --decode
