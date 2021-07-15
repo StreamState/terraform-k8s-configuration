@@ -29,8 +29,6 @@ jobs:
   run_docker_build:
     needs: run_pytest
     runs-on: ubuntu-latest
-    env:
-      DOCKER_PREFIX: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
     steps:
       - name: Bump version and push tag
         id: tag_version
@@ -50,6 +48,7 @@ jobs:
         id: docker_build_sparkpy
         uses: docker/build-push-action@v2
         env:
+          DOCKER_PREFIX: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
           CONTAINER: pysparkbase
         with:
           context: ./docker
@@ -60,6 +59,7 @@ jobs:
         id: docker_build_sparktest
         uses: docker/build-push-action@v2
         env:
+          DOCKER_PREFIX: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
           CONTAINER: pysparktest
         with:
           context: ./docker
@@ -70,6 +70,7 @@ jobs:
         id: docker_build_firebase
         uses: docker/build-push-action@v2
         env:
+          DOCKER_PREFIX: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
           CONTAINER: firestoresetup
         with:
           context: ./firebaseinstall
@@ -80,6 +81,7 @@ jobs:
         id: docker_build_adminapp
         uses: docker/build-push-action@v2
         env:
+          DOCKER_PREFIX: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
           CONTAINER: adminapp
         with:
           context: ./adminapp
@@ -90,6 +92,7 @@ jobs:
         id: docker_build_restapi
         uses: docker/build-push-action@v2
         env:
+          DOCKER_PREFIX: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
           CONTAINER: restapi
         with:
           context: ./api
@@ -100,6 +103,7 @@ jobs:
         id: docker_build_sparkhistory
         uses: docker/build-push-action@v2
         env:
+          DOCKER_PREFIX: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
           CONTAINER: sparkhistory
         with:
           context: ./spark-history
