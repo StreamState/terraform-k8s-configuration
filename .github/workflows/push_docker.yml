@@ -28,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PROJECT_NAME: streamstatetest
+      DOCKER_PREFIX: us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}
     steps:
       - name: Bump version and push tag
         id: tag_version
@@ -41,59 +42,63 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push sparkpy
         id: docker_build_sparkpy
         uses: docker/build-push-action@v2
+        env:
+          CONTAINER: pysparkbase
         with:
           context: ./docker
           file: ./docker/sparkpy.Dockerfile
           push: true
-          tags: 
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/pysparkbase:latest
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/pysparkbase:${{ steps.tag_version.outputs.new_tag }}
+          tags: ${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:latest,${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:${{ steps.tag_version.outputs.new_tag }}
       - name: Build and push sparktest
         id: docker_build_sparktest
         uses: docker/build-push-action@v2
+        env:
+          CONTAINER: pysparktest
         with:
           context: ./docker
           file: ./docker/sparkpy.Dockerfile
           push: true
-          tags: 
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/pysparktest:latest
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/pysparktest:${{ steps.tag_version.outputs.new_tag }}
+          tags: ${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:latest,${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:${{ steps.tag_version.outputs.new_tag }}
       - name: Build and push firebase
         id: docker_build_firebase
         uses: docker/build-push-action@v2
+        env:
+          CONTAINER: firestoresetup
         with:
           context: ./firebaseinstall
           push: true
-          tags: 
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/firestoresetup:latest
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/firestoresetup:${{ steps.tag_version.outputs.new_tag }}
+          tags: ${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:latest,${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:${{ steps.tag_version.outputs.new_tag }}
+      
       - name: Build and push adminapp
         id: docker_build_adminapp
         uses: docker/build-push-action@v2
+        env:
+          CONTAINER: adminapp
         with:
           context: ./adminapp
           push: true
-          tags: 
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/adminapp:latest
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/adminapp:${{ steps.tag_version.outputs.new_tag }}
+          tags: ${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:latest,${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:${{ steps.tag_version.outputs.new_tag }}
+      
       - name: Build and push restapi
         id: docker_build_restapi
         uses: docker/build-push-action@v2
+        env:
+          CONTAINER: restapi
         with:
           context: ./api
           push: true
-          tags: 
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/restapi:latest
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/restapi:${{ steps.tag_version.outputs.new_tag }}
+          tags: ${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:latest,${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:${{ steps.tag_version.outputs.new_tag }}
+      
       - name: Build and push sparkhistory
         id: docker_build_sparkhistory
         uses: docker/build-push-action@v2
+        env:
+          CONTAINER: sparkhistory
         with:
           context: ./spark-history
           push: true
-          tags: 
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/sparkhistory:latest
-            - us-central1-docker.pkg.dev/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}/sparkhistory:${{ steps.tag_version.outputs.new_tag }}
+          tags: ${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:latest,${{ env.DOCKER_PREFIX }}/${{ env.CONTAINER }}:${{ steps.tag_version.outputs.new_tag }}
