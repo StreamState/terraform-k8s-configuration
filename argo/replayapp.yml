@@ -41,6 +41,7 @@ spec:
                       value: hello world
                     - name: code_version
                       value: hello world
+                      
                 entrypoint: main     
                 volumeClaimTemplates:
                 - metadata:

@@ -1,5 +1,5 @@
 FROM python:3.7-slim
-ARG version=v0.0.6
+ARG version=v0.0.7
 RUN apt-get update && apt-get install -y unzip
 RUN groupadd -r -g 999 adminapp && useradd -r -g adminapp -u 999 adminapp
 RUN mkdir -p /opt/adminapp/work-dir
