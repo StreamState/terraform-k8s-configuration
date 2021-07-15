@@ -42,6 +42,8 @@ spec:
                       value: hello world # this should be overridden
                     - name: appname
                       value: hello world
+                    - name: DOCKER_TAG # this is not overridden!
+                      value: ## tbd
                 entrypoint: main     
                 volumeClaimTemplates:
                 - metadata:
@@ -62,6 +64,7 @@ spec:
                       - name: outputs
                       - name: table
                       - name: appname
+                      - name: DOCKER_TAG
                   dag:
                     tasks:
                     - name: runmypy
@@ -81,6 +84,8 @@ spec:
                            value: "{{inputs.parameters.inputs}}"
                          - name: assertions
                            value: "{{inputs.parameters.assertions}}"
+                         - name: docker_tag
+                           value: "{{inputs.parameters.DOCKER_TAG}}"
 
                     - name: runfirestoresetup 
                       template: firestoresetup
@@ -90,6 +95,8 @@ spec:
                            value: "{{inputs.parameters.appname}}" 
                          - name: table
                            value: "{{inputs.parameters.table}}" 
+                         - name: docker_tag
+                           value: "{{inputs.parameters.DOCKER_TAG}}"
                       dependencies: [runmypy, rununittests]
 
                     - name: setupconfluent
@@ -102,6 +109,8 @@ spec:
                             value: "{{inputs.parameters.kafka}}"
                           - name: version
                             value: "{{tasks.runfirestoresetup.outputs.result}}" 
+                          - name: docker_tag
+                            value: "{{inputs.parameters.DOCKER_TAG}}"
                       dependencies: [runfirestoresetup]
 
                     - name: builddocker
@@ -110,6 +119,8 @@ spec:
                         parameters:
                          - name: pythoncode
                            value: "{{inputs.parameters.pythoncode}}" 
+                         - name: docker_tag
+                           value: "{{inputs.parameters.DOCKER_TAG}}"
                       dependencies: [runmypy, rununittests]
 
                     - name: deploydocker 
@@ -131,6 +142,8 @@ spec:
                             value: "{{inputs.parameters.appname}}"
                           - name: inputs
                             value: "{{inputs.parameters.inputs}}"
+                          - name: docker_tag
+                            value: "{{inputs.parameters.DOCKER_TAG}}"
                       dependencies: [runmypy, rununittests]
 
                     - name:  runsparkpersist
@@ -201,8 +214,9 @@ spec:
                       - name: pythoncode
                       - name: inputs
                       - name: assertions
+                      - name: docker_tag
                   container:
-                    image: ${registryprefix}/${project}/${project}/pysparktest:v0.1.0
+                    image: ${registryprefix}/${project}/${project}/pysparktest:{{inputs.parameters.docker_tag}}
                     imagePullPolicy: Always
                     command: [sh, -c]
                     args: 
@@ -219,6 +233,7 @@ spec:
                     parameters:
                       - name: appname
                       - name: inputs
+                      - name: docker_tag
                   resource:
                     action: create
                     successCondition: status.succeeded > 0
@@ -235,7 +250,7 @@ spec:
                             serviceAccountName: ${sparkserviceaccount}
                             containers:
                             - name: gcsfolder
-                              image: ${registryprefix}/${project}/${project}/pysparkbase:v0.3.0
+                              image: ${registryprefix}/${project}/${project}/pysparkbase:{{inputs.parameters.docker_tag}}
                               imagePullPolicy: Always
                               command: [
                                 "python3",  
@@ -251,8 +266,9 @@ spec:
                   inputs:
                     parameters:
                       - name: pythoncode
+                      - name: docker_tag
                       - name: dockerfileline1 
-                        value: FROM ${registryprefix}/${project}/${project}/pysparkbase:v0.3.0
+                        value: FROM ${registryprefix}/${project}/${project}/pysparkbase:{{inputs.parameters.docker_tag}}
                       - name: dockerfileline2 
                         value: COPY process.py /opt/spark/work-dir/process.py
                   container:
@@ -297,8 +313,9 @@ spec:
                     parameters:
                       - name: table
                       - name: appname
+                      - name: docker_tag
                   script: # script allows us to get the output from the console rather than from a file
-                    image: ${registryprefix}/${project}/${project}/firestoresetup:v0.1.0 
+                    image: ${registryprefix}/${project}/${project}/firestoresetup:{{inputs.parameters.docker_tag}}
                     imagePullPolicy: Always
                     envFrom:
                     - configMapRef:
@@ -313,8 +330,9 @@ spec:
                       - name: appname
                       - name: kafka
                       - name: version
+                      - name: docker_tag
                   container: 
-                    image: ${registryprefix}/${project}/${project}/firestoresetup:v0.1.0 
+                    image: ${registryprefix}/${project}/${project}/firestoresetup:{{inputs.parameters.docker_tag}} 
                     imagePullPolicy: Always
                     command: [
                       "python3",

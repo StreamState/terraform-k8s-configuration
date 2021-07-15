@@ -11,8 +11,14 @@
 See https://cloud.google.com/community/tutorials/managing-gcp-projects-with-terraform
 
 First time:
+* export PROJECT_NAME=streamstatetest
+* gcloud projects create ${PROJECT_NAME}  --set-as-default
 * export TF_CREDS=~/.config/gcloud/${USER}-terraform-admin.json
-* gcloud iam service-accounts keys create ${TF_CREDS} --iam-account terraform@streamstatetest.iam.gserviceaccount.com
+* gcloud iam service-accounts keys create ${TF_CREDS} --iam-account terraform@${PROJECT_NAME}.iam.gserviceaccount.com
+* export BILLING_ACCOUNT=$(cat account_id) # this needs to be created, found via `gcloud alpha billing accounts list`
+* gcloud iam service-accounts create terraform --display-name "Terraform admin account"
+* gcloud beta billing projects link $PROJECT_NAME --billing-account=$BILLING_ACCOUNT
+* gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member serviceAccount:terraform@${PROJECT_NAME}.iam.gserviceaccount.com --role roles/owner
 
 Every time:
 
@@ -20,12 +26,6 @@ Every time:
 * export PROJECT_NAME=streamstatetest
 * export ORGANIZATION_NAME=testorg
 * export TF_CREDS=~/.config/gcloud/${USER}-terraform-admin.json
-* export BILLING_ACCOUNT=$(cat account_id) # this needs to be created, found via `gcloud alpha billing accounts list`
-* gcloud projects create ${PROJECT_NAME}  --set-as-default
-* gcloud iam service-accounts create terraform --display-name "Terraform admin account"
-* gcloud iam service-accounts keys create ${TF_CREDS} --iam-account terraform@${PROJECT_NAME}.iam.gserviceaccount.com
-* gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member serviceAccount:terraform@${PROJECT_NAME}.iam.gserviceaccount.com --role roles/owner
-* gcloud beta billing projects link $PROJECT_NAME --billing-account=$BILLING_ACCOUNT
 * export GOOGLE_APPLICATION_CREDENTIALS=${TF_CREDS}
 * terraform apply -var-file="testing.tfvars"
 * (direct connection with kubectl): gcloud container clusters get-credentials streamstatecluster-testorg --region=us-central1
