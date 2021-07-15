@@ -41,42 +41,9 @@ If anything hangs, you can delete the kubernetes module:
 
 Make sure to delete any Compute Engine storage!!
 
-# setup for deploy
+# TODO
 
-todo! make this part of CI/CD pipeline for the entire project (streamstate) level
-
-* cd docker
-* sudo docker build . -f ./sparkpy.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.3.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparkbase:v0.3.0
-
-* sudo docker build . -f ./sparktest.Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparktest -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparktest:v0.1.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/pysparktest:v0.1.0
-* cd ..
-
-* cd firebaseinstall
-* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/firestoresetup -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/firestoresetup:v0.1.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/firestoresetup:v0.1.0
-* cd ..
-
-* cd adminapp
-* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.4.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/adminapp:v0.4.0
-* cd ..
-
-* cd api
-* sudo docker build . -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.3.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/restapi:v0.3.0
-* cd ..
-
-# setup spark history server
-
-* cd spark-history
-* sudo docker build . -f ./Dockerfile -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory -t us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory:v0.2.0
-* sudo docker push us-central1-docker.pkg.dev/$PROJECT_NAME/streamstatetest/sparkhistory:v0.2.0
-* cd ..
-
-Unfortunately, this requires root access, but just for spark history which has very minimal permissions
-
+Figure out how to correctly/consistently tag docker containers used in the deployment yaml
 
 # deploy workflow
 
