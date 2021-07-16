@@ -13,7 +13,7 @@ spec:
     spec:
       serviceAccountName: ${firestoreviewer}
       containers:
-      - image: ${registryprefix}/${project}/${project}/restapi:v0.3.0
+      - image: ${registryprefix}/${project}/${project}/restapi:v0.0.3
         imagePullPolicy: Always
         name: restapi
         ports:

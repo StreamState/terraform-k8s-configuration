@@ -13,7 +13,7 @@ spec:
     spec:
       serviceAccountName: ${serviceaccount}
       containers:
-      - image: ${registryprefix}/${project}/${project}/adminapp:v0.4.0
+      - image: ${registryprefix}/${project}/${project}/adminapp:v0.0.3
         imagePullPolicy: Always
         name: mainui
         ports:

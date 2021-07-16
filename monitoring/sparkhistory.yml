@@ -13,7 +13,7 @@ nfs:
 
 image:
   repository: us-central1-docker.pkg.dev/${project}/${project}/sparkhistory
-  tag: v0.2.0
+  tag: v0.0.3
   pullPolicy: IfNotPresent
 
 service:
