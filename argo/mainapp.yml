@@ -43,7 +43,7 @@ spec:
                     - name: appname
                       value: hello world
                     - name: DOCKER_TAG # this is not overridden!
-                      value: ## tbd
+                      value: v0.0.3
                 entrypoint: main     
                 volumeClaimTemplates:
                 - metadata:
