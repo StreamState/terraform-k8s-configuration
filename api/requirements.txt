@@ -1,4 +1,0 @@
-fastapi==0.65.1
-uvicorn[standard]==0.14.0
-streamstate-utils==0.9.0
-kubernetes==17.17.0
