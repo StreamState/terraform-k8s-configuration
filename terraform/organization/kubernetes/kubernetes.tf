@@ -565,54 +565,6 @@ resource "helm_release" "sparkhistory" { # todo, override "loadbalancer"
     })}"
   ]
 
-  # set {
-  #   name  = "serviceAccount.create"
-  #   value = "false"
-  # }
-  # set {
-  #   name  = "serviceAccount.name"
-  #   value = kubernetes_service_account.spark-history.metadata.0.name
-  # }
-  # set {
-  #   name  = "gcs.logDirectory"
-  #   value = var.spark_history_bucket_url
-  # }
-  # set {
-  #   name  = "gcs.enableGCS" # I added permission to the spark history bucket to the kubernetes cluster service account
-  #   value = "true"
-  # }
-  # set {
-  #   name  = "gcs.enableIAM"
-  #   value = "true"
-  # }
-  # set {
-  #   name  = "pvc.enablePVC"
-  #   value = "false"
-  # }
-  # set {
-  #   name  = "nfs.enableExampleNFS"
-  #   value = "false"
-  # }
-  # set {
-  #   name  = "image.repository"
-  #   value = "us-central1-docker.pkg.dev/${var.project}/${var.project}/sparkhistory"
-  # }
-  # set {
-  #   name  = "image.tag"
-  #   value = "v0.2.0"
-  # }
-  # set {
-  #   name  = "image.pullPolicy"
-  #   value = "IfNotPresent"
-  # }
-  # set {
-  #   name  = "service.type"
-  #   value = "NodePort"
-  # }
-  # set {
-  #   name  = "environment.SPARK_PUBLIC_DNS"
-  #   value = "https://${var.organization}.streamstate.org/sparkhistory/"
-  # }
   depends_on = [kubernetes_service_account.spark-history]
 }
 
@@ -695,8 +647,9 @@ resource "helm_release" "certmanager" {
       gcpserviceaccountemail = var.dns_svc_email
     })}"
   ]
-  ## TODO is this even needed anymore? yes, if using dns in cert issuer
+
 }
+## TODO is this even needed anymore? yes, if using dns in cert issuer
 resource "google_service_account_iam_binding" "dns" {
   service_account_id = var.dns_svc_name
   role               = "roles/iam.workloadIdentityUser"
@@ -732,7 +685,6 @@ resource "kubectl_manifest" "certs" {
 # Install Prometheus
 ##################
 
-## waiting on https://github.com/prometheus-community/helm-charts/issues/969
 resource "helm_release" "prometheus" {
   name       = "prometheus"
   namespace  = kubernetes_namespace.serviceplane.metadata.0.name
@@ -770,25 +722,6 @@ resource "helm_release" "grafana" {
     kubernetes_namespace.serviceplane,
   ]
 }
-
-###################
-# Install servicemonitor for spark
-###################
-
-/*
-data "kubectl_file_documents" "sparkoperatorprometheus" {
-  content = templatefile("../../kubernetes_resources/prometheus_spark.yml", {
-    operatornamespace   = helm_release.spark.metadata.0.namespace
-    monitoringnamespace = kubernetes_namespace.monitoring.metadata.0.name
-  })
-}
-resource "kubectl_manifest" "sparkoperatorprometheus" {
-  count      = 2
-  yaml_body  = element(data.kubectl_file_documents.sparkoperatorprometheus.documents, count.index)
-  depends_on = [kubectl_manifest.prometheusinstall, helm_release.spark]
-}*/
-
-
 
 ##################
 # Install Argo

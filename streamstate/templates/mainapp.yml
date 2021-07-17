@@ -24,7 +24,7 @@ spec:
               metadata:
                 generateName: streamstate-  # Name of this Workflow
               spec:
-                serviceAccountName: ${runserviceaccount} 
+                serviceAccountName: {{ .Values.serviceaccounts.argoserviceaccount }}  
                 arguments:
                   parameters:
                     - name: pythoncode
@@ -42,8 +42,6 @@ spec:
                       value: hello world # this should be overridden
                     - name: appname
                       value: hello world
-                    - name: DOCKER_TAG # this is not overridden!
-                      value: v0.0.3
                 entrypoint: main     
                 volumeClaimTemplates:
                 - metadata:
@@ -64,7 +62,6 @@ spec:
                       - name: outputs
                       - name: table
                       - name: appname
-                      - name: DOCKER_TAG
                   dag:
                     tasks:
                     - name: runmypy
@@ -84,8 +81,6 @@ spec:
                            value: "{{inputs.parameters.inputs}}"
                          - name: assertions
                            value: "{{inputs.parameters.assertions}}"
-                         - name: docker_tag
-                           value: "{{inputs.parameters.DOCKER_TAG}}"
 
                     - name: runfirestoresetup 
                       template: firestoresetup
@@ -95,8 +90,6 @@ spec:
                            value: "{{inputs.parameters.appname}}" 
                          - name: table
                            value: "{{inputs.parameters.table}}" 
-                         - name: docker_tag
-                           value: "{{inputs.parameters.DOCKER_TAG}}"
                       dependencies: [runmypy, rununittests]
 
                     - name: setupconfluent
@@ -109,8 +102,6 @@ spec:
                             value: "{{inputs.parameters.kafka}}"
                           - name: version
                             value: "{{tasks.runfirestoresetup.outputs.result}}" 
-                          - name: docker_tag
-                            value: "{{inputs.parameters.DOCKER_TAG}}"
                       dependencies: [runfirestoresetup]
 
                     - name: builddocker
@@ -119,8 +110,7 @@ spec:
                         parameters:
                          - name: pythoncode
                            value: "{{inputs.parameters.pythoncode}}" 
-                         - name: docker_tag
-                           value: "{{inputs.parameters.DOCKER_TAG}}"
+
                       dependencies: [runmypy, rununittests]
 
                     - name: deploydocker 
@@ -142,8 +132,7 @@ spec:
                             value: "{{inputs.parameters.appname}}"
                           - name: inputs
                             value: "{{inputs.parameters.inputs}}"
-                          - name: docker_tag
-                            value: "{{inputs.parameters.DOCKER_TAG}}"
+
                       dependencies: [runmypy, rununittests]
 
                     - name:  runsparkpersist
@@ -216,7 +205,7 @@ spec:
                       - name: assertions
                       - name: docker_tag
                   container:
-                    image: ${registryprefix}/${project}/${project}/pysparktest:{{inputs.parameters.docker_tag}}
+                    image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/pysparktest:{{ .Values.dockerTag }}
                     imagePullPolicy: Always
                     command: [sh, -c]
                     args: 
@@ -247,16 +236,16 @@ spec:
                       spec:
                         template:
                           spec:
-                            serviceAccountName: ${sparkserviceaccount}
+                            serviceAccountName: {{ .Values.sparkserviceaccount }}
                             containers:
                             - name: gcsfolder
-                              image: ${registryprefix}/${project}/${project}/pysparkbase:{{inputs.parameters.docker_tag}}
+                              image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/pysparkbase:{{ .Values.dockerTag }}
                               imagePullPolicy: Always
                               command: [
                                 "python3",  
                                 "create_folder.py", 
                                 '{{inputs.parameters.appname}}', 
-                                "streamstate-sparkstorage-${organization}", 
+                                "streamstate-sparkstorage-{{ .Values.organization }}", 
                                 '{{inputs.parameters.inputs}}'
                               ]
                             restartPolicy: Never
@@ -268,7 +257,7 @@ spec:
                       - name: pythoncode
                       - name: docker_tag
                       - name: dockerfileline1 
-                        value: FROM ${registryprefix}/${project}/${project}/pysparkbase:{{inputs.parameters.docker_tag}}
+                        value: FROM {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/pysparkbase:{{ .Values.dockerTag }}
                       - name: dockerfileline2 
                         value: COPY process.py /opt/spark/work-dir/process.py
                   container:
@@ -292,10 +281,10 @@ spec:
                     parameters:
                       # (Base) name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry}
+                        value:  {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.registry }}
                       - name: appname
                       - name: version
-                  serviceAccountName: ${dockersecretwrite}
+                  serviceAccountName: {{ .Values.serviceaccounts.dockersecretwrite }}
                   container:
                     image: gcr.io/kaniko-project/executor:latest
                     args:
@@ -308,18 +297,18 @@ spec:
                       name: work
 
                 - name: firestoresetup 
-                  serviceAccountName: ${firestoreserviceaccount}
+                  serviceAccountName: {{ .Values.serviceaccounts.firestoreserviceaccount }}
                   inputs:
                     parameters:
                       - name: table
                       - name: appname
                       - name: docker_tag
                   script: # script allows us to get the output from the console rather than from a file
-                    image: ${registryprefix}/${project}/${project}/firestoresetup:{{inputs.parameters.docker_tag}}
+                    image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/firestoresetup:{{ .Values.dockerTag }}
                     imagePullPolicy: Always
                     envFrom:
                     - configMapRef:
-                        name: ${dataconfigargo}
+                        name: {{ .Values.dataconfigargo }}
                     command: [sh]
                     source: | 
                       python3 entrypoint.py '{{inputs.parameters.appname}}' '{{inputs.parameters.table}}'
@@ -332,7 +321,7 @@ spec:
                       - name: version
                       - name: docker_tag
                   container: 
-                    image: ${registryprefix}/${project}/${project}/firestoresetup:{{inputs.parameters.docker_tag}} 
+                    image:  {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/firestoresetup:{{ .Values.dockerTag }}
                     imagePullPolicy: Always
                     command: [
                       "python3",
@@ -343,11 +332,11 @@ spec:
                     ] 
                 
                 - name: sparksubmitmain
-                  serviceAccountName: ${runserviceaccount}
+                  serviceAccountName: {{ .Values.serviceaccounts.argoserviceaccount }}
                   inputs:
                     parameters:
                       - name: image
-                        value: ${registryprefix}/${project}/${registry} #/python_app:v0.2.0 # same as for build-docker-image
+                        value: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.registry }}
                       - name: inputs
                       - name: table
                       - name: kafka
@@ -383,8 +372,8 @@ spec:
                           spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
                           spark.sql.streaming.metricsEnabled: "true"
                           spark.ui.prometheus.enabled: "true"
-                          spark.hadoop.fs.gs.project.id: ${project}
-                          spark.hadoop.gs.system.bucket: ${bucketwithoutgs}   
+                          spark.hadoop.fs.gs.project.id: {{ .Values.project }} 
+                          spark.hadoop.gs.system.bucket: {{ .Values.buckets.bucket_without_gs }}   
                           spark.hadoop.google.cloud.auth.service.account.enable: "true" 
                           spark.hadoop.fs.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                           spark.hadoop.fs.AbstractFileSystem.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS"
@@ -403,7 +392,7 @@ spec:
                         
                         arguments:
                           - '{{inputs.parameters.appname}}'
-                          - '${spark_storage_bucket_url}'
+                          - 'gs://{{ .Values.buckets.bucket_without_gs }}'
                           - '{{inputs.parameters.table}}'
                           - '{{inputs.parameters.outputs}}'
                           - '{{inputs.parameters.kafka}}'
@@ -416,27 +405,27 @@ spec:
                         driver:
                           coreRequest: 200m
                           memory: "512m"
-                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
+                          serviceAccount: {{ .Values.serviceaccounts.sparkserviceaccount }} # this maps to spark-gcs 
                           envFrom:
                             - configMapRef:
-                                name: ${dataconfig} 
+                                name: {{ .Values.dataconfigargo }}
                           labels:
                             metrics-exposed: "true"
                         executor:
                           instances: 1
                           cores: 1
                           memory: "512m"
-                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
+                          serviceAccount: {{ .Values.serviceaccounts.sparkserviceaccount }} # this maps to spark-gcs
                           labels:
                             metrics-exposed: "true"  
 
                 - name: sparksubmittopic
-                  serviceAccountName: ${runserviceaccount}
+                  serviceAccountName: {{ .Values.serviceaccounts.argoserviceaccount }}
                   inputs:
                     parameters:
                       # Name of the image to push
                       - name: image
-                        value: ${registryprefix}/${project}/${registry} # /python_app:v0.2.0 # same as for build-docker-image
+                        value: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.registry }} # /python_app:v0.2.0 # same as for build-docker-image
                       - name: input
                       - name: topic
                       - name: kafka
@@ -470,11 +459,11 @@ spec:
                           #spark.jars.repositories: "https://packages.confluent.io/maven"
                           #spark.jars.ivy: "/tmp/ivy"
                           spark.eventLog.enabled: "true" # spark history
-                          spark.eventLog.dir: ${spark_storage_bucket_url}/${spark_history_name}
+                          spark.eventLog.dir: gs://{{ .Values.buckets.bucket_without_gs}}/{{ .Values.spark_history_name }}
                           spark.sql.streaming.metricsEnabled: "true"
                           spark.ui.prometheus.enabled: "true"
-                          spark.hadoop.fs.gs.project.id: ${project}
-                          spark.hadoop.gs.system.bucket: ${bucketwithoutgs} # "streamstate-sparkstorage-${organization}"  
+                          spark.hadoop.fs.gs.project.id: {{ .Values.project }}
+                          spark.hadoop.gs.system.bucket: {{ .Values.buckets.bucket_without_gs }}
                           spark.hadoop.google.cloud.auth.service.account.enable: "true" 
                           spark.hadoop.fs.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem"
                           spark.hadoop.fs.AbstractFileSystem.gs.impl: "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS"
@@ -493,7 +482,7 @@ spec:
                         
                         arguments:
                           - '{{inputs.parameters.appname}}-{{inputs.parameters.topic}}-persist'
-                          - '${spark_storage_bucket_url}'
+                          - 'gs://{{ .Values.buckets.bucket_without_gs }}'
                           - '{{inputs.parameters.outputs}}'
                           - '{{inputs.parameters.kafka}}'
                           - '{{inputs.parameters.input}}'
@@ -504,17 +493,17 @@ spec:
                         driver:
                           coreRequest: 200m
                           memory: "512m"
-                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs 
+                          serviceAccount: {{ .Values.serviceaccounts.sparkserviceaccount }} # this maps to spark-gcs 
                           envFrom:
                             - configMapRef:
-                                name: ${dataconfig} 
+                                name: {{ .Values.dataconfigargo }}
                           labels:
                             metrics-exposed: "true"
                         executor:
                           instances: 1
                           cores: 1
                           memory: "512m"
-                          serviceAccount: ${sparkserviceaccount} # this maps to spark-gcs
+                          serviceAccount: {{ .Values.serviceaccounts.sparkserviceaccount }} # this maps to spark-gcs
                           labels:
                             metrics-exposed: "true"
 
