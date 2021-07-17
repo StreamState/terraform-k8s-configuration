@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restapi
+  namespace: {{ .Values.namespaces.controlpanenamespace }}
+spec:
+  selector:
+    matchLabels:
+      app: restapi
+  template:
+    metadata:
+      labels:
+        app: restapi
+    spec:
+      serviceAccountName: {{ .Values.serviceaccounts.firestore_viewer_service_account.name }}
+      containers:
+      - image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/restapi:{{ .Values.dockerTag }}
+        imagePullPolicy: Always
+        name: restapi
+        ports:
+        - containerPort: 8000
+        env:
+        - name: PORT
+          value: "8000" 
+        - name: NAMESPACE 
+          value: {{ .Values.namespaces.sparknamespace }}
+        - name: SERVICE_NAMESPACE
+          value: {{ .Values.namespaces.controlpanenamespace }}
+        envFrom:
+          - configMapRef:
+              name: {{ .Values.dataconfigargo }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restapi
+  namespace: {{ .Values.namespaces.controlpanenamespace }}
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP 
+  selector:
+    app: restapi

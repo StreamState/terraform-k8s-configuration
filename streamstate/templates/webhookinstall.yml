@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: EventBus
 metadata:
   name: default
+  namespace: {{ .Values.namespaces.controlpanenamespace }}
 spec:
   nats:
     native:
@@ -9,25 +10,13 @@ spec:
       replicas: 3
       # Optional, authen strategy, "none" or "token", defaults to "none"
       auth: token
-#      containerTemplate:
-#        resources:
-#          requests:
-#            cpu: "10m"
-#      metricsContainerTemplate:
-#        resources:
-#          requests:
-#            cpu: "10m"
-#      antiAffinity: false
-#      persistence:
-#        storageClassName: standard
-#        accessMode: ReadWriteOnce
-#        volumeSize: 10Gi
 
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: EventSource
 metadata:
   name: streamstatewebservice
+  namespace: {{ .Values.namespaces.controlpanenamespace }}
   labels:
     eventsource: streamstate
 spec:
@@ -55,6 +44,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: argowebhookreplay
+  namespace: {{ .Values.namespaces.controlpanenamespace }}
   labels:
     service: argowebhookreplay
 spec:
@@ -71,6 +61,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: argowebhookdeploy
+  namespace: {{ .Values.namespaces.controlpanenamespace }}
   labels:
     service: argowebhookdeploy
 spec:
