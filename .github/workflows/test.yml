@@ -1,0 +1,13 @@
+name: test_code
+on: [push]
+jobs:
+  run_pytest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test chart
+      run: |
+        cd streamstate
+        helm lint .
+        helm dep up
+        helm template .

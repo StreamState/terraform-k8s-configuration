@@ -73,6 +73,7 @@ resource "helm_release" "streamstate" {
       tag                           = "v0.0.3"
       registry                      = var.org_registry
       sparkhistoryserviceaccount    = local.sparkhistoryserviceaccount
+      sparkserviceaccount           = local.sparkserviceaccount
       argoserviceaccount            = local.argoserviceaccount
       dockerwriteserviceaccount     = local.dockerwriteserviceaccount
       firestoreserviceaccount       = local.firestoreserviceaccount
@@ -87,6 +88,7 @@ resource "helm_release" "streamstate" {
       gcp_spark_svc                 = var.spark_gcs_svc_email
       bucket_without_gs             = replace(var.spark_storage_bucket_url, "gs://", "")
       sparkhistoryname              = "spark-history-server/"
+      DS_PROMETHEUS                 = "Prometheus" # dummy for grafana
     })}"
   ]
   depends_on = [helm_release.spark, helm_release.nginx]
@@ -219,7 +221,7 @@ resource "helm_release" "nginx" {
   chart   = "ingress-nginx"
   version = "3.34.0"
   values = [
-    "${templatefile("../../gateway/nginx.yml", {
+    "${templatefile("./kubernetes/nginxvalues.yml", {
       static_ip_address = var.staticip_address
     })}"
   ]

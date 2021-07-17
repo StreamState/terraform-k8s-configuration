@@ -25,7 +25,7 @@ registryprefix: us-central1-docker.pkg.dev
 registry: ${registry}
 serviceaccounts:
   spark_history_service_account: 
-    name: spark-history
+    name: ${sparkhistoryserviceaccount}
     namespace: ${controlpanenamespace}
     iam_binding: ${gcp_sparkhistory_svc}
   argo_service_account: 
@@ -37,15 +37,15 @@ serviceaccounts:
     namespace: "${sparknamespace}"
     iam_binding: ${gcp_spark_svc}
   docker_secret_write_service_account: 
-    name: docker-cfg-write
+    name: ${dockerwriteserviceaccount}
     namespace: ${controlpanenamespace}
     iam_binding: ${gcp_docker_svc}
   firestore_service_account:
-    name: firestore
+    name: ${firestoreserviceaccount}
     namespace: ${controlpanenamespace}
     iam_binding: ${gcp_firestore_svc}
   firestore_viewer_service_account:
-    name: firestore_viewer
+    name: ${firestoreviewerserviceaccount}
     namespace: ${controlpanenamespace}
     iam_binding: ${gcp_firestore_viewer_svc}
   mainui_service_account:
@@ -70,14 +70,6 @@ dataconfigargo: sparkjobdata
 sparkhistoryname: ${sparkhistoryname}
 
 
-#spark-operator:
-#  create_namespace: true 
-#  namespace: spark-operator
-#  webhook:
-#    enable: true 
-#  metrics:
-#    enable: false
-
 passwordgenerator:
   secretLength: 32
   watchNamespace: ${controlpanenamespace}
@@ -86,29 +78,16 @@ cert-manager:
   installCRDs: true
 
   serviceAccount:
-    name: cert-manager
+    name: ${dnsserviceaccount}
     create: true
     automountServiceAccountToken: true
     annotations:
-      iam.gke.io/gcp-service-account: ${gcpserviceaccountemail}
+      iam.gke.io/gcp-service-account: ${gcp_dns_svc}
       
   # https://github.com/jetstack/cert-manager/issues/3009#issuecomment-766696268
   extraArgs: 
     - --issuer-ambient-credentials=true
     - --cluster-issuer-ambient-credentials=true
-
-#ingress-nginx:
-#  rbac:
-#    create: true
-#  controller:
-#    service:
-#      loadBalancerIP: ${static_ip_address}
-#    config:
-#      http-snippet: |
-#        proxy_cache_path /tmp/nginx-cache levels=1:2 keys_zone=static-cache:2m max_size=100m inactive=7d use_temp_path=off;
-#        proxy_cache_key $scheme$proxy_host$request_uri;
-#        proxy_cache_lock on;
-#        proxy_cache_use_stale updating;
 
 kube-prometheus-stack:
   kube-state-metrics:
@@ -213,9 +192,6 @@ argo-workflows:
       # todo, probably make this get passed in entirely.  see ./terraform/organization/serviceaccounts/serviceaccounts.tf
       bucket: streamstate-argologs-${organization} 
       keyFormat: "{{workflow.namespace}}/{{workflow.name}}/"
-
-
-
 
 grafana:
   rbac:

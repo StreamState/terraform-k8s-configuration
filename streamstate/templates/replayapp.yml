@@ -70,19 +70,19 @@ spec:
                       arguments:
                         parameters: 
                          - name: inputs
-                           value: {{ "{{inputs.parameters.inputs}}" }}
+                           value: "{{ `{{inputs.parameters.inputs}}` }}"
                          - name: kafka
-                           value: {{ "{{inputs.parameters.kafka}}" }}
+                           value: "{{ `{{inputs.parameters.kafka}}` }}"
                          - name: outputs
-                           value: {{ "{{inputs.parameters.outputs}}" }}
+                           value: "{{ `{{inputs.parameters.outputs}}` }}"
                          - name: fileinfo
-                           value: {{ "{{inputs.parameters.fileinfo}}" }}
+                           value: "{{ `{{inputs.parameters.fileinfo}}` }}"
                          - name: appname
-                           value: {{ "{{inputs.parameters.appname}}" }}
+                           value: "{{ `{{inputs.parameters.appname}}` }}"
                          - name: version
-                           value: {{ "{{inputs.parameters.code_version}}" }}
+                           value: "{{ `{{inputs.parameters.code_version}}` }}"
                          - name: table
-                           value: {{ "{{inputs.parameters.table}}" }}
+                           value: "{{ `{{inputs.parameters.table}}` }}"
 
                 - name: sparksubmit
                   serviceAccountName: {{ .Values.serviceaccounts.argo_service_account.name }}
@@ -112,10 +112,10 @@ spec:
                       apiVersion: "sparkoperator.k8s.io/v1beta2"
                       kind: SparkApplication
                       metadata:
-                        name: {{ "{{inputs.parameters.appname}}" }}-replay
+                        name: "{{ `{{inputs.parameters.appname}}` }}-replay"
                         namespace: {{ .Values.namespaces.sparknamespace }}
                         labels:
-                          app: {{ "{{inputs.parameters.appname}}" }}
+                          app: "{{ `{{inputs.parameters.appname}}` }}"
                       spec:
                         sparkConf:
                           spark.eventLog.enabled: "true" # spark history
@@ -135,21 +135,21 @@ spec:
                         type: Python
                         pythonVersion: "3"
                         mode: cluster
-                        image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.registry }}/{{ "{{inputs.parameters.appname}}" }}:v{{ "{{inputs.parameters.version}}" }}
+                        image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.registry }}/{{ `{{inputs.parameters.appname}}` }}:v{{ `{{inputs.parameters.version}}` }}
                         imagePullPolicy: Always
                         mainApplicationFile: "local:///opt/spark/work-dir/replay_app.py" # todo, adjust this to be the right entrypoint
                         sparkVersion: "3.1.1"
                         
                         arguments:
-                          - {{ "{{inputs.parameters.appname}}" }}
-                          - 'gs://{{ .Values.buckets.bucket_without_gs }}'
-                          - '{{ "{{inputs.parameters.table}}" }}'
-                          - '{{ "{{inputs.parameters.outputs}}" }}'
-                          - '{{ "{{inputs.parameters.fileinfo}}" }}'
-                          - '{{ "{{inputs.parameters.kafka}}" }}'
-                          - '{{ "{{inputs.parameters.inputs}}" }}'
+                          - "{{ `{{inputs.parameters.appname}}` }}"
+                          - 'gs://{{ .Values.buckets.bucket_without_gs }}"
+                          - "{{ `{{inputs.parameters.table}}` }}"
+                          - "{{ `{{inputs.parameters.outputs}}` }}"
+                          - "{{ `{{inputs.parameters.fileinfo}}` }}"
+                          - "{{ `{{inputs.parameters.kafka}}` }}"
+                          - "{{ `{{inputs.parameters.inputs}}` }}"
                           - 'checkpoint'
-                          - '{{ "{{inputs.parameters.version}}'" }}'
+                          - "{{ `{{inputs.parameters.version}}` }}"
                        
                         restartPolicy:
                           type: Always # should be able to resume from checkpoint if killed for some reason

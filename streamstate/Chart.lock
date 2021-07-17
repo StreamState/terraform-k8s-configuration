@@ -1,0 +1,24 @@
+dependencies:
+- name: spark-history-server
+  repository: https://charts.helm.sh/stable
+  version: 1.4.3
+- name: kubernetes-secret-generator
+  repository: https://helm.mittwald.de
+  version: 3.3.1
+- name: cert-manager
+  repository: https://charts.jetstack.io
+  version: v1.4.0
+- name: kube-prometheus-stack
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 16.14.1
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 6.13.10
+- name: argo-workflows
+  repository: https://argoproj.github.io/argo-helm
+  version: 0.2.7
+- name: argo-events
+  repository: https://argoproj.github.io/argo-helm
+  version: 1.6.4
+digest: sha256:594492c4eaa81780d0b5b95d44ea6a2b8c219ea98ab5b481157fe53631099db2
+generated: "2021-07-17T11:02:02.646311942-05:00"
