@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mainui
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  # namespace: {{ .Values.namespaces.controlpanenamespace }}
 spec:
   selector:
     matchLabels:
@@ -29,7 +29,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mainui
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  # namespace: {{ .Values.namespaces.controlpanenamespace }}
 spec:
   ports:
   - name: http

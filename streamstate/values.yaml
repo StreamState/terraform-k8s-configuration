@@ -5,19 +5,11 @@
 nameOverride: "streamstate"
 fullnameOverride: "streamstate-chart"
 
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: "streamstate-sa"
-
 namespaces:
-  controlpanenamespace: "${controlpanenamespace}" # hacky, but need something like https://github.com/helm/helm/pull/6876 to make it not hacky...
+#  controlpanenamespace: "${controlpanenamespace}" # hacky, but need something like https://github.com/helm/helm/pull/6876 to make it not hacky...
   sparknamespace: "${sparknamespace}" 
 
+#sparknamespace: "${sparknamespace}"
 organization: "${organization}"
 project: "${project}"
 dockerTag: "${tag}"
@@ -26,11 +18,11 @@ registry: ${registry}
 serviceaccounts:
   spark_history_service_account: 
     name: ${sparkhistoryserviceaccount}
-    namespace: ${controlpanenamespace}
+    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_sparkhistory_svc}
   argo_service_account: 
     name: ${argoserviceaccount}
-    namespace: ${controlpanenamespace}
+    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_argo_svc}
   spark_service_account: 
     name: ${sparkserviceaccount}
@@ -38,19 +30,19 @@ serviceaccounts:
     iam_binding: ${gcp_spark_svc}
   docker_secret_write_service_account: 
     name: ${dockerwriteserviceaccount}
-    namespace: ${controlpanenamespace}
+    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_docker_svc}
   firestore_service_account:
     name: ${firestoreserviceaccount}
-    namespace: ${controlpanenamespace}
+    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_firestore_svc}
   firestore_viewer_service_account:
     name: ${firestoreviewerserviceaccount}
-    namespace: ${controlpanenamespace}
+    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_firestore_viewer_svc}
   mainui_service_account:
     name: mainui
-    namespace: ${controlpanenamespace}
+    #namespace: ${controlpanenamespace}
     iam_binding: ""
 
 
@@ -64,18 +56,18 @@ oauth:
   base_64_extra_jwt_issuers: aHR0cHM6Ly9kZXYtMjA0OTAwNDQub2t0YS5jb20vb2F1dGgyL2RlZmF1bHQ9YXBpOi8vZGVmYXVsdA==
 
 
-# make sure to pass this in to kubernetes config map,
-# see line 505 of kuberentes.tf
 dataconfigargo: sparkjobdata
 sparkhistoryname: ${sparkhistoryname}
 
 
-passwordgenerator:
+kubernetes-secret-generator:
   secretLength: 32
-  watchNamespace: ${controlpanenamespace}
+  watchNamespace: "" # ${controlpanenamespace}
+  rbac:
+    clusterRole: false 
 
 cert-manager:
-  installCRDs: true
+  installCRDs: false
 
   serviceAccount:
     name: ${dnsserviceaccount}
@@ -118,10 +110,12 @@ kube-prometheus-stack:
       routePrefix: / # https://prometheus.io/docs/guides/tls-encryption/
       externalUrl: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
 
+
+# this is giving a 403 error for accessing gcs
 spark-history-server:
   serviceAccount:
     create: false
-    name: spark-history # same as the created service account above
+    name: ${sparkhistoryserviceaccount}
   gcs:
     logDirectory: gs://${bucket_without_gs}/${sparkhistoryname}
     enableGCS: true
@@ -143,12 +137,12 @@ spark-history-server:
   environment:
     SPARK_PUBLIC_DNS: https://${organization}.streamstate.org/sparkhistory/
 
-argo-events:
-  namespace: ${controlpanenamespace}
+#argo-events:
+#  namespace: ${controlpanenamespace}
 
 argo-workflows:
   workflow:
-    namespace: ${controlpanenamespace} # Specify namespace if workflows run in another namespace than argo. This controls where the service account and RBAC resources will be created.
+#    namespace: ${controlpanenamespace} # Specify namespace if workflows run in another namespace than argo. This controls where the service account and RBAC resources will be created.
     serviceAccount:
       create: false # Specifies whether a service account should be created
       annotations: {}

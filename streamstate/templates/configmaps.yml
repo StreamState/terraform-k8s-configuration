@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.dataconfigargo }}
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  # namespace: {{ .Values.namespaces.controlpanenamespace }}
 data:
   # property-like keys; each key maps to a simple value
   organization: {{ .Values.organization }}

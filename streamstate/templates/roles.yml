@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
   name: argoroles
 rules:
 - apiGroups: [""] # "" indicates the core API group
@@ -16,12 +16,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: dockerwriteargopermissions
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 subjects:
-- kind: ServiceAcount
+- kind: ServiceAccount
   name: {{ .Values.serviceaccounts.docker_secret_write_service_account.name }} # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
@@ -33,12 +32,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: firestorepermissions
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.firestore_service_account.name }} # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
@@ -65,7 +63,6 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.spark_service_account.name }} # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
   namespace: {{ .Values.namespaces.sparknamespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
@@ -77,17 +74,16 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: argoevents-runsa
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  name: argoevents
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.argo_service_account.name }} # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
-  name: argorules
+  name: argoroles
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -109,8 +105,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.firestore_viewer_service_account.name }} # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  # namespace: {{ .Values.namespaces.controlpanenamespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: ClusterRole #this must be Role or ClusterRole
@@ -121,7 +116,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
   name: secretaccess
 rules:
 - apiGroups: [""] # "" indicates the core API group
@@ -133,12 +128,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: secretaccess
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.firestore_viewer_service_account.name }} # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
@@ -170,8 +164,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.argo_service_account.name }} # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-  namespace: {{ .Values.namespaces.controlpanenamespace }}
+  #namespace: {{ .Values.namespaces.controlpanenamespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole

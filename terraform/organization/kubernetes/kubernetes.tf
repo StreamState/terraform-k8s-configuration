@@ -22,6 +22,12 @@ provider "helm" {
     cluster_ca_certificate = base64decode(var.cluster_ca_cert)
   }
 }
+provider "kubectl" {
+  host                   = var.cluster_endpoint
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(var.cluster_ca_cert)
+}
+
 
 data "template_file" "kubeconfig" {
   template = file("${path.module}/kubeconfig.yml")
@@ -49,20 +55,22 @@ locals {
   sparkserviceaccount           = "spark"
   argoserviceaccount            = "argo-service-account"
   firestoreserviceaccount       = "firestore"
-  firestoreviewerserviceaccount = "firestore_viewer"
+  firestoreviewerserviceaccount = "firestore-viewer"
   dnsserviceaccount             = "cert-manager"
 
 }
 resource "helm_release" "streamstate" {
-  name  = "streamstate"
-  chart = "../../streamstate"
+  name             = "streamstate"
+  chart            = "../../streamstate"
+  namespace        = local.controlpanenamespace
+  create_namespace = true
   set {
     name  = "oauth.client_id"
-    value = var.client_id
+    value = base64encode(var.client_id)
   }
   set {
     name  = "oauth.client_secret"
-    value = var.client_secret
+    value = base64encode(var.client_secret)
   }
   values = [
     "${templatefile("../../streamstate/values.yaml", {
@@ -91,7 +99,7 @@ resource "helm_release" "streamstate" {
       DS_PROMETHEUS                 = "Prometheus" # dummy for grafana
     })}"
   ]
-  depends_on = [helm_release.spark, helm_release.nginx]
+  depends_on = [helm_release.spark, helm_release.nginx, kubectl_manifest.cert-manager]
 }
 ##################
 # Map GCP service accounts to kubernetes service accounts
@@ -180,6 +188,23 @@ resource "google_service_account_iam_binding" "dns" {
   ]
 }
 
+##################
+# Install CRD for cert-manager
+##################
+data "http" "cert-manager" {
+  url = "https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.crds.yaml"
+  request_headers = {
+    Accept = "application/octet-stream"
+  }
+}
+data "kubectl_file_documents" "cert-manager" {
+  content = data.http.cert-manager.body
+}
+resource "kubectl_manifest" "cert-manager" {
+  count      = length(data.kubectl_file_documents.cert-manager.documents)
+  yaml_body  = element(data.kubectl_file_documents.cert-manager.documents, count.index)
+  depends_on = [local_file.kubeconfig]
+}
 
 ##################
 # Install Spark
