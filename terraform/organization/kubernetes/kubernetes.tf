@@ -56,6 +56,14 @@ locals {
 resource "helm_release" "streamstate" {
   name  = "streamstate"
   chart = "../../streamstate"
+  set {
+    name  = "oauth.client_id"
+    value = var.client_id
+  }
+  set {
+    name  = "oauth.client_secret"
+    value = var.client_secret
+  }
   values = [
     "${templatefile("../../streamstate/values.yaml", {
       controlpanenamespace          = local.controlpanenamespace
