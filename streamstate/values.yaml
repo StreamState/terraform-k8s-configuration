@@ -6,8 +6,7 @@ nameOverride: "streamstate"
 fullnameOverride: "streamstate-chart"
 
 namespaces:
-#  controlpanenamespace: "${controlpanenamespace}" # hacky, but need something like https://github.com/helm/helm/pull/6876 to make it not hacky...
-  sparknamespace: "${sparknamespace}" 
+  sparknamespace: "${sparknamespace}"  # hacky, but need something like https://github.com/helm/helm/pull/6876 to make it not hacky...
 
 #sparknamespace: "${sparknamespace}"
 organization: "${organization}"

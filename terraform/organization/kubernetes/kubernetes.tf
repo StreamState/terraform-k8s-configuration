@@ -114,9 +114,9 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.dockerwriteserviceaccount}]",
   ]
-  depends_on = [
-    helm_release.streamstate
-  ]
+  #depends_on = [
+  #  helm_release.streamstate
+  #]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -128,9 +128,9 @@ resource "google_service_account_iam_binding" "spark-history" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.sparkhistoryserviceaccount}]",
   ]
-  depends_on = [
-    helm_release.streamstate
-  ]
+  #depends_on = [
+  #  helm_release.streamstate
+  #]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -142,9 +142,9 @@ resource "google_service_account_iam_binding" "firestore" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.firestoreserviceaccount}]",
   ]
-  depends_on = [
-    helm_release.streamstate
-  ]
+  #depends_on = [
+  #  helm_release.streamstate
+  #]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -156,9 +156,9 @@ resource "google_service_account_iam_binding" "firestoreviewer" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.firestoreviewerserviceaccount}]",
   ]
-  depends_on = [
-    helm_release.streamstate
-  ]
+  #depends_on = [
+  #  helm_release.streamstate
+  #]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -170,9 +170,9 @@ resource "google_service_account_iam_binding" "spark" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.sparknamespace}/${local.sparkserviceaccount}]",
   ]
-  depends_on = [
-    helm_release.streamstate
-  ]
+  #depends_on = [
+  #  helm_release.streamstate
+  #]
 }
 
 ## This is neeeded if using dns in cert issuer
@@ -182,9 +182,9 @@ resource "google_service_account_iam_binding" "dns" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.dnsserviceaccount}]",
   ]
-  depends_on = [
-    helm_release.streamstate //helm creates the service account for me
-  ]
+  #depends_on = [
+  #  helm_release.streamstate //helm creates the service account for me
+  #]
 }
 
 ##################

@@ -9,5 +9,5 @@ jobs:
       run: |
         cd streamstate
         helm lint .
-        helm dep up
+        helm dependency build
         helm template .
