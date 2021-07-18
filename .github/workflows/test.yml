@@ -9,5 +9,6 @@ jobs:
       run: |
         cd streamstate
         helm lint .
+        i=0; for url in $(yq e '.dependencies' Chart.yaml --tojson | jq -r .[].repository); do i=$((i+1)); helm repo add somename${i} ${url}; done
         helm dependency build
         helm template .
