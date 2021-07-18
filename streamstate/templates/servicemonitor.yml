@@ -2,7 +2,6 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  namespace: ${monitoringnamespace}
   labels:
     app: prometheus-operator
     release: prometheus
@@ -19,7 +18,7 @@ spec:
       path: /metrics/executors/prometheus
   namespaceSelector:
     matchNames:
-      - ${sparknamepace}
+      - {{ .Values.namespaces.sparknamespace }}
   selector:
     matchLabels:
       metrics-exposed: "true"

@@ -22,7 +22,7 @@ spec:
     - dns01:
         cloudDNS:
           # The ID of the GCP project
-          project: ${project}
+          project: {{ .Values.project }} 
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
@@ -39,10 +39,7 @@ spec:
       name: letsencrypt-prod
     # Enable the HTTP-01 challenge provider
     solvers:
-    #- http01:
-    #    ingress:
-    #      class: nginx
     - dns01:
         cloudDNS:
           # The ID of the GCP project
-          project: ${project}
+          project: {{ .Values.project }}

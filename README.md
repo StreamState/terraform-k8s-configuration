@@ -41,10 +41,6 @@ If anything hangs, you can delete the kubernetes module:
 
 Make sure to delete any Compute Engine storage!!
 
-# TODO
-
-Figure out how to correctly/consistently tag docker containers used in the deployment yaml
-
 # deploy workflow
 
 First, an admin needs to create a new application with client id and secret in your oauth provider (eg Okta).  Then, use the client id and secret to make a post request to get a token.
@@ -108,8 +104,8 @@ Grafana password:
 
 kubectl run -it \
 --image google/cloud-sdk:slim \
---serviceaccount spark \
---namespace mainspark-testorg \
+--serviceaccount cert-manager \
+--namespace serviceplane-testorg \
 workload-identity-test
 
 
@@ -118,4 +114,4 @@ workload-identity-test
 gcloud projects get-iam-policy streamstatetest  \
 --flatten="bindings[].members" \
 --format='table(bindings.role)' \
---filter="bindings.members:spark-gcs-testorg@streamstatetest.iam.gserviceaccount.com"
+--filter="bindings.members:dns-testorg@streamstatetest.iam.gserviceaccount.com"

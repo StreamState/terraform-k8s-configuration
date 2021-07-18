@@ -23,10 +23,10 @@ metadata:
 spec:
   tls: # < placing a host in the TLS config will indicate a certificate should be created
   - hosts:
-    - ${organization}.streamstate.org
+    - {{ .Values.organization }}.streamstate.org
     secretName: streamstate-internal-cert # < cert-manager will store the created certificate in this secret
   rules:
-    - host: ${organization}.streamstate.org
+    - host: {{ .Values.organization }}.streamstate.org
       http:
         paths:
         - path: /ui(/|$)(.*)
@@ -51,11 +51,6 @@ spec:
               #name: grafana
               #port: 
               #  number: 3000
-        - path: /app(/|$)(.*) # post to /app/rotate, for example
-          #pathType: Prefix
-          backend:
-            serviceName: mainui
-            servicePort: 80
 ---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
@@ -76,7 +71,7 @@ metadata:
       sub_filter '<head>' '<head> <base href="/sparkhistory/">'; # add base url
       sub_filter 'href="/' 'href="'; # remove absolute URL path so base url applies
       sub_filter 'src="/' 'src="'; # remove absolute URL path so base url applies
-      sub_filter '/{{num}}/jobs/' '/jobs/';
+      sub_filter '/{{ "{{num}}" }}/jobs/' '/jobs/';
       sub_filter "setUIRoot('')" "setUIRoot('/sparkhistory')"; # Set UI root for JS scripts
       sub_filter "document.baseURI.split" "document.documentURI.split"; # Executors page issue fix
       sub_filter_once off;
@@ -95,10 +90,10 @@ metadata:
 spec:
   tls: # < placing a host in the TLS config will indicate a certificate should be created
   - hosts:
-    - ${organization}.streamstate.org
+    - {{ .Values.organization }}.streamstate.org
     secretName: streamstate-internal-cert # < 
   rules:
-    - host: ${organization}.streamstate.org
+    - host: {{ .Values.organization }}.streamstate.org
       http:
         paths:
         - path: /sparkhistory/?(.*)
@@ -135,10 +130,10 @@ metadata:
 spec:
   tls: 
   - hosts:
-    - ${organization}.streamstate.org
+    - {{ .Values.organization }}.streamstate.org
     secretName: streamstate-internal-cert # < 
   rules:
-    - host: ${organization}.streamstate.org
+    - host: {{ .Values.organization }}.streamstate.org
       http:
         paths:
         - path: /api/replay
@@ -159,6 +154,7 @@ apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: streamstateingressstatic
+  # namespace: {{ .Values.namespaces.controlpanenamespace }}
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/proxy-buffering: "on"
@@ -185,10 +181,10 @@ metadata:
 spec:
   tls: # < placing a host in the TLS config will indicate a certificate should be created
   - hosts:
-    - ${organization}.streamstate.org
+    - {{ .Values.organization }}.streamstate.org
     secretName: streamstate-internal-cert # < already generated
   rules:
-    - host: ${organization}.streamstate.org
+    - host: {{ .Values.organization }}.streamstate.org
       http:
         paths:
         - path: /
@@ -199,12 +195,7 @@ spec:
           backend:
             serviceName: restapi
             servicePort: 8000
-          #pathType: Prefix
-          #backend:
-          #  service:
-          #    name: mainui
-          #    port: 
-          #      number: 80
+
 
 ---
 apiVersion: networking.k8s.io/v1beta1
@@ -221,20 +212,15 @@ metadata:
 spec:
   tls: # < placing a host in the TLS config will indicate a certificate should be created
   - hosts:
-    - ${organization}.streamstate.org
+    - {{ .Values.organization }}.streamstate.org
     secretName: streamstate-internal-cert # < already generated
   rules:
-    - host: ${organization}.streamstate.org
+    - host: {{ .Values.organization }}.streamstate.org
       http:
         paths:
         - path: /oauth2
           backend:
             serviceName: oauth2-reverse-proxy
             servicePort: 4180
-          #pathType: Prefix
-          #backend:
-          #  service:
-          #    name: oauth2-reverse-proxy
-          #    port:
-           #     number: 4180
+
         

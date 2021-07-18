@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mainui
+spec:
+  selector:
+    matchLabels:
+      app: mainui
+  template:
+    metadata:
+      labels:
+        app: mainui
+    spec:
+      serviceAccountName: {{ .Values.serviceaccounts.mainui_service_account.name }}
+      containers:
+      - image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/adminapp:{{ .Values.dockerTag }}
+        imagePullPolicy: Always
+        name: mainui
+        ports:
+        - containerPort: 8000
+        env: 
+        - name: CONFLUENT_KEY_NAME # these are dummies at the moment
+          value: confluent-api-key
+        - name: CONFLUENT_SECRET_NAME # these are dummies at the moment
+          value: confluent-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mainui
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+  type: ClusterIP 
+  selector:
+    app: mainui

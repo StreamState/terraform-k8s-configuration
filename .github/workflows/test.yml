@@ -1,0 +1,15 @@
+name: test_code
+on: [push]
+jobs:
+  run_helm_lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test chart
+      run: |
+        cd streamstate
+        helm lint .
+        wget https://github.com/mikefarah/yq/releases/download/v4.9.6/yq_linux_amd64 -O yq && chmod +x yq
+        i=0; for url in $(./yq e '.dependencies' Chart.yaml --tojson | jq -r .[].repository); do i=$((i+1)); helm repo add somename${i} ${url}; done
+        helm dependency build
+        helm template .

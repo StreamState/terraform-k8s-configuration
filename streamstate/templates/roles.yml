@@ -1,0 +1,166 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argoroles
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "patch"]
+
+- apiGroups: ["argoproj.io"] # "" indicates the core API group
+  resources: ["workflows"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dockerwriteargopermissions
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceaccounts.docker_secret_write_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: argoroles
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: firestorepermissions
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceaccounts.firestore_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: argoroles
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: {{ .Values.namespaces.sparknamespace }}
+  name: sparkrules
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sparkrules
+  namespace: {{ .Values.namespaces.sparknamespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceaccounts.spark_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Values.namespaces.sparknamespace }}
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: sparkrules
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argoevents
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceaccounts.argo_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: argoroles
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: stopsparkapp
+rules:
+- apiGroups: ["sparkoperator.k8s.io"] # "" indicates the core API group
+  resources: ["sparkapplications"]
+  verbs: ["delete", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stopsparkapp
+  namespace: {{ .Values.namespaces.sparknamespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceaccounts.firestore_viewer_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: ClusterRole #this must be Role or ClusterRole
+  name: stopsparkapp
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secretaccess
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["secrets"]
+  verbs: ["create", "delete", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secretaccess
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceaccounts.firestore_viewer_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: secretaccess
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: launchsparkapplication
+rules:
+- apiGroups: ["sparkoperator.k8s.io"] # "" indicates the core API group
+  resources: ["sparkapplications"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["batch"] # "" indicates the core API group
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: launchsparkapplication
+  namespace: {{ .Values.namespaces.sparknamespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceaccounts.argo_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: launchsparkapplication
+  apiGroup: rbac.authorization.k8s.io

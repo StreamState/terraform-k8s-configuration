@@ -1,6 +1,5 @@
 rbac:
   create: true
-
 controller:
   service:
     loadBalancerIP: ${static_ip_address}
