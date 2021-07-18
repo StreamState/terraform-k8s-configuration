@@ -41,10 +41,6 @@ If anything hangs, you can delete the kubernetes module:
 
 Make sure to delete any Compute Engine storage!!
 
-# TODO
-
-Figure out how to correctly/consistently tag docker containers used in the deployment yaml
-
 # deploy workflow
 
 First, an admin needs to create a new application with client id and secret in your oauth provider (eg Okta).  Then, use the client id and secret to make a post request to get a token.
@@ -53,6 +49,7 @@ For Okta:
 
 * Base64 encode the client id and secret `BASE_64AUTH=$(echo -n clientID:clientsecret | base64 -w 0)`
 
+Example (this is an old one I've revoked):
 
 BASE_64AUTH=$(echo -n 0oa14tw5hxjopikkt5d7:zdMaDj9VI9-d-vvxu9W_Zg_tVVsHJIUYbszWqaEE | base64 -w 0)
 
