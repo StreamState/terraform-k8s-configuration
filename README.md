@@ -53,6 +53,11 @@ For Okta:
 
 * Base64 encode the client id and secret `BASE_64AUTH=$(echo -n clientID:clientsecret | base64 -w 0)`
 
+
+BASE_64AUTH=$(echo -n 0oa14tw5hxjopikkt5d7:zdMaDj9VI9-d-vvxu9W_Zg_tVVsHJIUYbszWqaEE | base64 -w 0)
+
+
+
 * Request a token (assuming you have created a custom scope called "testemail", see https://developer.okta.com/docs/guides/customize-authz-server/create-scopes/)
 
 
@@ -108,8 +113,8 @@ Grafana password:
 
 kubectl run -it \
 --image google/cloud-sdk:slim \
---serviceaccount spark \
---namespace mainspark-testorg \
+--serviceaccount cert-manager \
+--namespace serviceplane-testorg \
 workload-identity-test
 
 
@@ -118,4 +123,4 @@ workload-identity-test
 gcloud projects get-iam-policy streamstatetest  \
 --flatten="bindings[].members" \
 --format='table(bindings.role)' \
---filter="bindings.members:spark-gcs-testorg@streamstatetest.iam.gserviceaccount.com"
+--filter="bindings.members:dns-testorg@streamstatetest.iam.gserviceaccount.com"

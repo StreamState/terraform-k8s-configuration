@@ -18,6 +18,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.docker_secret_write_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
@@ -32,6 +33,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.firestore_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
@@ -73,6 +75,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.argo_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
@@ -98,6 +101,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.firestore_viewer_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: ClusterRole #this must be Role or ClusterRole
@@ -122,6 +126,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.firestore_viewer_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole
@@ -153,6 +158,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceaccounts.argo_service_account.name }} # "name" is case sensitive
+  namespace: {{ .Release.Namespace }}
 roleRef:
   # "roleRef" specifies the binding to a Role / ClusterRole
   kind: Role #this must be Role or ClusterRole

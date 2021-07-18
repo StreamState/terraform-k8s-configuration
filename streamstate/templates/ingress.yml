@@ -51,11 +51,6 @@ spec:
               #name: grafana
               #port: 
               #  number: 3000
-        - path: /app(/|$)(.*) # post to /app/rotate, for example
-          #pathType: Prefix
-          backend:
-            serviceName: mainui
-            servicePort: 80
 ---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
