@@ -49,12 +49,6 @@ For Okta:
 
 * Base64 encode the client id and secret `BASE_64AUTH=$(echo -n clientID:clientsecret | base64 -w 0)`
 
-Example (this is an old one I've revoked):
-
-BASE_64AUTH=$(echo -n 0oa14tw5hxjopikkt5d7:zdMaDj9VI9-d-vvxu9W_Zg_tVVsHJIUYbszWqaEE | base64 -w 0)
-
-
-
 * Request a token (assuming you have created a custom scope called "testemail", see https://developer.okta.com/docs/guides/customize-authz-server/create-scopes/)
 
 
