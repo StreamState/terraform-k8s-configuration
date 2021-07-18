@@ -74,7 +74,6 @@ resource "helm_release" "streamstate" {
   }
   values = [
     "${templatefile("../../streamstate/values.yaml", {
-      controlpanenamespace          = local.controlpanenamespace
       sparknamespace                = local.sparknamespace
       project                       = var.project
       organization                  = var.organization

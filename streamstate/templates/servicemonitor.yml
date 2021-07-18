@@ -2,7 +2,6 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  # namespace: {{ .Values.namespaces.controlpanenamespace }}
   labels:
     app: prometheus-operator
     release: prometheus

@@ -2,7 +2,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
   name: deploystreamstateapi
-  # namespace: {{ .Values.namespaces.controlpanenamespace }}
 spec:
   template:
     serviceAccountName: argo-events-sa 

@@ -18,11 +18,9 @@ registry: ${registry}
 serviceaccounts:
   spark_history_service_account: 
     name: ${sparkhistoryserviceaccount}
-    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_sparkhistory_svc}
   argo_service_account: 
     name: ${argoserviceaccount}
-    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_argo_svc}
   spark_service_account: 
     name: ${sparkserviceaccount}
@@ -30,19 +28,15 @@ serviceaccounts:
     iam_binding: ${gcp_spark_svc}
   docker_secret_write_service_account: 
     name: ${dockerwriteserviceaccount}
-    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_docker_svc}
   firestore_service_account:
     name: ${firestoreserviceaccount}
-    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_firestore_svc}
   firestore_viewer_service_account:
     name: ${firestoreviewerserviceaccount}
-    #namespace: ${controlpanenamespace}
     iam_binding: ${gcp_firestore_viewer_svc}
   mainui_service_account:
     name: mainui
-    #namespace: ${controlpanenamespace}
     iam_binding: ""
 
 
@@ -62,7 +56,7 @@ sparkhistoryname: ${sparkhistoryname}
 
 kubernetes-secret-generator:
   secretLength: 32
-  watchNamespace: "" # ${controlpanenamespace}
+  watchNamespace: "" 
   rbac:
     clusterRole: false 
 
@@ -137,12 +131,8 @@ spark-history-server:
   environment:
     SPARK_PUBLIC_DNS: https://${organization}.streamstate.org/sparkhistory/
 
-#argo-events:
-#  namespace: ${controlpanenamespace}
-
 argo-workflows:
   workflow:
-#    namespace: ${controlpanenamespace} # Specify namespace if workflows run in another namespace than argo. This controls where the service account and RBAC resources will be created.
     serviceAccount:
       create: false # Specifies whether a service account should be created
       annotations: {}
