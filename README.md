@@ -49,30 +49,23 @@ For Okta:
 
 * Base64 encode the client id and secret `BASE_64AUTH=$(echo -n clientID:clientsecret | base64 -w 0)`
 
-* Request a token (assuming you have created a custom scope called "testemail", see https://developer.okta.com/docs/guides/customize-authz-server/create-scopes/)
-
-
-TOKEN=$(curl --request POST \
+* Request a token (assuming you have created a custom scope called "testemail", see https://developer.okta.com/docs/guides/customize-authz-server/create-scopes/) `TOKEN=$(curl --request POST \
   --url https://dev-20490044.okta.com/oauth2/default/v1/token \
   --header 'accept: application/json' \
   --header "authorization: Basic $BASE_64AUTH" \
   --header 'cache-control: no-cache' \
   --header 'content-type: application/x-www-form-urlencoded' \
   --data 'grant_type=client_credentials&scope=testemail' \
-| python -c "import sys,json; print json.load(sys.stdin)['access_token']")
+| python -c "import sys,json; print json.load(sys.stdin)['access_token']")`
 
-* Finally, use the token to create a request to deploy
+* Finally, use the token to create a request to deploy `curl  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"[yourbrokers]\", \"confluent_api_key\": \"[yourapikey]\", \"confluent_secret\": \"[yoursecret]\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k`
 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -X POST -d "{\"pythoncode\":\"$(base64 -w 0 examples/process.py)\", \"inputs\": $(cat examples/sampleinputs.json), \"assertions\": $(cat examples/assertedoutputs.json), \"kafka\": {\"brokers\": \"[yourbrokers]\", \"confluent_api_key\": \"[yourapikey]\", \"confluent_secret\": \"[yoursecret]\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\"}" https://testorg.streamstate.org/api/deploy -k
+* To replay: 
+`curl  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -X POST -d "{\"inputs\": $(cat examples/sampleinputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\", \"code_version\": 1}" https://testorg.streamstate.org/api/replay -k`
 
-To replay: 
-curl  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -X POST -d "{\"inputs\": $(cat examples/sampleinputs.json), \"kafka\": {\"brokers\": \"broker1,broker2\"}, \"outputs\": {\"mode\": \"append\", \"processing_time\":\"2 seconds\"}, \"fileinfo\":{\"max_file_age\": \"2d\"}, \"table\":{\"primary_keys\":[\"field1\"], \"output_schema\":[{\"name\":\"field1\", \"type\": \"string\"}]}, \"appname\":\"mytestapp\", \"code_version\": 1}" https://testorg.streamstate.org/api/replay -k
+* To stop: `curl  -H "Authorization: Bearer $TOKEN" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k `
 
-To stop:
-
-curl  -H "Authorization: Bearer $TOKEN" -X POST https://testorg.streamstate.org/api/mytestapp/stop -k 
-
-curl  -H "Authorization: Bearer $TOKEN" -X GET https://testorg.streamstate.org/api/applications -k 
+* List active applications: `curl  -H "Authorization: Bearer $TOKEN" -X GET https://testorg.streamstate.org/api/applications -k `
 
 
 # upload json to bucket
