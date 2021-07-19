@@ -1,46 +1,72 @@
-from diagrams import Diagram, Cluster
-from diagrams.aws.compute import EC2
-from diagrams.aws.database import RDS
-from diagrams.aws.network import ELB
+from diagrams import Diagram, Cluster, Edge
 from diagrams.onprem.queue import Kafka
-from diagrams.aws.compute import ECS, EKS, Lambda
 from diagrams.gcp.database import Firestore
 from diagrams.onprem.analytics import Spark
 from diagrams.gcp.storage import Storage
+from diagrams.gcp.compute import GKE
 from diagrams.programming.language import Python
 from diagrams.gcp.devtools import Code
 from diagrams.onprem.gitops import Argocd
+from diagrams.firebase.develop import Hosting
 
-with Diagram("StreamState", show=False):
-    kafka_input = Kafka("Kafka")
-    kafka_output = Kafka("Kafka")
+with Diagram("StreamStateLogical", show=False):
+    kafka_input = Kafka("Confluent Kafka")
+    kafka_output = Kafka("Confluent Kafka")
+    with Cluster("Dev Environment"):
+        code = Code("Dev App")
+
+    with Cluster("Databases"):
+        firestore = Firestore("Cache/upsert")
 
     with Cluster("StreamState cluster"):
-        # svc_group = [ECS("web1"), ECS("web2"), ECS("web3")]
-        with Cluster("Replay"):
-            kafka_storage = Storage("Kafka sink")
-            spark_reload = Spark("Replay")
+        kafka_storage = Storage("Persisted historic data")
+        with Cluster("Spark Replay"):
+            spark_reload = Spark()
+        with Cluster("Spark App"):
+            spark_app = Spark()
+        with Cluster("Spark Persist"):
+            spark_persist = Spark()
+        with Cluster("Gitops"):
+            argo = Argocd()
+    argo >> spark_app
+    argo >> spark_persist
+    argo >> spark_reload
 
-        with Cluster("Realtime"):
-            spark_persist = Spark("No transforms")
-            spark_state = Spark("Analytical Stream")
+    spark_persist >> kafka_storage
+    kafka_storage >> Edge(label="load backfill data") >> spark_reload
+    kafka_input >> spark_persist
+    kafka_input >> spark_app
+    spark_app >> kafka_output
+    spark_reload >> kafka_output
+    code >> Edge(label="code") >> argo
+    spark_app >> firestore
+    spark_reload >> firestore
+    firestore >> Python("python sdk")
 
-        argo = Argocd("Gitops")
-        argo >> spark_state
-        argo >> spark_reload
-        with Cluster("Dev"):
-            code = Code("Dev App")
-            code >> argo
-            code >> argo
+with Diagram("StreamStateArchitecture", show=False):
 
+    with Cluster("Dev Environment"):
+        gke_dev = GKE("Dev GKE cluster")
+
+    with Cluster("Streamstate home site"):
+        main_site = Hosting("Streamstate.io")
+
+    with Cluster("Databases"):
         firestore = Firestore("Cache/upsert")
-        spark_persist >> kafka_storage
-        kafka_storage >> spark_reload
-        kafka_input >> spark_state
-        kafka_input >> spark_persist
-        spark_state >> firestore
-        spark_reload >> firestore
-        spark_state >> kafka_output
-        spark_reload >> kafka_output
 
+    with Cluster("StreamState cluster"):
+        # with Cluster("Replay"):
+        gke_streaming = GKE("Streaming GKE cluster")
+        persisted_data = Storage("Persisted historic data")
+        # oidc =
+    (
+        gke_dev
+        >> Edge(label="code")
+        >> gke_streaming
+        >> Edge(label="transformed data for caching")
+        >> firestore
+    )
+    main_site >> Edge(label="oicd id/secret") >> firestore
+    firestore >> Edge(label="oicd id/secret") >> gke_streaming
+    persisted_data >> gke_streaming
     firestore >> Python("python sdk")
