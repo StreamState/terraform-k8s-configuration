@@ -104,11 +104,6 @@ resource "google_artifact_registry_repository" "artifactrepo" {
 }*/
 
 
-resource "google_compute_global_address" "staticgkeip" {
-  name = "streamstate-global-ip"
-  #  address = local.address
-}
-
 resource "google_compute_address" "staticgkeregionalip" {
   name = "streamstate-regional-ip"
   #  address = local.address
@@ -126,12 +121,10 @@ resource "google_dns_record_set" "streamstate-recordset-a" {
   name         = "*.streamstate.org." # apparently this is the actual domain name :|
   type         = "A"
   rrdatas = [
-    #google_compute_global_address.staticgkeip.address,
     google_compute_address.staticgkeregionalip.address
   ]
   ttl = 86400
   depends_on = [
-    #google_compute_global_address.staticgkeip,
     google_compute_address.staticgkeregionalip
   ]
 }
@@ -145,7 +138,6 @@ resource "google_dns_record_set" "streamstate-recordset" {
   rrdatas      = ["0 issue \"letsencrypt.org\"", "0 issue \"pki.goog\""]
   ttl          = 86400
   depends_on = [
-    #google_compute_global_address.staticgkeip,
     google_compute_address.staticgkeregionalip
   ]
 }
