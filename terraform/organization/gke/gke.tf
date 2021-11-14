@@ -41,7 +41,7 @@ resource "google_container_cluster" "primary" {
 
   # Enable Workload Identity
   workload_identity_config {
-    identity_namespace = "${var.project}.svc.id.goog"
+    workload_pool = "${var.project}.svc.id.goog"
   }
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default

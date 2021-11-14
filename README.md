@@ -19,6 +19,8 @@ First time:
 * gcloud iam service-accounts create terraform --display-name "Terraform admin account"
 * gcloud beta billing projects link $PROJECT_NAME --billing-account=$BILLING_ACCOUNT
 * gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member serviceAccount:terraform@${PROJECT_NAME}.iam.gserviceaccount.com --role roles/owner
+* cd terraform/organization
+* terraform init
 
 Every time:
 
