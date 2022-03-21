@@ -46,7 +46,7 @@ spec:
             name: argowebhookdeploy
             port: 
               number: 13000
-      - path: /api
+      - path: /api/*
         pathType: ImplementationSpecific
         backend:
           service:
@@ -67,9 +67,9 @@ spec:
             name: mainui
             port:
               number: 80
-      #- path: /docs
-      #  backend:
-      #    service:
-      #      name: restapi # is this right??
-      #      port:
-      #        number: 8000
+      - path: /docs # swagger is hosted at this endpoint
+        backend:
+          service:
+            name: restapi 
+            port:
+              number: 8000
