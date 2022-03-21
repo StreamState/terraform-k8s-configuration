@@ -75,9 +75,10 @@ resource "helm_release" "streamstate" {
   values = [
     "${templatefile("../../streamstate/values.yaml", {
       sparknamespace                = local.sparknamespace
+      staticip_name                 = var.staticip_name
       project                       = var.project
       organization                  = var.organization
-      tag                           = "v0.0.3"
+      tag                           = "v0.0.31"
       registry                      = var.org_registry
       sparkhistoryserviceaccount    = local.sparkhistoryserviceaccount
       sparkserviceaccount           = local.sparkserviceaccount
@@ -98,7 +99,7 @@ resource "helm_release" "streamstate" {
       DS_PROMETHEUS                 = "Prometheus" # dummy for grafana
     })}"
   ]
-  depends_on = [helm_release.spark, helm_release.nginx, kubectl_manifest.cert-manager]
+  depends_on = [helm_release.spark]
 }
 ##################
 # Map GCP service accounts to kubernetes service accounts
@@ -187,23 +188,6 @@ resource "google_service_account_iam_binding" "dns" {
   #]
 }
 
-##################
-# Install CRD for cert-manager
-##################
-data "http" "cert-manager" {
-  url = "https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.crds.yaml"
-  request_headers = {
-    Accept = "application/octet-stream"
-  }
-}
-data "kubectl_file_documents" "cert-manager" {
-  content = data.http.cert-manager.body
-}
-resource "kubectl_manifest" "cert-manager" {
-  count      = length(data.kubectl_file_documents.cert-manager.documents)
-  yaml_body  = element(data.kubectl_file_documents.cert-manager.documents, count.index)
-  depends_on = [local_file.kubeconfig]
-}
 
 ##################
 # Install Spark
@@ -227,27 +211,5 @@ resource "helm_release" "spark" {
     name  = "metrics.enable"
     value = false //local prometheus shouldn't scrape global operator
   }
-  depends_on = [local_file.kubeconfig]
-}
-
-
-##################
-# Install Nginx
-##################
-# Todo, this should be installed cluster wide
-resource "helm_release" "nginx" {
-  name             = "nginx-ingress"
-  namespace        = "nginx"
-  create_namespace = true
-  #repository       = "https://helm.nginx.com/stable"
-  repository = "https://kubernetes.github.io/ingress-nginx"
-  #chart      = "nginx-ingress"
-  chart   = "ingress-nginx"
-  version = "3.34.0"
-  values = [
-    "${templatefile("./kubernetes/nginxvalues.yml", {
-      static_ip_address = var.staticip_address
-    })}"
-  ]
   depends_on = [local_file.kubeconfig]
 }

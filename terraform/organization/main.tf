@@ -13,12 +13,13 @@ variable "client_id" {
 variable "client_secret" {
   type = string
 }
-/*variable "staticip_name" {
-  type = string
-}*/
-variable "staticip_address" {
+variable "staticip_name" {
   type = string
 }
+/*
+variable "staticip_address" {
+  type = string
+}*/
 variable "registryprefix" {
   type    = string                       # eg gcr.io
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
@@ -44,7 +45,7 @@ terraform {
     }
     google = {
       source  = "hashicorp/google"
-      version = ">= 3.52"
+      version = ">= 3.63.0"
     }
     helm = {
       source  = "hashicorp/helm"
@@ -92,14 +93,14 @@ module "kubernetes-config" {
   org_registry              = module.serviceaccounts.org_registry
   #spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
-  //staticipname             = var.staticip_name
-  spark_history_name = module.serviceaccounts.spark_history_name
-  checkpoint_name    = module.serviceaccounts.checkpoint_name
-  staticip_address   = var.staticip_address
-  dns_svc_name       = module.serviceaccounts.dns_svc_name
-  dns_svc_email      = module.serviceaccounts.dns_svc_email
-  argo_svc_name      = module.serviceaccounts.argo_svc_name
-  argo_svc_email     = module.serviceaccounts.argo_svc_email
+  staticip_name             = var.staticip_name
+  spark_history_name       = module.serviceaccounts.spark_history_name
+  checkpoint_name          = module.serviceaccounts.checkpoint_name
+  //staticip_address   = var.staticip_address
+  dns_svc_name   = module.serviceaccounts.dns_svc_name
+  dns_svc_email  = module.serviceaccounts.dns_svc_email
+  argo_svc_name  = module.serviceaccounts.argo_svc_name
+  argo_svc_email = module.serviceaccounts.argo_svc_email
 }
 
 

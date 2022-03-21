@@ -142,9 +142,9 @@ rules:
 - apiGroups: ["sparkoperator.k8s.io"] # "" indicates the core API group
   resources: ["sparkapplications"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: [""] # "" indicates the core API group
-  resources: ["services"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+#- apiGroups: [""] # "" indicates the core API group
+#  resources: ["services"]
+#  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["batch"] # "" indicates the core API group
   resources: ["jobs"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

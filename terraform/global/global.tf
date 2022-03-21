@@ -141,3 +141,5 @@ resource "google_dns_record_set" "streamstate-recordset" {
     google_compute_address.staticgkeregionalip
   ]
 }
+
+### TODO ADD API GATEWAY HERE

@@ -15,7 +15,7 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.1.0
+version: 0.1.1
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
@@ -31,10 +31,6 @@ dependencies:
 - name: kubernetes-secret-generator
   version: "3.3.1"
   repository: "https://helm.mittwald.de"
-
-- name: cert-manager
-  version: "1.4.0"
-  repository: "https://charts.jetstack.io"
 
 - name: kube-prometheus-stack
   version: "16.14.1"

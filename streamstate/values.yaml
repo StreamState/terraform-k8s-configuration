@@ -4,6 +4,7 @@
 
 nameOverride: "streamstate"
 fullnameOverride: "streamstate-chart"
+staticip_name: "${staticip_name}"
 
 namespaces:
   sparknamespace: "${sparknamespace}"  # hacky, but need something like https://github.com/helm/helm/pull/6876 to make it not hacky...
@@ -59,21 +60,6 @@ kubernetes-secret-generator:
   rbac:
     clusterRole: false 
 
-cert-manager:
-  installCRDs: false
-
-  serviceAccount:
-    name: ${dnsserviceaccount}
-    create: true
-    automountServiceAccountToken: true
-    annotations:
-      iam.gke.io/gcp-service-account: ${gcp_dns_svc}
-      
-  # https://github.com/jetstack/cert-manager/issues/3009#issuecomment-766696268
-  extraArgs: 
-    - --issuer-ambient-credentials=true
-    - --cluster-issuer-ambient-credentials=true
-
 kube-prometheus-stack:
   kube-state-metrics:
     extraArgs:
@@ -91,8 +77,23 @@ kube-prometheus-stack:
       additional:
         - "${sparknamespace}"
 
+  kubeControllerManager:
+    enabled: false
+
+  nodeExporter:
+    enabled: false
+
+  kubeScheduler:
+    enabled: false
+
+  kubeProxy:
+    enabled: false 
+
+  kubeEtcd:
+    enabled: false 
+
   kubeDns:
-    enabled: true
+    enabled: false #I changed this
 
   coreDns:
     enabled: false

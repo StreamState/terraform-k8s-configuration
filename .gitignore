@@ -24,3 +24,4 @@ mytest1.json
 /target
 confluentsettings.txt
 oktacreds.txt
+streamstate/charts

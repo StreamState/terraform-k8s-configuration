@@ -5,9 +5,6 @@ dependencies:
 - name: kubernetes-secret-generator
   repository: https://helm.mittwald.de
   version: 3.3.1
-- name: cert-manager
-  repository: https://charts.jetstack.io
-  version: v1.4.0
 - name: kube-prometheus-stack
   repository: https://prometheus-community.github.io/helm-charts
   version: 16.14.1
@@ -20,5 +17,5 @@ dependencies:
 - name: argo-events
   repository: https://argoproj.github.io/argo-helm
   version: 1.6.4
-digest: sha256:594492c4eaa81780d0b5b95d44ea6a2b8c219ea98ab5b481157fe53631099db2
-generated: "2021-07-17T11:02:02.646311942-05:00"
+digest: sha256:098953b18a4920d7aa51c93404bcfa2ec48e764ffc45c32a5b4a24c02666dce2
+generated: "2022-03-20T16:20:45.312908-05:00"
