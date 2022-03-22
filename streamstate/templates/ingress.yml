@@ -6,7 +6,7 @@ metadata:
     #kubernetes.io/ingress.global-static-ip-name: ADDRESS_NAME
     #networking.gke.io/managed-certificates: managed-cert
     kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: {{ .Values.staticip_name }}
+    kubernetes.io/ingress.regional-static-ip-name: {{ .Values.staticip_name }}
 spec:
   rules:
   - http:
@@ -68,6 +68,7 @@ spec:
             port:
               number: 80
       - path: /docs # swagger is hosted at this endpoint
+        pathType: ImplementationSpecific
         backend:
           service:
             name: restapi 
