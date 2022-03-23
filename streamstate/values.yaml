@@ -93,7 +93,7 @@ kube-prometheus-stack:
     enabled: false 
 
   kubeDns:
-    enabled: false #I changed this
+    enabled: false #used to be true 
 
   coreDns:
     enabled: false

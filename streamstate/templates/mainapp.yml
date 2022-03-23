@@ -190,6 +190,13 @@ spec:
                     parameters:
                       - name: pythoncode
                   container:
+                    resources:
+                      requests:
+                        memory: "64Mi"
+                        cpu: "250m"
+                      limits:
+                        memory: "64Mi"
+                        cpu: "250m"
                     image: cytopia/mypy 
                     command: [sh, -c]
                     args: 
@@ -204,6 +211,13 @@ spec:
                       - name: inputs
                       - name: assertions
                   container:
+                    resources:
+                      requests:
+                        memory: "64Mi"
+                        cpu: "250m"
+                      limits:
+                        memory: "128Mi"
+                        cpu: "250m"
                     image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/pysparktest:{{ .Values.dockerTag }}
                     imagePullPolicy: Always
                     command: [sh, -c]
@@ -260,6 +274,13 @@ spec:
                   container:
                     image: cytopia/mypy # doesn't really matter, so may as well use an image already downloaded
                     imagePullPolicy: IfNotPresent
+                    resources:
+                      requests:
+                        memory: "64Mi"
+                        cpu: "250m"
+                      limits:
+                        memory: "128Mi"
+                        cpu: "250m"
                     command: [sh, -c]
                     args:
                       - | 
@@ -316,6 +337,13 @@ spec:
                       - name: kafka
                       - name: version
                   container: 
+                    resources:
+                      requests:
+                        memory: "64Mi"
+                        cpu: "250m"
+                      limits:
+                        memory: "128Mi"
+                        cpu: "250m"
                     image:  {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/firestoresetup:{{ .Values.dockerTag }}
                     imagePullPolicy: Always
                     command: [

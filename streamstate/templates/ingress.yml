@@ -6,7 +6,7 @@ metadata:
     #kubernetes.io/ingress.global-static-ip-name: ADDRESS_NAME
     #networking.gke.io/managed-certificates: managed-cert
     kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.regional-static-ip-name: {{ .Values.staticip_name }}
+    kubernetes.io/ingress.global-static-ip-name: {{ .Values.staticip_name }}
 spec:
   rules:
   - http:
@@ -18,13 +18,13 @@ spec:
             name: streamstate-argo-workflows-server
             port:
               number: 2746
-      - path: /monitoring/*
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: prometheus-operated 
-            port:
-              number: 9090
+      #- path: /monitoring/*
+      #  pathType: ImplementationSpecific
+      #  backend:
+      #    service:
+      #      name: prometheus-operated 
+      #      port:
+      #        number: 9090
       - path: /grafana/*
         pathType: ImplementationSpecific
         backend:

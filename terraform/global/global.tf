@@ -1,6 +1,5 @@
 variable "project" {
   type = string
-  #default = "streamstate"
 }
 variable "location" {
   type        = string
@@ -18,22 +17,18 @@ terraform {
 provider "google" {
   project = var.project
   region  = var.location
-  #zone    = "us-central1-c"
 }
 
 # Use firestore
 ## apparently I need to enable (but not instantiate) app engine 
 ## to use firestore from terraform
-resource "google_app_engine_application" "dummyapp" {
+/*resource "google_app_engine_application" "dummyapp" {
   provider      = google-beta
   location_id   = "us-central" # var.regio.1n
   project       = var.project
   database_type = "CLOUD_FIRESTORE"
-  #depends_on = [
-  #  google_project_service.firestore
-  #]
 }
-
+*/
 resource "google_project_service" "resource_manager" {
   project = var.project
   service = "cloudresourcemanager.googleapis.com"
@@ -48,7 +43,7 @@ resource "google_project_service" "dns" {
 }
 
 # enable firestore
-resource "google_project_service" "firestore" {
+/*resource "google_project_service" "firestore" {
   project                    = var.project
   service                    = "firestore.googleapis.com"
   disable_dependent_services = true
@@ -56,7 +51,7 @@ resource "google_project_service" "firestore" {
     google_project_service.resource_manager,
     google_app_engine_application.dummyapp
   ]
-}
+}*/
 
 
 
@@ -70,43 +65,26 @@ resource "google_project_service" "artifactregistry" {
   service    = "artifactregistry.googleapis.com"
   depends_on = [google_project_service.resource_manager]
 }
-/*
-resource "google_project_service" "registry" {
-  project    = var.project
-  service    = "containerregistry.googleapis.com"
-  depends_on = [google_project_service.resource_manager]
-}*/
+
 resource "google_project_service" "container_cluster" {
-  project    = var.project
-  service    = "container.googleapis.com"
-  depends_on = [google_project_service.resource_manager]
+  project                    = var.project
+  service                    = "container.googleapis.com"
+  disable_dependent_services = true
+  depends_on                 = [google_project_service.resource_manager]
 }
 
 resource "google_artifact_registry_repository" "artifactrepo" {
-  provider      = google-beta
-  project       = var.project
-  location      = var.location
-  repository_id = var.project
-  description   = "global docker repo"
-  format        = "DOCKER"
-  depends_on    = [google_project_service.artifactregistry]
+  provider                   = google-beta
+  project                    = var.project
+  location                   = var.location
+  repository_id              = var.project
+  description                = "global docker repo"
+  format                     = "DOCKER"
+  depends_on                 = [google_project_service.artifactregistry]
 }
 
-## This apparently isn't allowed yet
-/*esource "google_artifact_registry_repository" "mavenrepo" {
-  provider      = google-beta
-  project       = var.project
-  location      = var.location
-  repository_id = var.project
-  description   = "global maven repo"
-  format        = "MAVEN"
-  depends_on    = [google_project_service.artifactregistry]
-}*/
-
-
-resource "google_compute_address" "staticgkeregionalip" {
-  name = "streamstate-regional-ip"
-  #  address = local.address
+resource "google_compute_global_address" "staticgkeglobalip" {
+  name = "streamstate-global-ip"
 }
 
 resource "google_dns_managed_zone" "streamstate-zone" {
@@ -114,6 +92,7 @@ resource "google_dns_managed_zone" "streamstate-zone" {
   dns_name    = "streamstate.org." #example-${random_id.rnd.hex}.com."
   description = "streamstate zone"
 }
+
 resource "google_dns_record_set" "streamstate-recordset-a" {
   provider     = google-beta
   project      = var.project
@@ -121,11 +100,11 @@ resource "google_dns_record_set" "streamstate-recordset-a" {
   name         = "*.streamstate.org." # apparently this is the actual domain name :|
   type         = "A"
   rrdatas = [
-    google_compute_address.staticgkeregionalip.address
+    google_compute_global_address.staticgkeglobalip.address
   ]
   ttl = 86400
   depends_on = [
-    google_compute_address.staticgkeregionalip
+    google_compute_global_address.staticgkeglobalip
   ]
 }
 
@@ -135,11 +114,10 @@ resource "google_dns_record_set" "streamstate-recordset" {
   managed_zone = google_dns_managed_zone.streamstate-zone.name
   name         = "*.streamstate.org." # apparently this is the actual domain name :|
   type         = "CAA"
-  rrdatas      = ["0 issue \"letsencrypt.org\"", "0 issue \"pki.goog\""]
+  rrdatas      = ["0 issue \"letsencrypt.org\"", "0 issue \"pki.goog\""] # hmm, do I need this?
   ttl          = 86400
   depends_on = [
-    google_compute_address.staticgkeregionalip
+    google_compute_global_address.staticgkeglobalip
   ]
 }
 
-### TODO ADD API GATEWAY HERE

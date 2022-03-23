@@ -16,6 +16,13 @@ spec:
       - image: {{ .Values.registryprefix }}/{{ .Values.project }}/{{ .Values.project }}/restapi:{{ .Values.dockerTag }}
         imagePullPolicy: Always
         name: restapi
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
         ports:
         - containerPort: 8000
         env:

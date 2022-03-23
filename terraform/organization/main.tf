@@ -13,13 +13,7 @@ variable "client_id" {
 variable "client_secret" {
   type = string
 }
-variable "staticip_name" {
-  type = string
-}
-/*
-variable "staticip_address" {
-  type = string
-}*/
+
 variable "registryprefix" {
   type    = string                       # eg gcr.io
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
@@ -68,6 +62,11 @@ module "serviceaccounts" {
   cluster_email = module.gke-cluster.cluster_email
 }
 
+data "google_compute_global_address" "global_address" {
+  name    = "streamstate-global-ip"
+  project = var.project
+}
+
 module "kubernetes-config" {
   source                    = "./kubernetes"
   cluster_name              = module.gke-cluster.cluster_name
@@ -93,7 +92,7 @@ module "kubernetes-config" {
   org_registry              = module.serviceaccounts.org_registry
   #spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
-  staticip_name             = var.staticip_name
+  staticip_name            = data.google_compute_global_address.global_address.name
   spark_history_name       = module.serviceaccounts.spark_history_name
   checkpoint_name          = module.serviceaccounts.checkpoint_name
   //staticip_address   = var.staticip_address
