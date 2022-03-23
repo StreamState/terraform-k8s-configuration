@@ -1,6 +1,7 @@
-#apiVersion: networking.gke.io/v1
-#kind: ManagedCertificate
-#metadata:
-#  name: managed-cert
-#spec:
-#  domains:
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: managed-cert
+spec:
+  domains:
+    - {{ .Values.organization }}.streamstate.org

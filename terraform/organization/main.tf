@@ -90,12 +90,10 @@ module "kubernetes-config" {
   firestoreviewer_svc_name  = module.serviceaccounts.firestoreviewer_svc_name
   firestoreviewer_svc_email = module.serviceaccounts.firestoreviewer_svc_email
   org_registry              = module.serviceaccounts.org_registry
-  #spark_history_bucket_url = module.serviceaccounts.spark_history_bucket_url
   spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
   staticip_name            = data.google_compute_global_address.global_address.name
   spark_history_name       = module.serviceaccounts.spark_history_name
   checkpoint_name          = module.serviceaccounts.checkpoint_name
-  //staticip_address   = var.staticip_address
   dns_svc_name   = module.serviceaccounts.dns_svc_name
   dns_svc_email  = module.serviceaccounts.dns_svc_email
   argo_svc_name  = module.serviceaccounts.argo_svc_name

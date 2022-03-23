@@ -78,7 +78,7 @@ resource "helm_release" "streamstate" {
       staticip_name                 = var.staticip_name
       project                       = var.project
       organization                  = var.organization
-      tag                           = "v0.0.31"
+      tag                           = "v0.0.35"
       registry                      = var.org_registry
       sparkhistoryserviceaccount    = local.sparkhistoryserviceaccount
       sparkserviceaccount           = local.sparkserviceaccount

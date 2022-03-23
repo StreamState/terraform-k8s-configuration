@@ -93,16 +93,16 @@ kube-prometheus-stack:
     enabled: false 
 
   kubeDns:
-    enabled: false #used to be true 
+    enabled: false # true does not work with autopilot
 
   coreDns:
     enabled: false
 
-  prometheus:
-    prometheusSpec:
+  #prometheus:
+    #prometheusSpec:
       # blank since "monitoring" prefix will be stripped by nginx
-      routePrefix: / # https://prometheus.io/docs/guides/tls-encryption/
-      externalUrl: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
+      #routePrefix: / # https://prometheus.io/docs/guides/tls-encryption/
+      #externalUrl: https://${organization}.streamstate.org/monitoring # see https://blog.cubieserver.de/2020/configure-prometheus-on-a-sub-path-behind-reverse-proxy/ and gateway/ingress.yml
 
 
 # this is giving a 403 error for accessing gcs
