@@ -74,17 +74,18 @@ resource "google_project_service" "container_cluster" {
 }
 
 resource "google_artifact_registry_repository" "artifactrepo" {
-  provider                   = google-beta
-  project                    = var.project
-  location                   = var.location
-  repository_id              = var.project
-  description                = "global docker repo"
-  format                     = "DOCKER"
-  depends_on                 = [google_project_service.artifactregistry]
+  provider      = google-beta
+  project       = var.project
+  location      = var.location
+  repository_id = var.project
+  description   = "global docker repo"
+  format        = "DOCKER"
+  depends_on    = [google_project_service.artifactregistry]
 }
 
-resource "google_compute_global_address" "staticgkeglobalip" {
-  name = "streamstate-global-ip"
+resource "google_compute_address" "staticgkeip" {
+  name   = "streamstate-regional-ip"
+  region = var.location
 }
 
 resource "google_dns_managed_zone" "streamstate-zone" {
@@ -100,11 +101,11 @@ resource "google_dns_record_set" "streamstate-recordset-a" {
   name         = "*.streamstate.org." # apparently this is the actual domain name :|
   type         = "A"
   rrdatas = [
-    google_compute_global_address.staticgkeglobalip.address
+    google_compute_address.staticgkeip.address
   ]
   ttl = 86400
   depends_on = [
-    google_compute_global_address.staticgkeglobalip
+    google_compute_address.staticgkeip
   ]
 }
 
@@ -117,7 +118,7 @@ resource "google_dns_record_set" "streamstate-recordset" {
   rrdatas      = ["0 issue \"letsencrypt.org\"", "0 issue \"pki.goog\""] # hmm, do I need this?
   ttl          = 86400
   depends_on = [
-    google_compute_global_address.staticgkeglobalip
+    google_compute_address.staticgkeip
   ]
 }
 

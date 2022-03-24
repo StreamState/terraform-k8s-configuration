@@ -4,17 +4,15 @@
 
 nameOverride: "streamstate"
 fullnameOverride: "streamstate-chart"
-staticip_name: "${staticip_name}"
 
 namespaces:
   sparknamespace: "${sparknamespace}"  # hacky, but need something like https://github.com/helm/helm/pull/6876 to make it not hacky...
-
-#sparknamespace: "${sparknamespace}"
 organization: "${organization}"
 project: "${project}"
 dockerTag: "${tag}"
 registryprefix: us-central1-docker.pkg.dev
 registry: ${registry}
+#issuer: "letsencrypt-prod" # uncomment if using prod issuer
 serviceaccounts:
   spark_history_service_account: 
     name: ${sparkhistoryserviceaccount}
