@@ -14,6 +14,11 @@ variable "client_secret" {
   type = string
 }
 
+variable "region" {
+  type    = string
+  default = "us-central1"
+}
+
 variable "registryprefix" {
   type    = string                       # eg gcr.io
   default = "us-central1-docker.pkg.dev" #"gcr.io" # us-central1-docker.pkg.dev/streamstatetest/streamstatetest
@@ -52,7 +57,7 @@ module "gke-cluster" {
   source       = "./gke"
   organization = var.organization
   project      = var.project
-  region       = "us-central1"
+  region       = var.region
 
 }
 module "serviceaccounts" {
@@ -62,9 +67,10 @@ module "serviceaccounts" {
   cluster_email = module.gke-cluster.cluster_email
 }
 
-data "google_compute_global_address" "global_address" {
-  name    = "streamstate-global-ip"
+data "google_compute_address" "staticip" {
+  name    = "streamstate-regional-ip"
   project = var.project
+  region  = var.region
 }
 
 module "kubernetes-config" {
@@ -90,14 +96,14 @@ module "kubernetes-config" {
   firestoreviewer_svc_name  = module.serviceaccounts.firestoreviewer_svc_name
   firestoreviewer_svc_email = module.serviceaccounts.firestoreviewer_svc_email
   org_registry              = module.serviceaccounts.org_registry
-  spark_storage_bucket_url = module.serviceaccounts.spark_storage_bucket_url
-  staticip_name            = data.google_compute_global_address.global_address.name
-  spark_history_name       = module.serviceaccounts.spark_history_name
-  checkpoint_name          = module.serviceaccounts.checkpoint_name
-  dns_svc_name   = module.serviceaccounts.dns_svc_name
-  dns_svc_email  = module.serviceaccounts.dns_svc_email
-  argo_svc_name  = module.serviceaccounts.argo_svc_name
-  argo_svc_email = module.serviceaccounts.argo_svc_email
+  spark_storage_bucket_url  = module.serviceaccounts.spark_storage_bucket_url
+  staticip_address          = data.google_compute_address.staticip.address
+  spark_history_name        = module.serviceaccounts.spark_history_name
+  checkpoint_name           = module.serviceaccounts.checkpoint_name
+  dns_svc_name              = module.serviceaccounts.dns_svc_name
+  dns_svc_email             = module.serviceaccounts.dns_svc_email
+  argo_svc_name             = module.serviceaccounts.argo_svc_name
+  argo_svc_email            = module.serviceaccounts.argo_svc_email
 }
 
 

@@ -75,7 +75,6 @@ resource "helm_release" "streamstate" {
   values = [
     "${templatefile("../../streamstate/values.yaml", {
       sparknamespace                = local.sparknamespace
-      staticip_name                 = var.staticip_name
       project                       = var.project
       organization                  = var.organization
       tag                           = "v0.0.35"
@@ -99,7 +98,7 @@ resource "helm_release" "streamstate" {
       DS_PROMETHEUS                 = "Prometheus" # dummy for grafana
     })}"
   ]
-  depends_on = [helm_release.spark]
+  depends_on = [helm_release.spark, helm_release.cert-manager, helm_release.nginx]
 }
 ##################
 # Map GCP service accounts to kubernetes service accounts
@@ -115,9 +114,6 @@ resource "google_service_account_iam_binding" "bind_docker_write_argo" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.dockerwriteserviceaccount}]",
   ]
-  #depends_on = [
-  #  helm_release.streamstate
-  #]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -129,9 +125,6 @@ resource "google_service_account_iam_binding" "spark-history" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.sparkhistoryserviceaccount}]",
   ]
-  #depends_on = [
-  #  helm_release.streamstate
-  #]
 }
 
 # see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gcloud
@@ -171,9 +164,6 @@ resource "google_service_account_iam_binding" "spark" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.sparknamespace}/${local.sparkserviceaccount}]",
   ]
-  #depends_on = [
-  #  helm_release.streamstate
-  #]
 }
 
 ## This is neeeded if using dns in cert issuer
@@ -183,9 +173,6 @@ resource "google_service_account_iam_binding" "dns" {
   members = [
     "serviceAccount:${var.project}.svc.id.goog[${local.controlpanenamespace}/${local.dnsserviceaccount}]",
   ]
-  #depends_on = [
-  #  helm_release.streamstate //helm creates the service account for me
-  #]
 }
 
 
@@ -203,6 +190,7 @@ resource "helm_release" "spark" {
   create_namespace = true
   repository       = "https://googlecloudplatform.github.io/spark-on-k8s-operator"
   chart            = "spark-operator"
+  version="1.1.19"
   set {
     name  = "webhook.enable"
     value = true
@@ -210,6 +198,43 @@ resource "helm_release" "spark" {
   set {
     name  = "metrics.enable"
     value = false //local prometheus shouldn't scrape global operator
+  }
+  depends_on = [local_file.kubeconfig]
+}
+
+resource "helm_release" "nginx" {
+  name             = "nginx-ingress"
+  namespace        = "nginx"
+  create_namespace = true
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  chart   = "ingress-nginx"
+  version = "4.0.18"
+  values = [
+    "${templatefile("./kubernetes/nginxvalues.yml", {
+      static_ip_address = var.staticip_address
+    })}"
+  ]
+  depends_on = [local_file.kubeconfig]
+}
+
+resource "helm_release" "cert-manager" {
+  name             = "cert-manager"
+  namespace        = "cert-manager"
+  create_namespace = true
+  repository = "https://charts.jetstack.io"
+  chart   = "cert-manager"
+  version = "v1.7.2"
+  set {
+    name  = "global.leaderElection.namespace"
+    value = "cert-manager"
+  }
+  set {
+    name  = "installCRDs"
+    value = true
+  }
+  set {
+    name  = "prometheus.enabled"
+    value = false
   }
   depends_on = [local_file.kubeconfig]
 }
