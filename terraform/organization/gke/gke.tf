@@ -26,11 +26,36 @@ resource "google_container_cluster" "primary" {
     cluster_ipv4_cidr_block  = "/16"
     services_ipv4_cidr_block = "/22"
   }
-  enable_autopilot = true
-  /*identity_service_config {
-    enabled=true
-  }*/
+  #enable_autopilot = true
+  workload_identity_config {
+    workload_pool = "${var.project}.svc.id.goog"
+  }
+  # We can't create a cluster with no node pool defined, but we want to only use
+  # separately managed node pools. So we create the smallest possible default
+  # node pool and immediately delete it.
+  remove_default_node_pool = true
+  initial_node_count       = 1
 }
+
+# this should be at the organization level (each organization gets their own cluster)
+resource "google_container_node_pool" "primary_preemptible_nodes" {
+  project    = var.project
+  name       = "${var.project}pool-${var.organization}"
+  location   = var.region
+  version    = google_container_cluster.primary.master_version
+  cluster    = google_container_cluster.primary.name
+  node_count = 1 # it keeps giving me 3 nodes though
+   node_config {
+    preemptible  = true
+    machine_type = "e2-standard-2" #"e2-medium" 
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    service_account = google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform",
+    ]
+  }
+}
+
 
 data "google_container_cluster" "primary" {
   name     = google_container_cluster.primary.name

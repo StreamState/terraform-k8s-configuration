@@ -72,6 +72,7 @@ resource "helm_release" "streamstate" {
     name  = "oauth.client_secret"
     value = base64encode(var.client_secret)
   }
+  timeout=3000 # has to wait for autoscale
   values = [
     "${templatefile("../../streamstate/values.yaml", {
       sparknamespace                = local.sparknamespace
@@ -214,7 +215,7 @@ resource "helm_release" "nginx" {
       static_ip_address = var.staticip_address
     })}"
   ]
-  depends_on = [local_file.kubeconfig]
+  depends_on = [local_file.kubeconfig] 
 }
 
 resource "helm_release" "cert-manager" {

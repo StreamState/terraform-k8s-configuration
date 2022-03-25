@@ -91,7 +91,7 @@ kube-prometheus-stack:
     enabled: false 
 
   kubeDns:
-    enabled: false # true does not work with autopilot
+    enabled: true # true does not work with autopilot
 
   coreDns:
     enabled: false
